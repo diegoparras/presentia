@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import MarkdownRenderer from "@/components/MarkDownRender";
 import { PresentationChatApi } from "../../services/api/chat";
 import type { ChatStreamTrace } from "../../services/api/chat";
+import { cn } from "@/lib/utils";
 
 const suggestions: { id: string; icon: ReactNode; suggestion: string }[] = [
   {
@@ -214,11 +215,20 @@ const suggestions: { id: string; icon: ReactNode; suggestion: string }[] = [
   },
 ];
 
-const quickPrompts = [
-  "Expand each section",
-  "Reorder for storytelling",
-  "Add missing sections",
-  "Convert to pitch flow",
+const outlineQuickPrompts = [
+  "Expand outline",
+  "Shorten outline",
+  "Reorder sections",
+  "Merge similar slides",
+  "Split large sections",
+  "Improve conclusion",
+  "Improve introduction",
+];
+
+const outlineFooterPrompts = [
+  "shuffle icon",
+  "Generate new structure",
+  "Generate",
 ];
 
 type ChatMessage = {
@@ -233,6 +243,8 @@ type ChatProps = {
   presentationId: string;
   currentSlide?: number;
   onPresentationChanged?: () => Promise<void> | void;
+  variant?: "presentation" | "outline";
+  className?: string;
 };
 
 type AssistantActivity = {
@@ -441,6 +453,8 @@ const Chat = ({
   presentationId,
   currentSlide,
   onPresentationChanged,
+  variant = "presentation",
+  className,
 }: ChatProps) => {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -854,8 +868,10 @@ const Chat = ({
     inputRef.current?.focus();
   };
 
+  const isOutlineVariant = variant === "outline";
+
   return (
-    <div className="flex h-full w-full flex-col bg-white">
+    <div className={cn("flex h-full w-full flex-col bg-white", className)}>
       <div className="flex items-center justify-between px-4 pt-8">
         <div className="flex items-center gap-2">
           <h4 className="flex items-center gap-2 text-sm font-semibold text-[#101828]">
@@ -905,46 +921,49 @@ const Chat = ({
           </div>
         ) : messages.length === 0 ? (
           <>
-            <div>
-              <h4 className="mb-2 text-[10px] font-normal leading-[15px] tracking-[0.367px] text-[#99A1AF]">
-                SUGGESTIONS
-              </h4>
-              <div className="flex flex-col gap-1.5">
-                {suggestions.map((suggestion) => (
-                  <button
-                    key={suggestion.id}
-                    type="button"
-                    onClick={() => applyPrompt(suggestion.suggestion)}
-                    className="flex cursor-pointer items-center gap-3 rounded-[10px] border border-[#F4F4F4] px-3 py-2 text-left transition-colors hover:bg-[#FAFAFA]"
-                  >
-                    {suggestion.icon}
-                    <span className="text-xs font-normal leading-[15px] tracking-[0.367px] text-[#364153]">
-                      {suggestion.suggestion}
-                    </span>
-                  </button>
-                ))}
+            {isOutlineVariant ? (
+              <div>
+                <h4 className="mb-2 text-[10px] font-normal leading-[15px] tracking-[0.367px] text-[#99A1AF]">
+                  QUICK PROMPTS
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {outlineQuickPrompts.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => applyPrompt(prompt)}
+                      className="cursor-pointer rounded-[10px] border border-[#F4F4F4] px-2.5 py-1 text-left transition-colors hover:bg-[#FAFAFA]"
+                    >
+                      <span className="text-[11px] font-normal leading-[15px] tracking-[0.367px] text-[#364153]">
+                        {prompt}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div>
+                <h4 className="mb-2 text-[10px] font-normal leading-[15px] tracking-[0.367px] text-[#99A1AF]">
+                  SUGGESTIONS
+                </h4>
+                <div className="flex flex-col gap-1.5">
+                  {suggestions.map((suggestion) => (
+                    <button
+                      key={suggestion.id}
+                      type="button"
+                      onClick={() => applyPrompt(suggestion.suggestion)}
+                      className="flex cursor-pointer items-center gap-3 rounded-[10px] border border-[#F4F4F4] px-3 py-2 text-left transition-colors hover:bg-[#FAFAFA]"
+                    >
+                      {suggestion.icon}
+                      <span className="text-xs font-normal leading-[15px] tracking-[0.367px] text-[#364153]">
+                        {suggestion.suggestion}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            {/* <div className="mt-10">
-              <h4 className="mb-2 text-[10px] font-normal leading-[15px] tracking-[0.367px] text-[#99A1AF]">
-                QUICK PROMPTS
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {quickPrompts.map((prompt) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    onClick={() => applyPrompt(prompt)}
-                    className="cursor-pointer rounded-[10px] border border-[#F4F4F4] px-2.5 py-1 transition-colors hover:bg-[#FAFAFA]"
-                  >
-                    <span className="text-xs font-normal leading-[15px] tracking-[0.367px] text-[#364153]">
-                      {prompt}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div> */}
           </>
         ) : (
           <div className="flex flex-col gap-9">
@@ -1048,7 +1067,10 @@ const Chat = ({
 
       <form
         onSubmit={handleSubmit}
-        className="relative mx-4 mb-4 rounded-[8px] border border-[#F4F4F4] bg-white px-2.5 py-3"
+        className={cn(
+          "relative mx-4 rounded-[8px] border border-[#F4F4F4] bg-white px-2.5 py-3",
+          isOutlineVariant ? "mb-2" : "mb-4"
+        )}
         style={{
           boxShadow: "0 4px 14px 0 rgba(0, 0, 0, 0.04)",
         }}
@@ -1057,13 +1079,18 @@ const Chat = ({
           ref={inputRef}
           name="chat-input"
           id="chat-input"
-          className="min-h-[92px] w-full resize-none bg-transparent pb-10 text-sm text-[#101828] placeholder:text-[#99A1AF] focus:outline-none focus:ring-0"
+          className={cn(
+            "w-full resize-none bg-transparent pb-10 text-sm text-[#101828] placeholder:text-[#99A1AF] focus:outline-none focus:ring-0",
+            isOutlineVariant ? "min-h-[88px]" : "min-h-[92px]"
+          )}
           rows={4}
           value={input}
           disabled={isSending || isHistoryLoading}
           onChange={(event) => setInput(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Improve your slides..."
+          placeholder={
+            isOutlineVariant ? "Regenerate this outline" : "Improve your slides..."
+          }
           aria-invalid={Boolean(errorMessage)}
         />
         <button
@@ -1112,6 +1139,21 @@ const Chat = ({
           </button>
         )}
       </form>
+      {isOutlineVariant && (
+        <div className="mx-4 mb-4 flex flex-wrap gap-2">
+          {outlineFooterPrompts.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              onClick={() => applyPrompt(prompt)}
+              disabled={isSending || isHistoryLoading}
+              className="rounded-[10px] border border-[#F4F4F4] bg-white px-2.5 py-1 text-[11px] font-normal leading-[15px] tracking-[0.367px] text-[#364153] transition-colors hover:bg-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
