@@ -184,47 +184,47 @@ const OutlinePage: React.FC = () => {
       <Wrapper className="relative flex w-full flex-col px-5 sm:px-10 lg:px-20">
         <div className="w-full mx-auto">
           <Tabs value={activeTab} onValueChange={handleTabChange} className="flex w-full flex-col">
-            <div className="pb-7 pt-2">
-              <OutlinePromptBar
-                config={draftConfig}
-                disabled={outlineControlsBusy}
-                isBusy={outlineControlsBusy}
-                onConfigChange={handleConfigChange}
-                onRegenerate={handleRegenerateOutline}
-              />
-            </div>
-
-            <div className="mb-6">
-              <TabsList className="h-auto w-fit rounded-full border border-[#EDEEEF] bg-white p-1.5 shadow-sm">
-                <TabsTrigger
-                  value={TABS.LAYOUTS}
-                  className="relative rounded-full px-5 py-2 text-xs font-medium text-[#2D2D2D] shadow-none data-[state=active]:bg-[#F4F3FF] data-[state=active]:text-[#7E3AF2] data-[state=active]:shadow-none"
-                >
-                  Select Template
-                </TabsTrigger>
-                <Separator orientation="vertical" className="mx-1 h-6" />
-                <TabsTrigger
-                  value={TABS.OUTLINE}
-                  disabled={!selectedTemplate}
-                  className={cn(
-                    "rounded-full px-5 py-2 text-xs font-medium text-[#2D2D2D] shadow-none data-[state=active]:bg-[#F4F3FF] data-[state=active]:text-[#7E3AF2] data-[state=active]:shadow-none",
-                    !selectedTemplate && "cursor-not-allowed opacity-50"
-                  )}
-                >
-                  Outline & Content
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
             <div
               className={cn(
                 "w-full gap-5",
                 activeTab === TABS.OUTLINE
-                  ? "grid lg:grid-cols-[minmax(0,1fr)_336px]"
+                  ? "grid lg:grid-cols-[minmax(0,1fr)_352px]"
                   : "block"
               )}
             >
               <div className="min-w-0">
+                <div className="pb-7 pt-2">
+                  <OutlinePromptBar
+                    config={draftConfig}
+                    disabled={outlineControlsBusy}
+                    isBusy={outlineControlsBusy}
+                    onConfigChange={handleConfigChange}
+                    onRegenerate={handleRegenerateOutline}
+                  />
+                </div>
+
+                <div className="mb-6">
+                  <TabsList className="h-auto w-fit rounded-full border border-[#EDEEEF] bg-white p-1.5 shadow-sm">
+                    <TabsTrigger
+                      value={TABS.LAYOUTS}
+                      className="relative rounded-full px-5 py-2 text-xs font-medium text-[#2D2D2D] shadow-none data-[state=active]:bg-[#F4F3FF] data-[state=active]:text-[#7E3AF2] data-[state=active]:shadow-none"
+                    >
+                      Select Template
+                    </TabsTrigger>
+                    <Separator orientation="vertical" className="mx-1 h-6" />
+                    <TabsTrigger
+                      value={TABS.OUTLINE}
+                      disabled={!selectedTemplate}
+                      className={cn(
+                        "rounded-full px-5 py-2 text-xs font-medium text-[#2D2D2D] shadow-none data-[state=active]:bg-[#F4F3FF] data-[state=active]:text-[#7E3AF2] data-[state=active]:shadow-none",
+                        !selectedTemplate && "cursor-not-allowed opacity-50"
+                      )}
+                    >
+                      Outline & Content
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+
                 <TabsContent value={TABS.OUTLINE} className="mt-0">
                   <OutlineContent
                     outlines={outlines}
@@ -246,7 +246,7 @@ const OutlinePage: React.FC = () => {
               </div>
 
               {activeTab === TABS.OUTLINE && (
-                <aside className="min-h-[560px] overflow-hidden border border-[#EDEEEF] bg-white lg:sticky lg:top-[104px] lg:h-[calc(100vh-128px)]">
+                <aside className="min-h-[560px] overflow-hidden border border-[#EDEEEF] bg-white lg:sticky lg:top-[92px] lg:h-[calc(100vh-92px)]">
                   <Chat
                     key={presentation_id}
                     presentationId={presentation_id}

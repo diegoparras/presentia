@@ -901,16 +901,18 @@ const Chat = ({
             </span>
           )}
         </div>
-        <button
-          type="button"
-          onClick={resetChat}
-          disabled={isSending || isHistoryLoading}
-          className="rounded-full p-1 text-[#8C8C8C] transition-colors hover:bg-[#F7F7F7] hover:text-[#191919] disabled:cursor-not-allowed disabled:opacity-50"
-          aria-label="Reset chat"
-          title="Reset chat"
-        >
-          <RefreshCw className="h-4 w-4" />
-        </button>
+        {!isOutlineVariant && (
+          <button
+            type="button"
+            onClick={resetChat}
+            disabled={isSending || isHistoryLoading}
+            className="rounded-full p-1 text-[#8C8C8C] transition-colors hover:bg-[#F7F7F7] hover:text-[#191919] disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Reset chat"
+            title="Reset chat"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-9 hide-scrollbar">

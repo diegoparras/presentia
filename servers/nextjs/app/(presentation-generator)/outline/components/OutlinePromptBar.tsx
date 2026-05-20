@@ -55,7 +55,7 @@ const OutlinePromptBar: React.FC<OutlinePromptBarProps> = ({
             }
           }}
           placeholder="Describe the presentation you want to generate"
-          className="min-h-[88px] resize-none border-0 bg-transparent py-5 pl-6 pr-16 text-base font-medium leading-6 text-[#191919] shadow-none outline-none placeholder:text-[#8C8C8C] focus-visible:ring-0 focus-visible:ring-offset-0 disabled:cursor-not-allowed"
+          className="min-h-[88px] resize-none border-0 bg-transparent py-5 pl-6 pr-16 text-base font-medium leading-6 text-[#191919] shadow-none outline-none placeholder:text-[#8C8C8C] focus-visible:ring-0 focus-visible:ring-offset-0 disabled:cursor-not-allowed sm:pr-44"
         />
         <button
           type="button"
@@ -64,14 +64,24 @@ const OutlinePromptBar: React.FC<OutlinePromptBarProps> = ({
           aria-label="Regenerate outline"
           title="Regenerate outline"
           className={cn(
-            "absolute right-6 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[#7A00FF] transition hover:bg-[#F4F3FF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A00FF]/25",
+            "absolute right-5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center gap-2 rounded-full px-0 text-xs font-semibold text-[#191919] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A00FF]/25 sm:w-auto sm:px-4",
             (disabled || isBusy) && "cursor-not-allowed opacity-70"
           )}
+          style={{
+            background:
+              "linear-gradient(270deg, #D5CAFC 2.4%, #E3D2EB 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+          }}
         >
           {isBusy ? (
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="hidden sm:inline">Regenerating</span>
+            </>
           ) : (
-            <RefreshCw className="h-5 w-5" />
+            <>
+              <RefreshCw className="h-4 w-4" />
+              <span className="hidden sm:inline">Regenerate</span>
+            </>
           )}
         </button>
       </div>
