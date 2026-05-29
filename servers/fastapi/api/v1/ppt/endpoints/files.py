@@ -1,7 +1,6 @@
-from http.client import HTTPException
 import os
 from typing import Annotated, List, Optional
-from fastapi import APIRouter, Body, File, UploadFile
+from fastapi import APIRouter, Body, File, HTTPException, UploadFile
 
 from constants.documents import UPLOAD_ACCEPTED_FILE_TYPES
 from models.decomposed_file_info import DecomposedFileInfo
@@ -40,10 +39,11 @@ async def upload_files(files: Optional[List[UploadFile]]):
 @FILES_ROUTER.post("/decompose", response_model=List[DecomposedFileInfo])
 async def decompose_files(file_paths: Annotated[List[str], Body(embed=True)]):
     temp_dir = TEMP_FILE_SERVICE.create_temp_dir(str(uuid.uuid4()))
+    resolved_file_paths = TEMP_FILE_SERVICE.resolve_existing_temp_paths(file_paths)
 
     txt_files = []
     other_files = []
-    for file_path in file_paths:
+    for file_path in resolved_file_paths:
         if file_path.endswith(".txt"):
             txt_files.append(file_path)
         else:
@@ -81,7 +81,10 @@ async def update_files(
     file_path: Annotated[str, Body()],
     file: Annotated[UploadFile, File()],
 ):
-    with open(file_path, "wb") as f:
+    validate_files(file, False, False, 100, UPLOAD_ACCEPTED_FILE_TYPES)
+
+    resolved_file_path = TEMP_FILE_SERVICE.resolve_temp_path(file_path, must_exist=True)
+    with open(resolved_file_path, "wb") as f:
         f.write(await file.read())
 
     return {"message": "File updated successfully"}

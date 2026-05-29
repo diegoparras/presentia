@@ -21,6 +21,7 @@ from services.document_conversion_service import (
     DocumentConversionService,
 )
 from services.liteparse_service import LiteParseError, LiteParseService
+from services.temp_file_service import TEMP_FILE_SERVICE
 from utils.ocr_language import presentation_language_to_ocr_code
 
 # Optional fallback converter (primarily useful on Windows)
@@ -163,7 +164,7 @@ class DocumentsLoader:
         file_paths: List[str],
         presentation_language: Optional[str] = None,
     ):
-        self._file_paths = file_paths
+        self._file_paths = TEMP_FILE_SERVICE.resolve_existing_temp_paths(file_paths)
         self._ocr_language = presentation_language_to_ocr_code(presentation_language)
         self.liteparse_service = LiteParseService(
             timeout_seconds=self.DECOMPOSE_TIMEOUT_SECONDS

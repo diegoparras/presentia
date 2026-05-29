@@ -9,6 +9,7 @@ from services.documents_loader import (
     _unwrap_liteparse_json_line_if_stored,
     clean_extracted_document_text,
 )
+from services.temp_file_service import TEMP_FILE_SERVICE
 
 
 def test_unwrap_liteparse_json_line_extracts_text_field():
@@ -61,3 +62,18 @@ def test_load_pdf_requires_temp_dir_when_images_are_requested():
 
     assert exc.value.status_code == 400
     assert "temp_dir is required" in exc.value.detail
+
+
+def test_documents_loader_rejects_paths_outside_managed_temp_dir(tmp_path, monkeypatch):
+    managed_dir = tmp_path / "managed"
+    managed_dir.mkdir()
+    monkeypatch.setattr(TEMP_FILE_SERVICE, "base_dir", str(managed_dir))
+
+    outside_file = tmp_path / "outside.txt"
+    outside_file.write_text("not allowed", encoding="utf-8")
+
+    with pytest.raises(HTTPException) as exc:
+        DocumentsLoader(file_paths=[str(outside_file)])
+
+    assert exc.value.status_code == 400
+    assert "temp directory" in exc.value.detail
