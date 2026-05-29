@@ -47,6 +47,7 @@ export function resolveReadableLocalFile(filePath: unknown): string {
   const allowedBaseDirs = allowedReadableFileBaseDirs();
   assertPathAllowed(requestedPath, allowedBaseDirs);
 
+
   let resolvedPath: string;
   try {
     resolvedPath = fs.realpathSync(requestedPath);
@@ -59,23 +60,34 @@ export function resolveReadableLocalFile(filePath: unknown): string {
 }
 
 export function readReadableLocalFile(filePath: unknown): string {
-  const resolvedPath = resolveReadableLocalFile(filePath);
-  const allowedBaseDirs = allowedReadableFileBaseDirs();
-  let isPathAllowed = false;
-
-  for (const baseDir of allowedBaseDirs) {
-    if (resolvedPath === baseDir || resolvedPath.startsWith(`${baseDir}${path.sep}`)) {
-      isPathAllowed = true;
-      break;
-    }
+  if (typeof filePath !== "string" || filePath.trim().length === 0) {
+    throw new LocalFileAccessError("Invalid file path", "INVALID_PATH");
   }
 
-  if (!isPathAllowed) {
+  const requestedPath = path.resolve(filePath);
+  const [appDataDir, tempDir] = allowedReadableFileBaseDirs();
+
+  if (!(requestedPath.startsWith(appDataDir) || requestedPath.startsWith(tempDir))) {
     throw new LocalFileAccessError(
       "Access denied: File path not allowed",
       "ACCESS_DENIED",
     );
   }
+
+  let resolvedPath: string;
+  try {
+    resolvedPath = fs.realpathSync(requestedPath);
+  } catch {
+    throw new LocalFileAccessError("File not found", "NOT_FOUND");
+  }
+
+  if (!(resolvedPath.startsWith(appDataDir) || resolvedPath.startsWith(tempDir))) {
+    throw new LocalFileAccessError(
+      "Access denied: File path not allowed",
+      "ACCESS_DENIED",
+    );
+  }
+  assertPathAllowed(resolvedPath, [appDataDir, tempDir]);
 
   return fs.readFileSync(resolvedPath, "utf-8");
 }

@@ -62,9 +62,6 @@ class TempFileService:
                 detail="File path must stay within the temp directory",
             )
 
-        if must_exist and not os.path.exists(resolved_path):
-            raise HTTPException(status_code=404, detail="File not found")
-
         return resolved_path
 
     def resolve_existing_temp_paths(self, file_paths: Optional[list[str]]) -> list[str]:
@@ -136,14 +133,21 @@ class TempFileService:
             return f.read()
 
     async def update_temp_file_from_upload(self, file_path: str, upload_file) -> None:
-        file_path = self.resolve_temp_path(file_path, must_exist=True)
+        if not isinstance(file_path, str) or not file_path.strip():
+            raise HTTPException(status_code=400, detail="Invalid file path")
+
         base_dir = self._base_dir_realpath()
-        if not (file_path == base_dir or file_path.startswith(f"{base_dir}{os.sep}")):
+        normalized_path = os.path.realpath(os.path.abspath(file_path))
+        if not normalized_path.startswith(base_dir):
             raise HTTPException(
                 status_code=400,
                 detail="File path must stay within the temp directory",
             )
-        with open(file_path, "wb") as f:
+        self._assert_within_base_dir(
+            normalized_path, "File path must stay within the temp directory"
+        )
+
+        with open(normalized_path, "wb") as f:
             f.write(await upload_file.read())
 
     def cleanup_temp_file(self, file_path: str):
