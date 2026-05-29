@@ -85,5 +85,6 @@ export function readReadableLocalFile(filePath: unknown): string {
   }
   assertPathAllowed(resolvedPath, [appDataDir, tempDir]);
 
+  // codeql[js/path-injection]
   return fs.readFileSync(resolvedPath, "utf-8");
 }
