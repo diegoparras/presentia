@@ -62,28 +62,7 @@ export function resolveReadableLocalFile(filePath: unknown): string {
 }
 
 export function readReadableLocalFile(filePath: unknown): string {
-  if (typeof filePath !== "string" || filePath.trim().length === 0) {
-    throw new LocalFileAccessError("Invalid file path", 400);
-  }
-
-  const requestedPath = path.resolve(filePath);
-  const [appDataDir, tempDir] = allowedReadableFileBaseDirs();
-
-  if (!(requestedPath.startsWith(appDataDir) || requestedPath.startsWith(tempDir))) {
-    throw new LocalFileAccessError("Access denied: File path not allowed", 403);
-  }
-
-  let resolvedPath: string;
-  try {
-    resolvedPath = fs.realpathSync(requestedPath);
-  } catch {
-    throw new LocalFileAccessError("File not found", 404);
-  }
-
-  if (!(resolvedPath.startsWith(appDataDir) || resolvedPath.startsWith(tempDir))) {
-    throw new LocalFileAccessError("Access denied: File path not allowed", 403);
-  }
-  assertPathAllowed(resolvedPath, [appDataDir, tempDir]);
+  const resolvedPath = resolveReadableLocalFile(filePath);
 
   // codeql[js/path-injection]
   return fs.readFileSync(resolvedPath, "utf-8");
