@@ -15,6 +15,14 @@ function runVersion(command: string): string | null {
   const result = spawnSync(command, ["-version"], {
     stdio: ["ignore", "pipe", "pipe"],
     encoding: "utf8",
+    timeout: 15000,
+    env: {
+      ...process.env,
+      MAGICK_HOME: path.dirname(command),
+      MAGICK_CONFIGURE_PATH: path.dirname(command),
+      MAGICK_TEMPORARY_PATH: process.env.TEMP || path.dirname(command),
+      MAGICK_OCL_DEVICE: "OFF",
+    },
     windowsHide: true,
   });
 

@@ -25,8 +25,8 @@ resources/fastapi
 resources/nextjs
 dist
 eng.traineddata
-electron/.cache/
-electron/.cache/export-runtime/
+.cache/
+.cache/export-runtime/
 
 # presenton-export runtime (downloaded via npm run setup:export-runtime / sync_export_runtime.js)
 resources/export/

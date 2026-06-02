@@ -5,7 +5,7 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const { path7za } = require("7zip-bin");
 
-const VERSION = process.env.IMAGEMAGICK_VERSION || "7.1.2-24";
+const VERSION = process.env.IMAGEMAGICK_VERSION || "7.1.2-18";
 const PLATFORM = process.platform;
 const ARCH = process.arch;
 
@@ -52,12 +52,22 @@ function versionOutput(binaryPath) {
   const result = spawnSync(binaryPath, ["-version"], {
     stdio: ["ignore", "pipe", "pipe"],
     encoding: "utf8",
+    timeout: 15000,
+    env: {
+      ...process.env,
+      MAGICK_HOME: path.dirname(binaryPath),
+      MAGICK_CONFIGURE_PATH: path.dirname(binaryPath),
+      MAGICK_TEMPORARY_PATH: process.env.TEMP || path.dirname(binaryPath),
+      MAGICK_OCL_DEVICE: "OFF",
+    },
     windowsHide: true,
   });
   if (result.status !== 0) {
-    return null;
+    const reason = result.error?.message || result.stderr || `exit ${result.status}`;
+    return { ok: false, reason };
   }
-  return `${result.stdout || ""}\n${result.stderr || ""}`.trim();
+  const output = `${result.stdout || ""}\n${result.stderr || ""}`.trim();
+  return { ok: output.toLowerCase().includes("imagemagick"), output };
 }
 
 function validateRuntime(targetDir) {
@@ -65,11 +75,14 @@ function validateRuntime(targetDir) {
   if (!fs.existsSync(binaryPath)) {
     return null;
   }
-  const output = versionOutput(binaryPath);
-  if (!output || !output.toLowerCase().includes("imagemagick")) {
+  const result = versionOutput(binaryPath);
+  if (!result?.ok) {
+    if (result?.reason) {
+      log(`Runtime validation failed for ${binaryPath}: ${result.reason}`);
+    }
     return null;
   }
-  return { binaryPath, output };
+  return { binaryPath, output: result.output };
 }
 
 function downloadFile(url, destination) {
