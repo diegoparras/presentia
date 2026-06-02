@@ -86,6 +86,7 @@ function sendLog(
 
 /** Minimum expected size (bytes). LibreOffice installers are ~280–350 MB; HTML/redirect pages are ~30 KB. */
 const MIN_INSTALLER_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
+const MSI_HEADER = Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
 
 /**
  * Known approximate installer sizes used as fallback when the download server
@@ -289,6 +290,91 @@ function downloadWithProgress(
   });
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes <= 0) return "0 B";
+  const mb = bytes / 1024 / 1024;
+  if (mb >= 1) return `${mb.toFixed(1)} MB`;
+  const kb = bytes / 1024;
+  return kb >= 1 ? `${kb.toFixed(0)} KB` : `${bytes} B`;
+}
+
+function getPublicInstallerDir(): string {
+  if (process.platform === "win32") {
+    const publicRoot = process.env.PUBLIC || "C:\\Users\\Public";
+    return path.join(publicRoot, "Documents", "Presenton", "Installers");
+  }
+  return path.join(app.getPath("userData"), "installers");
+}
+
+function assertWindowsMsiLooksValid(msiPath: string): void {
+  if (!fs.existsSync(msiPath)) {
+    throw new Error(`LibreOffice installer was not found at ${msiPath}`);
+  }
+
+  const stat = fs.statSync(msiPath);
+  if (stat.size < MIN_INSTALLER_SIZE_BYTES) {
+    throw new Error(
+      `LibreOffice installer is too small (${formatBytes(stat.size)}). The download is likely incomplete.`
+    );
+  }
+
+  const fd = fs.openSync(msiPath, "r");
+  try {
+    const header = Buffer.alloc(MSI_HEADER.length);
+    fs.readSync(fd, header, 0, header.length, 0);
+    if (!header.equals(MSI_HEADER)) {
+      throw new Error(
+        "LibreOffice installer is not a valid MSI package. The server may have returned a web page instead of the installer."
+      );
+    }
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+function copyInstallerToStableWindowsPath(sourcePath: string, filename: string): string {
+  const candidates = [
+    getPublicInstallerDir(),
+    path.join(app.getPath("downloads"), "PresentonInstallers"),
+    path.join(app.getPath("userData"), "installers"),
+  ];
+
+  let lastError: unknown;
+  for (const installDir of candidates) {
+    try {
+      fs.mkdirSync(installDir, { recursive: true });
+      const stablePath = path.join(installDir, filename);
+      if (fs.existsSync(stablePath)) {
+        fs.unlinkSync(stablePath);
+      }
+      fs.copyFileSync(sourcePath, stablePath);
+      return stablePath;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Could not copy LibreOffice installer to a stable install path.");
+}
+
+function psSingleQuote(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+function readLogTail(filePath: string, maxChars = 4000): string {
+  try {
+    if (!fs.existsSync(filePath)) {
+      return "";
+    }
+    const content = fs.readFileSync(filePath, "utf8");
+    return content.length <= maxChars ? content : content.slice(content.length - maxChars);
+  } catch {
+    return "";
+  }
+}
+
 async function downloadLibreOfficeInstaller(
   wc: WebContents,
   platform: LibreOfficeDownloadPlatform
@@ -335,16 +421,44 @@ async function downloadLibreOfficeInstaller(
 
 async function installWindows(wc: WebContents): Promise<void> {
   const { dest, filename } = await downloadLibreOfficeInstaller(wc, "win64");
+  const stableInstallerPath = copyInstallerToStableWindowsPath(dest, filename);
+  const stableInstallerSize = fs.statSync(stableInstallerPath).size;
+  const installerBaseName = path.basename(filename, path.extname(filename));
+  const installLogPath = path.join(path.dirname(stableInstallerPath), `${installerBaseName}-msiexec.log`);
+  const installScriptPath = path.join(path.dirname(stableInstallerPath), `${installerBaseName}-install.ps1`);
+
+  assertWindowsMsiLooksValid(stableInstallerPath);
 
   sendProgress(wc, "installing");
   sendLog(wc, "info", "Requesting administrator rights (UAC prompt may appear)…");
-  sendLog(wc, "cmd", `Running: msiexec /i "${filename}" /qn /norestart`);
+  sendLog(wc, "info", `Installer ready: ${stableInstallerPath} (${formatBytes(stableInstallerSize)})`);
+  sendLog(wc, "cmd", `Running: msiexec /i "${stableInstallerPath}" /passive /norestart`);
 
   await new Promise<void>((resolve, reject) => {
-    // Run msiexec elevated via PowerShell; error 1603 often means installer needs admin rights
-    const destEscaped = dest.replace(/'/g, "''");
-    const ps = `$p = Start-Process -FilePath "msiexec" -ArgumentList "/i", '${destEscaped}', "/qn", "/norestart" -Verb RunAs -Wait -PassThru; if ($p) { exit $p.ExitCode } else { exit 1 }`;
-    const child = spawn("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps], {
+    const script = `
+$ErrorActionPreference = 'Stop'
+$installerPath = ${psSingleQuote(stableInstallerPath)}
+$logPath = ${psSingleQuote(installLogPath)}
+if (!(Test-Path -LiteralPath $installerPath)) {
+  Write-Error "Installer not found: $installerPath"
+  exit 1619
+}
+try {
+  Unblock-File -LiteralPath $installerPath -ErrorAction SilentlyContinue
+} catch {}
+$msiexec = Join-Path $env:SystemRoot 'System32\\msiexec.exe'
+$arguments = '/i "' + $installerPath + '" /passive /norestart /L*v "' + $logPath + '"'
+Write-Output "Starting: $msiexec $arguments"
+$p = Start-Process -FilePath $msiexec -ArgumentList $arguments -Verb RunAs -Wait -PassThru
+if ($null -eq $p) {
+  Write-Error 'Windows did not return an installer process.'
+  exit 1
+}
+exit $p.ExitCode
+`.trimStart();
+    fs.writeFileSync(installScriptPath, script, "utf8");
+
+    const child = spawn("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", installScriptPath], {
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
     });
@@ -356,10 +470,18 @@ async function installWindows(wc: WebContents): Promise<void> {
       fs.unlink(dest, () => {});
       if (code === 0 || code === 3010) {
         sendLog(wc, "ok", `msiexec exited with code ${code} (success)`);
+        fs.unlink(stableInstallerPath, () => {});
+        fs.unlink(installScriptPath, () => {});
         resolve();
       } else {
+        const logTail = readLogTail(installLogPath);
+        if (logTail) {
+          sendLog(wc, "warn", `Windows Installer log tail:\n${logTail}`);
+        }
         const hint =
-          code === 1603
+          code === 1619
+            ? " - Windows Installer could not open the MSI. The installer was copied to a public path; try again, or run the logged MSI path manually."
+            : code === 1603
             ? " — Try closing other apps, freeing disk space, or install LibreOffice manually from libreoffice.org"
             : code === 1
               ? " — Did you cancel the administrator prompt?"
