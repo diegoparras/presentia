@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { spawnSync } = require("child_process");
 const {
   Browser,
   computeExecutablePath,
@@ -9,6 +10,7 @@ const {
 
 const buildId = (process.env.EXPORT_CHROME_BUILD_ID || "146.0.7680.76").trim();
 const cacheDir = path.join(__dirname, "..", "resources", "chromium");
+const manifestPath = path.join(cacheDir, "presenton-runtime.json");
 
 function getRevisionDir(platform) {
   return path.join(cacheDir, Browser.CHROME, `${platform}-${buildId}`);
@@ -28,8 +30,57 @@ function runtimeLooksComplete(executablePath) {
   );
 }
 
+function validateExecutable(executablePath) {
+  if (!runtimeLooksComplete(executablePath)) {
+    return false;
+  }
+
+  const result = spawnSync(
+    executablePath,
+    [
+      "--headless=new",
+      "--disable-gpu",
+      "--disable-dev-shm-usage",
+      "--no-sandbox",
+      "--no-first-run",
+      "--disable-extensions",
+      "--dump-dom",
+      "about:blank",
+    ],
+    {
+      stdio: ["ignore", "pipe", "pipe"],
+      encoding: "utf8",
+      timeout: 15000,
+      windowsHide: process.platform === "win32",
+    },
+  );
+  if (result.status !== 0) {
+    return false;
+  }
+  return (result.stdout || "").toLowerCase().includes("<html");
+}
+
+function writeManifest(platform, executablePath) {
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify(
+      {
+        browser: Browser.CHROME,
+        buildId,
+        platform,
+        nodePlatform: process.platform,
+        arch: process.arch,
+        executable: path.relative(cacheDir, executablePath),
+        createdAt: new Date().toISOString(),
+      },
+      null,
+      2,
+    ),
+  );
+}
+
 function removeIncompleteRuntime(platform, executablePath) {
-  if (runtimeLooksComplete(executablePath)) {
+  if (validateExecutable(executablePath)) {
     return;
   }
 
@@ -63,7 +114,17 @@ async function main() {
   };
   const executablePath = computeExecutablePath(options);
   if (runtimeLooksComplete(executablePath)) {
-    console.log(`[Chromium] Bundled runtime already exists: ${executablePath}`);
+    if (!validateExecutable(executablePath)) {
+      removeIncompleteRuntime(platform, executablePath);
+    } else {
+      writeManifest(platform, executablePath);
+      console.log(`[Chromium] Bundled runtime already exists: ${executablePath}`);
+      return;
+    }
+  }
+
+  if (validateExecutable(executablePath)) {
+    writeManifest(platform, executablePath);
     return;
   }
 
@@ -80,9 +141,10 @@ async function main() {
   });
   process.stdout.write("\n");
 
-  if (!runtimeLooksComplete(executablePath)) {
+  if (!validateExecutable(executablePath)) {
     throw new Error(`Chromium install finished, but executable was not found at ${executablePath}`);
   }
+  writeManifest(platform, executablePath);
   console.log(`[Chromium] Bundled runtime ready: ${executablePath}`);
 }
 
