@@ -20,6 +20,9 @@ function runtimeLooksComplete(executablePath) {
   if (!fs.existsSync(executablePath)) {
     return false;
   }
+  if (process.platform === "darwin") {
+    return macChromiumBundleLooksCodeSignReady(executablePath);
+  }
   if (process.platform !== "win32") {
     return true;
   }
@@ -93,23 +96,91 @@ function findAppBundle(executablePath) {
   }
 }
 
-function directoryContainsSymlink(rootDir) {
-  const stack = [rootDir];
+function isSymlink(filePath) {
+  try {
+    return fs.lstatSync(filePath).isSymbolicLink();
+  } catch {
+    return false;
+  }
+}
+
+function macChromiumFrameworkPath(appBundlePath) {
+  return path.join(
+    appBundlePath,
+    "Contents",
+    "Frameworks",
+    "Google Chrome for Testing Framework.framework",
+  );
+}
+
+function macFrameworkLayoutLooksValid(frameworkPath) {
+  if (!fs.existsSync(frameworkPath)) {
+    return false;
+  }
+  const entries = fs.readdirSync(frameworkPath, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.name === "Versions") {
+      continue;
+    }
+    if (!isSymlink(path.join(frameworkPath, entry.name))) {
+      return false;
+    }
+  }
+
+  return isSymlink(path.join(frameworkPath, "Versions", "Current"));
+}
+
+function macChromiumBundleLooksCodeSignReady(executablePath) {
+  const appBundlePath = findAppBundle(executablePath);
+  if (!appBundlePath) {
+    return false;
+  }
+  return macFrameworkLayoutLooksValid(macChromiumFrameworkPath(appBundlePath));
+}
+
+function normalizeFrameworkSymlinkTargets(frameworkPath) {
+  if (!fs.existsSync(frameworkPath)) {
+    return 0;
+  }
+
+  const stack = [frameworkPath];
+  let rewritten = 0;
   while (stack.length) {
     const current = stack.pop();
     const entries = fs.readdirSync(current, { withFileTypes: true });
     for (const entry of entries) {
       const fullPath = path.join(current, entry.name);
       const stats = fs.lstatSync(fullPath);
-      if (stats.isSymbolicLink()) {
-        return true;
-      }
       if (stats.isDirectory()) {
         stack.push(fullPath);
+        continue;
       }
+      if (!stats.isSymbolicLink()) {
+        continue;
+      }
+
+      const linkTarget = fs.readlinkSync(fullPath);
+      if (!/(^|\/)Versions\/Current\//.test(linkTarget)) {
+        continue;
+      }
+
+      const resolvedTarget = path.resolve(path.dirname(fullPath), linkTarget);
+      if (!fs.existsSync(resolvedTarget)) {
+        continue;
+      }
+
+      const rewrittenTarget = path.relative(path.dirname(fullPath), resolvedTarget);
+      if (!rewrittenTarget || rewrittenTarget === linkTarget) {
+        continue;
+      }
+
+      fs.unlinkSync(fullPath);
+      fs.symlinkSync(rewrittenTarget, fullPath);
+      rewritten += 1;
     }
   }
-  return false;
+
+  return rewritten;
 }
 
 function normalizeMacBundleForPackaging(executablePath) {
@@ -122,26 +193,12 @@ function normalizeMacBundleForPackaging(executablePath) {
     return;
   }
 
-  if (!directoryContainsSymlink(appBundlePath)) {
-    return;
-  }
-
-  const normalizedPath = `${appBundlePath}.normalized`;
-  const backupPath = `${appBundlePath}.backup`;
-  fs.rmSync(normalizedPath, { recursive: true, force: true });
-  fs.rmSync(backupPath, { recursive: true, force: true });
-
-  console.log(`[Chromium] Normalizing macOS app bundle symlinks: ${appBundlePath}`);
-  fs.cpSync(appBundlePath, normalizedPath, { recursive: true, dereference: true });
-  fs.renameSync(appBundlePath, backupPath);
-  try {
-    fs.renameSync(normalizedPath, appBundlePath);
-    fs.rmSync(backupPath, { recursive: true, force: true });
-  } catch (error) {
-    if (!fs.existsSync(appBundlePath) && fs.existsSync(backupPath)) {
-      fs.renameSync(backupPath, appBundlePath);
-    }
-    throw error;
+  const frameworkPath = macChromiumFrameworkPath(appBundlePath);
+  const rewritten = normalizeFrameworkSymlinkTargets(frameworkPath);
+  if (rewritten > 0) {
+    console.log(
+      `[Chromium] Rewrote ${rewritten} framework symlinks to avoid nested Current references.`,
+    );
   }
 }
 
@@ -187,9 +244,9 @@ async function main() {
       if (!validateExecutable(executablePath)) {
         removeIncompleteRuntime(platform, executablePath);
       } else {
-      writeManifest(platform, executablePath);
-      console.log(`[Chromium] Bundled runtime already exists: ${executablePath}`);
-      return;
+        writeManifest(platform, executablePath);
+        console.log(`[Chromium] Bundled runtime already exists: ${executablePath}`);
+        return;
       }
     }
   }
