@@ -310,20 +310,68 @@ function resolveCommandPath(command) {
   return result.status === 0 && resolved ? resolved : null;
 }
 
+function resolveMacPrefixFromMagickBinary(magickPath) {
+  if (!magickPath || !fs.existsSync(magickPath)) {
+    return null;
+  }
+  const realMagick = fs.realpathSync(magickPath);
+  const binDir = path.dirname(realMagick);
+  const prefix = path.dirname(binDir);
+  return fs.existsSync(path.join(prefix, "bin", "magick")) ? prefix : null;
+}
+
+function resolveMacPrefixFromBrew() {
+  const brewCandidates = [resolveCommandPath("brew"), "/opt/homebrew/bin/brew", "/usr/local/bin/brew"]
+    .filter(Boolean)
+    .filter((candidate, index, all) => all.indexOf(candidate) === index)
+    .filter((candidate) => fs.existsSync(candidate));
+  const formulas = ["imagemagick", "imagemagick@6"];
+
+  for (const brew of brewCandidates) {
+    for (const formula of formulas) {
+      const result = capture(brew, ["--prefix", formula]);
+      const prefix = (result.stdout || "").trim();
+      if (result.status !== 0 || !prefix) {
+        continue;
+      }
+      if (fs.existsSync(path.join(prefix, "bin", "magick"))) {
+        return prefix;
+      }
+    }
+  }
+  return null;
+}
+
 function resolveMacSourcePrefix() {
   const configured = process.env.IMAGEMAGICK_VENDOR_DIR?.trim();
   if (configured) {
     return path.resolve(configured);
   }
 
-  const magick = resolveCommandPath("magick");
-  if (!magick) {
-    fail("Could not find a macOS ImageMagick runtime to vendor. Install ImageMagick on the build host or set IMAGEMAGICK_VENDOR_DIR.");
+  const pathMagickPrefix = resolveMacPrefixFromMagickBinary(resolveCommandPath("magick"));
+  if (pathMagickPrefix) {
+    return pathMagickPrefix;
   }
 
-  const realMagick = fs.realpathSync(magick);
-  const binDir = path.dirname(realMagick);
-  return path.dirname(binDir);
+  for (const magickPath of ["/opt/homebrew/bin/magick", "/usr/local/bin/magick", "/opt/local/bin/magick"]) {
+    const prefix = resolveMacPrefixFromMagickBinary(magickPath);
+    if (prefix) {
+      return prefix;
+    }
+  }
+
+  const brewPrefix = resolveMacPrefixFromBrew();
+  if (brewPrefix) {
+    return brewPrefix;
+  }
+
+  for (const optPrefix of ["/opt/homebrew/opt/imagemagick", "/usr/local/opt/imagemagick"]) {
+    if (fs.existsSync(path.join(optPrefix, "bin", "magick"))) {
+      return optPrefix;
+    }
+  }
+
+  fail("Could not find a macOS ImageMagick runtime to vendor. Install ImageMagick (e.g. brew install imagemagick), ensure magick is reachable, or set IMAGEMAGICK_VENDOR_DIR.");
 }
 
 function parseOtoolDeps(filePath) {
