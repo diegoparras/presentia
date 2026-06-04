@@ -79,6 +79,72 @@ function writeManifest(platform, executablePath) {
   );
 }
 
+function findAppBundle(executablePath) {
+  let current = path.dirname(executablePath);
+  while (true) {
+    if (current.endsWith(".app")) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return null;
+    }
+    current = parent;
+  }
+}
+
+function directoryContainsSymlink(rootDir) {
+  const stack = [rootDir];
+  while (stack.length) {
+    const current = stack.pop();
+    const entries = fs.readdirSync(current, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(current, entry.name);
+      const stats = fs.lstatSync(fullPath);
+      if (stats.isSymbolicLink()) {
+        return true;
+      }
+      if (stats.isDirectory()) {
+        stack.push(fullPath);
+      }
+    }
+  }
+  return false;
+}
+
+function normalizeMacBundleForPackaging(executablePath) {
+  if (process.platform !== "darwin") {
+    return;
+  }
+
+  const appBundlePath = findAppBundle(executablePath);
+  if (!appBundlePath || !fs.existsSync(appBundlePath)) {
+    return;
+  }
+
+  if (!directoryContainsSymlink(appBundlePath)) {
+    return;
+  }
+
+  const normalizedPath = `${appBundlePath}.normalized`;
+  const backupPath = `${appBundlePath}.backup`;
+  fs.rmSync(normalizedPath, { recursive: true, force: true });
+  fs.rmSync(backupPath, { recursive: true, force: true });
+
+  console.log(`[Chromium] Normalizing macOS app bundle symlinks: ${appBundlePath}`);
+  fs.cpSync(appBundlePath, normalizedPath, { recursive: true, dereference: true });
+  fs.renameSync(appBundlePath, backupPath);
+  try {
+    fs.renameSync(normalizedPath, appBundlePath);
+    fs.rmSync(backupPath, { recursive: true, force: true });
+  } catch (error) {
+    if (!fs.existsSync(appBundlePath) && fs.existsSync(backupPath)) {
+      fs.renameSync(backupPath, appBundlePath);
+    }
+    throw error;
+  }
+}
+
 function removeIncompleteRuntime(platform, executablePath) {
   if (validateExecutable(executablePath)) {
     return;
@@ -117,9 +183,14 @@ async function main() {
     if (!validateExecutable(executablePath)) {
       removeIncompleteRuntime(platform, executablePath);
     } else {
+      normalizeMacBundleForPackaging(executablePath);
+      if (!validateExecutable(executablePath)) {
+        removeIncompleteRuntime(platform, executablePath);
+      } else {
       writeManifest(platform, executablePath);
       console.log(`[Chromium] Bundled runtime already exists: ${executablePath}`);
       return;
+      }
     }
   }
 
@@ -141,6 +212,7 @@ async function main() {
   });
   process.stdout.write("\n");
 
+  normalizeMacBundleForPackaging(executablePath);
   if (!validateExecutable(executablePath)) {
     throw new Error(`Chromium install finished, but executable was not found at ${executablePath}`);
   }
