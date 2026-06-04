@@ -66,12 +66,14 @@ function versionOutput(binaryPath) {
   const result = spawnSync(binaryPath, ["-version"], {
     stdio: ["ignore", "pipe", "pipe"],
     encoding: "utf8",
-    timeout: 30000,
+    timeout: 120000,
     env: runtimeEnv(binaryPath),
     windowsHide: true,
   });
-  if (result.status !== 0) {
-    const reason = result.error?.message || result.stderr || `exit ${result.status}`;
+  if (result.status !== 0 || result.signal) {
+    const reason = result.error?.message
+      || (result.stderr || "").trim()
+      || (result.signal ? `terminated by signal ${result.signal}` : `exit ${result.status}`);
     return { ok: false, reason };
   }
   const output = `${result.stdout || ""}\n${result.stderr || ""}`.trim();
@@ -418,8 +420,29 @@ function parseOtoolDeps(filePath) {
 }
 
 function isMachOFile(filePath) {
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    return false;
+  }
   const result = capture("file", [filePath]);
   return result.status === 0 && /Mach-O/.test(result.stdout || "");
+}
+
+function walkFiles(rootDir) {
+  const stack = [rootDir];
+  const files = [];
+  while (stack.length) {
+    const current = stack.pop();
+    const entries = fs.readdirSync(current, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(fullPath);
+      } else if (entry.isFile()) {
+        files.push(fullPath);
+      }
+    }
+  }
+  return files;
 }
 
 function relinkMacDylibs(targetDir, mainExecutable) {
@@ -469,6 +492,22 @@ function relinkMacDylibs(targetDir, mainExecutable) {
   }
 }
 
+function adHocSignMacRuntime(targetDir, mainExecutable) {
+  if (!resolveCommandPath("codesign")) {
+    fail("macOS runtime vendoring requires codesign.");
+  }
+
+  const machOFiles = walkFiles(targetDir).filter(isMachOFile);
+  const signOrder = machOFiles
+    .filter((filePath) => filePath !== mainExecutable)
+    .concat(machOFiles.includes(mainExecutable) ? [mainExecutable] : []);
+
+  log(`Ad-hoc signing ${signOrder.length} Mach-O files for macOS runtime.`);
+  for (const filePath of signOrder) {
+    run("codesign", ["--force", "--sign", "-", "--timestamp=none", filePath]);
+  }
+}
+
 async function prepareMacOS() {
   const sourcePrefix = resolveMacSourcePrefix();
   const sourceMagick = path.join(sourcePrefix, "bin", "magick");
@@ -491,6 +530,7 @@ async function prepareMacOS() {
   const targetMagick = path.join(tempTarget, "bin", "magick");
   fs.chmodSync(targetMagick, 0o755);
   relinkMacDylibs(tempTarget, targetMagick);
+  adHocSignMacRuntime(tempTarget, targetMagick);
   writeManifest(tempTarget, {
     kind: "macos-vendored",
     binary: "bin/magick",
