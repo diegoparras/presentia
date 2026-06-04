@@ -1,6 +1,7 @@
 const builder = require("electron-builder")
 const fs = require("fs")
 const path = require("path")
+const { normalizeBundledMacChromiumForPackaging } = require("./scripts/prepare-export-chromium.cjs")
 
 const APP_ID = "com.presenton.presenton"
 const TEAM_ID = "S6W5C54KL6"
@@ -91,6 +92,14 @@ function getTargetArch(context) {
   return process.arch
 }
 
+const beforePack = async (context) => {
+  if (context.electronPlatformName !== "darwin") {
+    return
+  }
+
+  normalizeBundledMacChromiumForPackaging(path.join(__dirname, "resources", "chromium"))
+}
+
 const afterPack = async (context) => {
   const platform = context.electronPlatformName
   const arch = getTargetArch(context)
@@ -116,6 +125,7 @@ const config = {
     "node_modules",
     "NOTICE"
   ],
+  beforePack,
   afterPack,
   mac: {
     artifactName: "Presenton-${version}.${ext}",

@@ -169,7 +169,10 @@ function normalizeFrameworkSymlinkTargets(frameworkPath) {
         continue;
       }
 
-      const rewrittenTarget = path.relative(path.dirname(fullPath), resolvedTarget);
+      const rewrittenTarget = path.relative(
+        path.dirname(fullPath),
+        fs.realpathSync.native ? fs.realpathSync.native(resolvedTarget) : fs.realpathSync(resolvedTarget),
+      );
       if (!rewrittenTarget || rewrittenTarget === linkTarget) {
         continue;
       }
@@ -184,13 +187,9 @@ function normalizeFrameworkSymlinkTargets(frameworkPath) {
 }
 
 function normalizeMacBundleForPackaging(executablePath) {
-  if (process.platform !== "darwin") {
-    return;
-  }
-
   const appBundlePath = findAppBundle(executablePath);
   if (!appBundlePath || !fs.existsSync(appBundlePath)) {
-    return;
+    return 0;
   }
 
   const frameworkPath = macChromiumFrameworkPath(appBundlePath);
@@ -200,6 +199,38 @@ function normalizeMacBundleForPackaging(executablePath) {
       `[Chromium] Rewrote ${rewritten} framework symlinks to avoid nested Current references.`,
     );
   }
+  return rewritten;
+}
+
+function normalizeBundledMacChromiumForPackaging(rootDir = cacheDir) {
+  if (!fs.existsSync(rootDir)) {
+    return 0;
+  }
+
+  const stack = [rootDir];
+  let rewritten = 0;
+  while (stack.length) {
+    const current = stack.pop();
+    const entries = fs.readdirSync(current, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(current, entry.name);
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      if (entry.name === "Google Chrome for Testing Framework.framework") {
+        rewritten += normalizeFrameworkSymlinkTargets(fullPath);
+        continue;
+      }
+      stack.push(fullPath);
+    }
+  }
+
+  if (rewritten > 0) {
+    console.log(
+      `[Chromium] Rewrote ${rewritten} bundled macOS framework symlinks before packaging.`,
+    );
+  }
+  return rewritten;
 }
 
 function removeIncompleteRuntime(platform, executablePath) {
@@ -277,7 +308,14 @@ async function main() {
   console.log(`[Chromium] Bundled runtime ready: ${executablePath}`);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  normalizeBundledMacChromiumForPackaging,
+  normalizeMacBundleForPackaging,
+};
