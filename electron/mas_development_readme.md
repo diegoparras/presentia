@@ -43,7 +43,8 @@ electron/
   build/
     AppleDevelopment.provisionprofile.replace_me
     AppleDevelopment.provisionprofile        # local only, ignored by git
-    MacAppStore.provisionprofile.replace_me  # future distribution marker
+    MacAppStore.provisionprofile.replace_me  # distribution marker
+    MacAppStore.provisionprofile             # local only, ignored by git
     icon.icns.replace_me
     icon.icns                                # generated later from icon.iconset
     entitlements.mas.plist
@@ -210,7 +211,7 @@ security cms -D -i build/AppleDevelopment.provisionprofile
 ## Notes
 
 - `mas-dev` is for local sandbox testing only.
-- App Store submission uses the `mas` target, an Apple Distribution certificate, and a Mac App Store provisioning profile. That distribution setup is intentionally not added here.
+- App Store submission uses the `mas` target, an Apple Distribution certificate, and a Mac App Store provisioning profile. See `electron/mas_distribution_readme.md`.
 - MAS builds do not use hardened runtime notarization in the same way direct-distribution DMG builds do.
 - The standard Electron darwin build cannot be used to test MAS sandbox behavior; MAS testing requires the MAS build target.
 
