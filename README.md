@@ -598,12 +598,17 @@ Prepend your server’s root URL to <code>path</code> and
 
 <ul>
   <li>
-    <a href="https://docs.presenton.ai/v3/guide/using-presenton-api">
+    <a href="https://docs.presenton.ai/v3/get-started/quickstart">
+      Deploy Presenton
+    </a>
+  </li>
+  <li>
+    <a href="https://docs.presenton.ai/v3/get-started/api-introduction">
       Full API Documentation
     </a>
   </li>
   <li>
-    <a href="https://docs.presenton.ai/tutorial/generate-presentation-over-api">
+    <a href="https://docs.presenton.ai/v3/guide/using-presenton-api">
       Generate Presentations via API in 5 Minutes
     </a>
   </li>
