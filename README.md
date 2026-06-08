@@ -17,7 +17,9 @@
 
 # Open-Source AI Presentation Generator and API (Gamma, Beautiful AI, Decktopus Alternative)
 
+Discover what Presenton can do from AI-powered presentation generation to editing, exporting, and flexible model providers.
 
+[▶ Watch Presenton in Action](https://github.com/user-attachments/assets/93e541dc-8487-4dcf-a9a0-95ad5ca94453)
 
 ### ✨ Why Presenton
 
