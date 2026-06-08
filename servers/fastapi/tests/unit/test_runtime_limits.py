@@ -54,3 +54,37 @@ def test_export_child_output_is_bounded(tmp_path):
     assert result["returncode"] == 7
     assert "truncated" in str(result["stdout"])
     assert "truncated" in str(result["stderr"])
+
+
+def test_export_output_path_accepts_file_path_key(tmp_path):
+    output_path = tmp_path / "preview.png"
+    output_path.write_bytes(b"png")
+
+    assert ExportTaskService._resolve_output_path({"file_path": str(output_path)}) == str(
+        output_path
+    )
+
+
+def test_render_html_to_image_sends_html_task_payload(tmp_path):
+    output_path = tmp_path / "preview.png"
+    output_path.write_bytes(b"png")
+    service = ExportTaskService(timeout_seconds=10)
+    captured = {}
+
+    async def fake_run_task(task_payload, response_error_detail):
+        captured["task_payload"] = task_payload
+        captured["response_error_detail"] = response_error_detail
+        return {"file_path": str(output_path)}
+
+    service._run_task = fake_run_task
+
+    result = asyncio.run(service.render_html_to_image("<html></html>", 320, 180))
+
+    assert result.path == str(output_path)
+    assert captured["task_payload"] == {
+        "type": "html-to-image",
+        "html": "<html></html>",
+        "width": 320,
+        "height": 180,
+    }
+    assert "HTML-to-image" in captured["response_error_detail"]
