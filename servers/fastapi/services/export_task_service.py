@@ -357,9 +357,10 @@ class ExportTaskService:
         fastapi_url: str | None = None,
         cookie_header: str | None = None,
     ) -> PresentationExportTaskResult:
+        log_url = url.split("#", 1)[0] if "#" in url else url
         LOGGER.info(
             "[export_runtime] export_from_url url=%s format=%s cookie_header=%s",
-            url,
+            log_url,
             export_as,
             "set" if cookie_header else "empty",
         )
