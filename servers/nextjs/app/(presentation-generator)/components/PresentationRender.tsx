@@ -31,8 +31,8 @@ const SlideScale = ({
     if (presentMode) {
       const { w, h } = box;
       if (w < 1 || h < 1) return 1;
-      const sx = (w / BASE_WIDTH) * 0.995;
-      const sy = (h / BASE_HEIGHT) * 0.995;
+      const sx = w / BASE_WIDTH;
+      const sy = h / BASE_HEIGHT;
       return Math.min(sx, sy);
     }
     const safeWidth = Math.max(0, box.w + 20);

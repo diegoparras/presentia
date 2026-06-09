@@ -169,7 +169,7 @@ const SlideContent = ({
           className={` w-full  group font-syne  `}
         >
           {/* <V1ContentRender slide={slide} isEditMode={true} theme={null} /> */}
-          {true && (
+          {isChatEditing && (
             <div
               className="pointer-events-none absolute bottom-24 left-1/2 z-30 -translate-x-1/2 overflow-hidden rounded-[50px]  p-[1.5px] font-syne"
               aria-live="polite"
