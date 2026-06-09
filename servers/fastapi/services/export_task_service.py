@@ -44,6 +44,10 @@ class PresentationExportTaskResult(BaseModel):
     path: str
 
 
+class HtmlToImageTaskResult(BaseModel):
+    path: str
+
+
 class ExtractSchemaSlide(BaseModel):
     id: str
     name: str | None = None
@@ -180,11 +184,12 @@ class ExportTaskService:
 
     @staticmethod
     def _resolve_output_path(response_data: dict) -> str:
-        path_value = response_data.get("path")
-        if isinstance(path_value, str):
-            resolved = resolve_app_path_to_filesystem(path_value) or path_value
-            if os.path.isfile(resolved):
-                return resolved
+        for path_key in ("path", "file_path"):
+            path_value = response_data.get(path_key)
+            if isinstance(path_value, str):
+                resolved = resolve_app_path_to_filesystem(path_value) or path_value
+                if os.path.isfile(resolved):
+                    return resolved
 
         url_value = response_data.get("url")
         if isinstance(url_value, str):
@@ -403,6 +408,33 @@ class ExportTaskService:
                 status_code=500,
                 detail="PPTX-to-HTML export produced invalid JSON output",
             ) from exc
+
+    async def render_html_to_image(
+        self,
+        html: str,
+        width: int,
+        height: int,
+    ) -> HtmlToImageTaskResult:
+        if width <= 0 or height <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="HTML-to-image dimensions must be positive",
+            )
+
+        response_data = await self._run_task(
+            {
+                "type": "html-to-image",
+                "html": html,
+                "width": width,
+                "height": height,
+            },
+            "HTML-to-image export task did not produce a response file",
+        )
+
+        output_path = self._resolve_output_path(response_data)
+        self._ensure_output_readable(output_path)
+
+        return HtmlToImageTaskResult(path=output_path)
 
     async def extract_schema(self, url: str) -> ExtractSchemaDocument:
         LOGGER.info(
