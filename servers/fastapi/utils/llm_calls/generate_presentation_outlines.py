@@ -14,7 +14,7 @@ from llmai.shared import (
 from models.presentation_outline_model import PresentationOutlineModel
 from utils.get_dynamic_models import get_presentation_outline_model_with_n_slides
 from utils.llm_client_error_handler import handle_llm_client_exceptions
-from utils.llm_config import enable_web_grounding, get_llm_config
+from utils.llm_config import get_llm_config
 from utils.llm_provider import get_model
 from utils.llm_utils import (
     get_generate_kwargs,
@@ -22,6 +22,12 @@ from utils.llm_utils import (
     stream_generate_events,
 )
 from utils.schema_utils import prepare_schema_for_validation
+from utils.web_search import (
+    build_web_search_query,
+    get_web_search_context,
+    should_expose_external_web_search_tool,
+    should_use_native_web_search,
+)
 
 
 def get_system_prompt(
@@ -189,7 +195,15 @@ async def generate_ppt_outline(
     )
 
     client = get_client(config=get_llm_config())
-    use_search_tool = web_search
+    use_search_tool = web_search and should_use_native_web_search()
+    if web_search and should_expose_external_web_search_tool():
+        search_context = await get_web_search_context(
+            build_web_search_query(content, instructions)
+        )
+        if search_context:
+            additional_context = "\n\n".join(
+                part for part in (additional_context, search_context) if part
+            )
 
     try:
         outline_schema = prepare_schema_for_validation(

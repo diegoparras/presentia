@@ -104,6 +104,43 @@ def test_generate_ppt_outline_returns_http_exception_chunk_on_failure():
     assert chunks[0].status_code == 408
 
 
+def test_generate_ppt_outline_injects_external_search_context_without_hosted_tool():
+    captured_kwargs = {}
+
+    async def fake_stream_generate_events(_client, **kwargs):
+        captured_kwargs.update(kwargs)
+        yield content_event('{"slides": [{"content": "## Current facts"}]}')
+
+    with patch.object(outline_module, "get_model", return_value="fake-model"), patch.object(
+        outline_module, "get_client", return_value=object()
+    ), patch.object(outline_module, "get_llm_config", return_value={}), patch.object(
+        outline_module, "should_use_native_web_search", return_value=False
+    ), patch.object(
+        outline_module, "should_expose_external_web_search_tool", return_value=True
+    ), patch.object(
+        outline_module,
+        "get_web_search_context",
+        return_value="Web search results:\nURL: https://example.com",
+    ), patch.object(
+        outline_module,
+        "get_generate_kwargs",
+        side_effect=lambda **kwargs: kwargs,
+    ), patch.object(
+        outline_module, "stream_generate_events", side_effect=fake_stream_generate_events
+    ):
+        _collect_async_chunks(
+            outline_module.generate_ppt_outline(
+                content="current market",
+                n_slides=1,
+                language="English",
+                web_search=True,
+            )
+        )
+
+    assert captured_kwargs["tools"] is None
+    assert "https://example.com" in str(captured_kwargs["messages"][1].content)
+
+
 def test_presentation_outline_model_schema_validation_rejects_invalid_ai_payload():
     invalid_payload = {"slides": [{"not_content": "missing expected key"}]}
 

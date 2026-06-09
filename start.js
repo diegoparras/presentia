@@ -446,6 +446,12 @@ const setupUserConfigFromEnv = () => {
     EXTENDED_REASONING:
       process.env.EXTENDED_REASONING || existingConfig.EXTENDED_REASONING,
     WEB_GROUNDING: process.env.WEB_GROUNDING || existingConfig.WEB_GROUNDING,
+    WEB_SEARCH_PROVIDER: process.env.WEB_SEARCH_PROVIDER || existingConfig.WEB_SEARCH_PROVIDER,
+    WEB_SEARCH_MAX_RESULTS: process.env.WEB_SEARCH_MAX_RESULTS || existingConfig.WEB_SEARCH_MAX_RESULTS,
+    SEARXNG_BASE_URL: process.env.SEARXNG_BASE_URL || existingConfig.SEARXNG_BASE_URL,
+    TAVILY_API_KEY: process.env.TAVILY_API_KEY || existingConfig.TAVILY_API_KEY,
+    BRAVE_SEARCH_API_KEY: process.env.BRAVE_SEARCH_API_KEY || existingConfig.BRAVE_SEARCH_API_KEY,
+    SERPER_API_KEY: process.env.SERPER_API_KEY || existingConfig.SERPER_API_KEY,
     USE_CUSTOM_URL: process.env.USE_CUSTOM_URL || existingConfig.USE_CUSTOM_URL,
     COMFYUI_URL: process.env.COMFYUI_URL || existingConfig.COMFYUI_URL,
     COMFYUI_WORKFLOW:

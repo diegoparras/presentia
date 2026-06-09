@@ -270,7 +270,11 @@ Other optional variables exist in code (for example advanced Mem0 paths, LitePar
 - **LMSTUDIO_API_KEY**: Optional API key if **LLM** is **lmstudio**.
 - **LMSTUDIO_MODEL**: Required if **LLM** is **lmstudio** (example: `openai/gpt-oss-20b`).
 - **DISABLE_THINKING**=[true/false]: If **true**, disables “thinking” on the custom LLM.
-- **WEB_GROUNDING**=[true/false]: If **true**, enables web search for OpenAI, Google, and Anthropic models.
+- **WEB_GROUNDING**=[true/false]: If **true**, enables web search by default.
+- **WEB_SEARCH_PROVIDER**=[auto/native/duckduckgo/searxng/tavily/brave/serper]: Selects hosted model search or an external search provider. `auto` uses native search for OpenAI, Google, and Anthropic, then falls back to an external provider for other models.
+- **WEB_SEARCH_MAX_RESULTS**: Maximum external search results to add to model context (default `5`, maximum `10`).
+- **SEARXNG_BASE_URL**: Base URL for a self-hosted SearXNG instance.
+- **TAVILY_API_KEY**, **BRAVE_SEARCH_API_KEY**, **SERPER_API_KEY**: Credentials for optional hosted search APIs.
 - **EXTENDED_REASONING**=[true/false]: Enables extended reasoning where supported by the configured stack.
 
 #### Ollama

@@ -264,6 +264,29 @@ export const getLLMConfigValidationError = (
     }
   }
 
+  switch (llmConfig.WEB_SEARCH_PROVIDER) {
+    case "searxng":
+      if (!isProvided(llmConfig.SEARXNG_BASE_URL)) {
+        return "SearXNG base URL is required.";
+      }
+      break;
+    case "tavily":
+      if (!isProvided(llmConfig.TAVILY_API_KEY)) {
+        return "Tavily API key is required.";
+      }
+      break;
+    case "brave":
+      if (!isProvided(llmConfig.BRAVE_SEARCH_API_KEY)) {
+        return "Brave Search API key is required.";
+      }
+      break;
+    case "serper":
+      if (!isProvided(llmConfig.SERPER_API_KEY)) {
+        return "Serper API key is required.";
+      }
+      break;
+  }
+
   return null;
 };
 

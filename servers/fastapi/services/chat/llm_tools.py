@@ -2,6 +2,7 @@ from llmai.shared import Tool, WebSearchTool  # type: ignore[import-not-found]
 
 from enums.llm_provider import LLMProvider
 from utils.llm_provider import get_llm_provider
+from utils.web_search import should_use_native_web_search
 
 # Gemini (Google AI + Vertex) does not allow Search and Function tools in one request.
 _GEMINI_EXCLUSIVE_TOOL_PROVIDERS = frozenset(
@@ -18,6 +19,9 @@ def build_chat_llm_tools(function_tools: list[Tool]) -> list[Tool | WebSearchToo
     appended only when the active provider can combine it with function tools.
     """
     tools: list[Tool | WebSearchTool] = list(function_tools)
-    if get_llm_provider() not in _GEMINI_EXCLUSIVE_TOOL_PROVIDERS:
+    if (
+        should_use_native_web_search()
+        and get_llm_provider() not in _GEMINI_EXCLUSIVE_TOOL_PROVIDERS
+    ):
         tools.append(WebSearchTool())
     return tools
