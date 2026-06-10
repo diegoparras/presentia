@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from llmai.shared import WebSearchTool
 from pydantic import ValidationError
 
+from enums.web_search_provider import WebSearchProvider
 from models.presentation_outline_model import PresentationOutlineModel
 from tests.mocks.llm import content_event
 from utils.llm_calls import generate_presentation_outlines as outline_module
@@ -44,6 +45,8 @@ def test_system_prompt_forbids_sources_in_outlines():
 
     assert "Do not include URLs" in prompt
     assert "without mentioning sources" in prompt
+    assert "Give each slide one clear purpose" in prompt
+    assert "Vary content structures where appropriate" in prompt
 
 
 def test_generate_ppt_outline_default_openai_uses_native_search_tool(monkeypatch):
@@ -194,6 +197,87 @@ def test_generate_ppt_outline_injects_external_search_context_without_hosted_too
     assert captured_kwargs["tools"] is None
     assert "Current market facts" in str(captured_kwargs["messages"][1].content)
     assert "URL:" not in str(captured_kwargs["messages"][1].content)
+
+
+def test_generate_ppt_outline_emits_provider_aware_external_search_statuses():
+    async def fake_stream_generate_events(_client, **_kwargs):
+        yield content_event('{"slides": [{"content": "## Current facts"}]}')
+
+    with patch.object(outline_module, "get_model", return_value="fake-model"), patch.object(
+        outline_module, "get_client", return_value=object()
+    ), patch.object(outline_module, "get_llm_config", return_value={}), patch.object(
+        outline_module, "should_use_native_web_search", return_value=False
+    ), patch.object(
+        outline_module, "should_expose_external_web_search_tool", return_value=True
+    ), patch.object(
+        outline_module,
+        "get_web_search_route",
+        return_value=("external", WebSearchProvider.SEARXNG),
+    ), patch.object(
+        outline_module, "generate_web_search_query", return_value="current Nepal PM"
+    ), patch.object(
+        outline_module, "get_web_search_context", return_value="Current facts"
+    ), patch.object(
+        outline_module, "get_generate_kwargs", side_effect=lambda **kwargs: kwargs
+    ), patch.object(
+        outline_module, "stream_generate_events", side_effect=fake_stream_generate_events
+    ):
+        chunks = _collect_async_chunks(
+            outline_module.generate_ppt_outline(
+                content="Who is the current PM of Nepal?",
+                n_slides=1,
+                language="English",
+                web_search=True,
+                emit_statuses=True,
+            )
+        )
+
+    statuses = [
+        chunk.message
+        for chunk in chunks
+        if isinstance(chunk, outline_module.OutlineGenerationStatus)
+    ]
+    assert statuses == [
+        "Analyzing your topic for web research",
+        "Searching with SearXNG: current Nepal PM",
+        "Web research complete",
+        "Drafting your presentation outline",
+    ]
+
+
+def test_generate_ppt_outline_emits_model_native_search_status():
+    async def fake_stream_generate_events(_client, **_kwargs):
+        yield content_event('{"slides": [{"content": "## Current facts"}]}')
+
+    with patch.object(outline_module, "get_model", return_value="fake-model"), patch.object(
+        outline_module, "get_client", return_value=object()
+    ), patch.object(outline_module, "get_llm_config", return_value={}), patch.object(
+        outline_module, "should_use_native_web_search", return_value=True
+    ), patch.object(
+        outline_module, "should_expose_external_web_search_tool", return_value=False
+    ), patch.object(
+        outline_module, "get_generate_kwargs", side_effect=lambda **kwargs: kwargs
+    ), patch.object(
+        outline_module, "stream_generate_events", side_effect=fake_stream_generate_events
+    ):
+        chunks = _collect_async_chunks(
+            outline_module.generate_ppt_outline(
+                content="Current facts",
+                n_slides=1,
+                language="English",
+                web_search=True,
+                emit_statuses=True,
+            )
+        )
+
+    statuses = [
+        chunk.message
+        for chunk in chunks
+        if isinstance(chunk, outline_module.OutlineGenerationStatus)
+    ]
+    assert statuses == [
+        "Searching with model-native web search and drafting outlines"
+    ]
 
 
 def test_generate_ppt_outline_uses_fallback_query_when_query_generation_fails():

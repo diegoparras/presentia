@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 import logging
 from typing import Optional
@@ -36,6 +37,22 @@ from utils.web_search import (
 LOGGER = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class OutlineGenerationStatus:
+    message: str
+
+
+def _web_search_provider_display_name(provider_name: str) -> str:
+    return {
+        "duckduckgo": "DuckDuckGo",
+        "searxng": "SearXNG",
+        "tavily": "Tavily",
+        "brave": "Brave",
+        "serper": "Serper",
+        "model-native": "model-native web search",
+    }.get(provider_name, provider_name)
+
+
 def get_system_prompt(
     verbosity: Optional[str] = None,
     include_title_slide: bool = True,
@@ -69,7 +86,7 @@ def get_system_prompt(
         "   - Must have a ## title.\n"
         # "   - Must have content either in multiple bullet points or table or both.\n"
         "   - Must be in Markdown format.\n"
-        "   - Don't use **bold** and __italic__ text."
+        "   - Don't use **bold** and __italic__ text.\n"
         "   - First slide title must be the same as the presentation title."
     )
 
@@ -87,6 +104,11 @@ def get_system_prompt(
         "Maintain clarity, readability, and factual accuracy. "
         "If no tone is provided, use a clear and professional style. "
         "Ensure logical flow between slides and avoid repetition or generic filler content.\n"
+        "Give each slide one clear purpose and split overloaded topics across multiple slides.\n"
+        "Minimize repetitive phrasing and do not repeat the same facts across slides.\n"
+        "Build a coherent narrative from the introduction through the conclusion.\n"
+        "Vary content structures where appropriate, using bullets, comparisons, timelines, tables, or metrics.\n"
+        "Use concrete facts, examples, and numbers when supported by the provided content/context.\n"
         "Include numerical data, tables or code if required or asked by the user.\n"
         "If 'auto-detect' is used, figure it out from the content/context.\n"
         f"{title_slide_instruction}\n"
@@ -194,6 +216,7 @@ async def generate_ppt_outline(
     include_title_slide: bool = True,
     web_search: bool = False,
     include_table_of_contents: bool = False,
+    emit_statuses: bool = False,
 ):
     model = get_model()
     response_model = (
@@ -212,6 +235,9 @@ async def generate_ppt_outline(
         actual_provider.value
         if actual_provider
         else ("model-native" if route_mode == "native" else "none")
+    )
+    actual_provider_display_name = _web_search_provider_display_name(
+        actual_provider_name
     )
     if not web_search:
         LOGGER.info(
@@ -240,6 +266,8 @@ async def generate_ppt_outline(
         )
 
     if use_external_search:
+        if emit_statuses:
+            yield OutlineGenerationStatus("Analyzing your topic for web research")
         fallback_query = build_web_search_query(content, instructions)
         search_query = fallback_query
         try:
@@ -266,13 +294,25 @@ async def generate_ppt_outline(
 
         search_context = ""
         if search_query:
+            if emit_statuses:
+                yield OutlineGenerationStatus(
+                    f"Searching with {actual_provider_display_name}: {search_query}"
+                )
             search_context = await get_web_search_context(search_query)
+            if emit_statuses:
+                yield OutlineGenerationStatus("Web research complete")
         if search_context:
             additional_context = "\n\n".join(
                 part for part in (additional_context, search_context) if part
             )
 
     try:
+        if emit_statuses:
+            yield OutlineGenerationStatus(
+                "Searching with model-native web search and drafting outlines"
+                if use_search_tool
+                else "Drafting your presentation outline"
+            )
         outline_schema = prepare_schema_for_validation(
             response_model.model_json_schema(),
             strict=True,

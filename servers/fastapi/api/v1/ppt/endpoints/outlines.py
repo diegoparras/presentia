@@ -28,6 +28,7 @@ from utils.outline_utils import (
     get_presentation_title_from_presentation_outline,
 )
 from utils.llm_calls.generate_presentation_outlines import (
+    OutlineGenerationStatus,
     generate_ppt_outline,
     get_messages as get_outline_messages,
 )
@@ -65,7 +66,7 @@ async def stream_outlines(
 
     async def inner():
         yield SSEStatusResponse(
-            status="Generating presentation outlines..."
+            status="Preparing your presentation outline"
         ).to_string()
 
         additional_context = ""
@@ -129,9 +130,19 @@ async def stream_outlines(
             presentation.include_title_slide,
             presentation.web_search,
             presentation.include_table_of_contents,
+            emit_statuses=True,
         ):
             # Give control to the event loop
             await asyncio.sleep(0)
+
+            if isinstance(chunk, OutlineGenerationStatus):
+                LOGGER.info(
+                    "Outline generation status: presentation_id=%s status=%s",
+                    presentation.id,
+                    chunk.message,
+                )
+                yield SSEStatusResponse(status=chunk.message).to_string()
+                continue
 
             if isinstance(chunk, HTTPException):
                 yield SSEErrorResponse(detail=chunk.detail).to_string()
