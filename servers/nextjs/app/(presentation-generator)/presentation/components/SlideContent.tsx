@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Loader2, PlusIcon, Trash2, Pencil, Trash } from "lucide-react";
+import {
+  Loader2,
+  PlusIcon,
+  Trash2,
+  Pencil,
+  Trash,
+  Sparkles,
+} from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -7,7 +14,7 @@ import {
 } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { SendHorizontal } from "lucide-react";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/sonner";
 import { PresentationGenerationApi } from "../../services/api/presentation-generation";
 import ToolTip from "@/components/ToolTip";
 import { RootState } from "@/store/store";
@@ -26,9 +33,16 @@ interface SlideContentProps {
   slide: any;
   index: number;
   presentationId: string;
+  isChatEditing?: boolean;
+  isChatTargeted?: boolean;
 }
 
-const SlideContent = ({ slide, index, presentationId }: SlideContentProps) => {
+const SlideContent = ({
+  slide,
+  index,
+  presentationId,
+  isChatEditing = false,
+}: SlideContentProps) => {
   const dispatch = useDispatch();
   const [isUpdating, setIsUpdating] = useState(false);
   const [showNewSlideSelection, setShowNewSlideSelection] = useState(false);
@@ -45,7 +59,10 @@ const SlideContent = ({ slide, index, presentationId }: SlideContentProps) => {
 
   const handleSubmit = async () => {
     if (!editPrompt.trim()) {
-      toast.error("Please enter a prompt before submitting");
+      notify.warning(
+        "Prompt required",
+        "Please enter a prompt before submitting."
+      );
       return;
     }
     setIsUpdating(true);
@@ -68,14 +85,23 @@ const SlideContent = ({ slide, index, presentationId }: SlideContentProps) => {
           prompt_word_count: editPrompt.trim().split(/\s+/).filter(Boolean)
             .length,
         });
-        toast.success("Slide updated successfully");
+        notify.success(
+          "Slide updated",
+          "Your changes were applied to this slide."
+        );
         setEditPrompt("");
+      } else {
+        notify.error(
+          "Slide edit failed",
+          "The server did not return an updated slide. Please try again."
+        );
       }
     } catch (error: any) {
       console.error("Error in slide editing:", error);
-      toast.error("Error in slide editing.", {
-        description: error.message || "Error in slide editing.",
-      });
+      notify.error(
+        "Slide edit failed",
+        error.message || "Something went wrong while editing the slide."
+      );
     } finally {
       setIsUpdating(false);
     }
@@ -83,6 +109,14 @@ const SlideContent = ({ slide, index, presentationId }: SlideContentProps) => {
 
   const onDeleteSlide = async () => {
     try {
+      if ((presentationData?.slides?.length ?? 0) <= 1) {
+        notify.warning(
+          "Cannot delete slide",
+          "A presentation must contain at least one slide."
+        );
+        return;
+      }
+
       trackEvent(MixpanelEvent.Presentation_Slide_Deleted, {
         pathname,
         presentation_id: presentationId,
@@ -100,9 +134,10 @@ const SlideContent = ({ slide, index, presentationId }: SlideContentProps) => {
       dispatch(deletePresentationSlide(slide.index));
     } catch (error: any) {
       console.error("Error deleting slide:", error);
-      toast.error("Error deleting slide.", {
-        description: error.message || "Error deleting slide.",
-      });
+      notify.error(
+        "Could not delete slide",
+        error.message || "Something went wrong while deleting the slide."
+      );
     }
   };
   useEffect(() => {
@@ -134,7 +169,26 @@ const SlideContent = ({ slide, index, presentationId }: SlideContentProps) => {
           className={` w-full  group font-syne  `}
         >
           {/* <V1ContentRender slide={slide} isEditMode={true} theme={null} /> */}
-          <SlideScale slide={slide} theme={presentationData?.theme || null} />
+          {isChatEditing && (
+            <div
+              className="pointer-events-none absolute bottom-24 left-1/2 z-30 -translate-x-1/2 overflow-hidden rounded-[50px]  p-[1.5px] font-syne"
+              aria-live="polite"
+            >
+              <span className="relative z-20 flex items-center overflow-hidden rounded-[50px] bg-white px-3 py-2 text-sm font-medium text-[#666666]">
+                <span
+                  aria-hidden="true"
+                  className="generating-slides-background absolute"
+                />
+                <span className="relative z-10 flex items-center  gap-2">
+                  <Sparkles className="h-4 w-4 text-[#9034EA]" />
+                  Updating slides...
+                </span>
+              </span>
+            </div>
+          )}
+          <div className="relative">
+            <SlideScale slide={slide} theme={presentationData?.theme || null} />
+          </div>
           {!showNewSlideSelection && (
             <div className="group-hover:opacity-100 hidden md:block opacity-0 transition-opacity my-4 duration-300">
               <ToolTip content="Add new slide below">

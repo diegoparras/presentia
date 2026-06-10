@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronRight,
   Loader2,
+  LocateFixed,
   MessageCircleMore,
   Plus,
   RefreshCw,
@@ -14,14 +15,17 @@ import React, {
   FormEvent,
   KeyboardEvent,
   ReactNode,
+  useCallback,
   useEffect,
   useRef,
   useState,
 } from "react";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/sonner";
 import MarkdownRenderer from "@/components/MarkDownRender";
 import { PresentationChatApi } from "../../services/api/chat";
 import type { ChatStreamTrace } from "../../services/api/chat";
+import { is } from "@babel/types";
+import ToolTip from "@/components/ToolTip";
 import { cn } from "@/lib/utils";
 
 const suggestions: { id: string; icon: ReactNode; suggestion: string }[] = [
@@ -243,8 +247,16 @@ type ChatProps = {
   presentationId: string;
   currentSlide?: number;
   onPresentationChanged?: () => Promise<void> | void;
-  variant?: "presentation" | "outline";
-  className?: string;
+  onChatMutationStateChange?: (isMutating: boolean) => void;
+  onAgentSlideFocus?: (focus: {
+    slideIndex: number;
+    eventId: string;
+    tool?: string;
+    status?: string;
+    isMutatingTool: boolean;
+  }) => void;
+  onChatSendingStateChange?: (isSending: boolean) => void;
+  onFollowModeChange?: (isEnabled: boolean) => void;
 };
 
 type AssistantActivity = {
@@ -278,12 +290,25 @@ const TOOL_LABELS: Record<string, string> = {
   getPresentationOutline: "Outline reader",
   searchSlides: "Slide search",
   getSlideAtIndex: "Slide reader",
+  getPresentationThemeCatalog: "Theme catalog",
   getAvailableLayouts: "Layout finder",
   getContentSchemaFromLayoutId: "Schema checker",
   generateAssets: "Asset generator",
   saveSlide: "Slide saver",
   deleteSlide: "Slide remover",
+  setPresentationTheme: "Theme applier",
 };
+
+const MUTATING_TOOLS = new Set([
+  "saveSlide",
+  "deleteSlide",
+  "setPresentationTheme",
+]);
+// Only focus slides when the agent is actively mutating them.
+// Read/open traces (e.g. getSlideAtIndex) can happen ahead of edits and feel jumpy.
+const SLIDE_FOCUS_TOOLS = new Set(["saveSlide", "deleteSlide"]);
+const SLIDE_FOCUS_STATUSES = new Set(["start"]);
+const MIN_SLIDE_FOCUS_DWELL_MS = 700;
 
 const getToolLabel = (tool?: string) => {
   if (!tool) {
@@ -311,6 +336,9 @@ const humanizeTraceMessage = (message: string, tool?: string) => {
   if (lower === "opening the requested slide") {
     return "Opening the selected slide.";
   }
+  if (lower === "checking available themes") {
+    return "Checking available color themes.";
+  }
   if (lower === "checking available layouts") {
     return "Checking available layouts.";
   }
@@ -325,6 +353,9 @@ const humanizeTraceMessage = (message: string, tool?: string) => {
   }
   if (lower === "deleting the slide") {
     return "Deleting the slide.";
+  }
+  if (lower === "applying presentation theme") {
+    return "Applying the selected theme.";
   }
   if (lower.startsWith("using tools:")) {
     const toolNames = trimmed
@@ -380,6 +411,21 @@ const isAbortError = (error: unknown) =>
   (error instanceof Error &&
     error.message.toLowerCase().includes("aborted") &&
     error.message.toLowerCase().includes("request"));
+
+const stripBackendContextFromUserMessage = (rawMessage: string) => {
+  const message = rawMessage ?? "";
+  if (!message.startsWith("UI context:")) {
+    return message;
+  }
+
+  const marker = "\nUser message:";
+  const markerIndex = message.indexOf(marker);
+  if (markerIndex === -1) {
+    return message;
+  }
+
+  return message.slice(markerIndex + marker.length).trimStart();
+};
 
 const formatTraceActivity = (
   trace: ChatStreamTrace
@@ -449,18 +495,32 @@ const formatTraceActivity = (
   return null;
 };
 
+const readTraceSlideIndex = (trace: ChatStreamTrace) => {
+  if (typeof trace.slideIndex === "number" && trace.slideIndex >= 0) {
+    return trace.slideIndex;
+  }
+  if (typeof trace.slideNumber === "number" && trace.slideNumber > 0) {
+    return trace.slideNumber - 1;
+  }
+  return null;
+};
+
 const Chat = ({
   presentationId,
   currentSlide,
   onPresentationChanged,
-  variant = "presentation",
-  className,
+  onChatMutationStateChange,
+  onAgentSlideFocus,
+  onChatSendingStateChange,
+  onFollowModeChange,
 }: ChatProps) => {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [isFollowAgentEnabled, setIsFollowAgentEnabled] = useState(true);
+  const [activeMutationToolCount, setActiveMutationToolCount] = useState(0);
   const [activeAssistantMessageId, setActiveAssistantMessageId] = useState<
     string | null
   >(null);
@@ -472,6 +532,15 @@ const Chat = ({
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const lastFollowedTraceRef = useRef<string | null>(null);
+  const focusEventSequenceRef = useRef(0);
+  const activeFocusedSlideRef = useRef<number | null>(null);
+  const pendingFocusTraceRef = useRef<ChatStreamTrace | null>(null);
+  const lastFocusDispatchAtRef = useRef<number>(0);
+  const focusDispatchTimerRef = useRef<number | null>(null);
+  const refreshInFlightRef = useRef(false);
+  const refreshQueuedRef = useRef(false);
+  const didIncrementalRefreshRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -481,6 +550,7 @@ const Chat = ({
     setInput("");
     setConversationId(null);
     setIsSending(false);
+    setActiveMutationToolCount(0);
     setActiveAssistantMessageId(null);
     setErrorMessage(null);
     setExpandedActivityByMessage({});
@@ -527,7 +597,10 @@ const Chat = ({
                 : m.role === "user"
                 ? "user"
                 : "user",
-            content: m.content,
+            content:
+              m.role === "user"
+                ? stripBackendContextFromUserMessage(m.content)
+                : m.content,
           }))
         );
       } catch (error) {
@@ -536,7 +609,7 @@ const Chat = ({
           error instanceof Error
             ? error.message
             : "Could not load previous chat";
-        toast.error(detail);
+        notify.error("Could not load chat", detail);
       } finally {
         if (!cancelled) {
           setIsHistoryLoading(false);
@@ -552,6 +625,139 @@ const Chat = ({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "end" });
   }, [messages, isSending]);
+
+  useEffect(() => {
+    onChatMutationStateChange?.(activeMutationToolCount > 0);
+  }, [activeMutationToolCount, onChatMutationStateChange]);
+
+  useEffect(() => {
+    onFollowModeChange?.(isFollowAgentEnabled);
+  }, [isFollowAgentEnabled, onFollowModeChange]);
+
+  useEffect(() => {
+    onChatSendingStateChange?.(isSending);
+    if (!isSending) {
+      lastFollowedTraceRef.current = null;
+      activeFocusedSlideRef.current = null;
+      pendingFocusTraceRef.current = null;
+      lastFocusDispatchAtRef.current = 0;
+      if (focusDispatchTimerRef.current !== null) {
+        window.clearTimeout(focusDispatchTimerRef.current);
+        focusDispatchTimerRef.current = null;
+      }
+    }
+  }, [isSending, onChatSendingStateChange]);
+
+  useEffect(
+    () => () => {
+      if (focusDispatchTimerRef.current !== null) {
+        window.clearTimeout(focusDispatchTimerRef.current);
+      }
+    },
+    []
+  );
+
+  const updateMutationToolActivity = (
+    tool: string | undefined,
+    isActive: boolean
+  ) => {
+    if (!tool || !MUTATING_TOOLS.has(tool)) {
+      return;
+    }
+    setActiveMutationToolCount((previous) =>
+      Math.max(0, previous + (isActive ? 1 : -1))
+    );
+  };
+
+  const emitAgentSlideFocus = useCallback(
+    (trace: ChatStreamTrace, targetSlideIndex: number) => {
+      if (!onAgentSlideFocus) {
+        return;
+      }
+      focusEventSequenceRef.current += 1;
+      onAgentSlideFocus({
+        slideIndex: targetSlideIndex,
+        eventId: `${Date.now()}-${focusEventSequenceRef.current}`,
+        tool: trace.tool,
+        status: trace.status,
+        isMutatingTool: Boolean(trace.tool && MUTATING_TOOLS.has(trace.tool)),
+      });
+      activeFocusedSlideRef.current = targetSlideIndex;
+      lastFocusDispatchAtRef.current = Date.now();
+    },
+    [onAgentSlideFocus]
+  );
+
+  const flushPendingSlideFocus = useCallback(() => {
+    focusDispatchTimerRef.current = null;
+    const pendingTrace = pendingFocusTraceRef.current;
+    pendingFocusTraceRef.current = null;
+    if (!pendingTrace) {
+      return;
+    }
+    const targetSlideIndex = readTraceSlideIndex(pendingTrace);
+    if (targetSlideIndex === null) {
+      return;
+    }
+    emitAgentSlideFocus(pendingTrace, targetSlideIndex);
+  }, [emitAgentSlideFocus]);
+
+  const schedulePendingSlideFocus = useCallback(() => {
+    if (focusDispatchTimerRef.current !== null) {
+      return;
+    }
+    const elapsed = Date.now() - lastFocusDispatchAtRef.current;
+    const waitMs = Math.max(MIN_SLIDE_FOCUS_DWELL_MS - elapsed, 0);
+    focusDispatchTimerRef.current = window.setTimeout(
+      flushPendingSlideFocus,
+      waitMs
+    );
+  }, [flushPendingSlideFocus]);
+
+  const maybeFollowAgentSlide = useCallback(
+    (trace: ChatStreamTrace) => {
+      if (!trace.tool || !SLIDE_FOCUS_TOOLS.has(trace.tool)) {
+        return;
+      }
+      if (!trace.status || !SLIDE_FOCUS_STATUSES.has(trace.status)) {
+        return;
+      }
+
+      const targetSlideIndex = readTraceSlideIndex(trace);
+      if (targetSlideIndex === null) {
+        return;
+      }
+
+      const traceSignature = `${trace.round ?? "?"}:${trace.tool}:${
+        trace.status
+      }:${targetSlideIndex}`;
+      if (lastFollowedTraceRef.current === traceSignature) {
+        return;
+      }
+      lastFollowedTraceRef.current = traceSignature;
+
+      const activeFocusedSlide = activeFocusedSlideRef.current;
+      const elapsed = Date.now() - lastFocusDispatchAtRef.current;
+      const shouldDispatchImmediately =
+        activeFocusedSlide === null ||
+        activeFocusedSlide === targetSlideIndex ||
+        elapsed >= MIN_SLIDE_FOCUS_DWELL_MS;
+
+      if (shouldDispatchImmediately) {
+        pendingFocusTraceRef.current = null;
+        if (focusDispatchTimerRef.current !== null) {
+          window.clearTimeout(focusDispatchTimerRef.current);
+          focusDispatchTimerRef.current = null;
+        }
+        emitAgentSlideFocus(trace, targetSlideIndex);
+        return;
+      }
+
+      pendingFocusTraceRef.current = trace;
+      schedulePendingSlideFocus();
+    },
+    [emitAgentSlideFocus, schedulePendingSlideFocus]
+  );
 
   const buildBackendMessage = (message: string) => {
     if (typeof currentSlide !== "number") {
@@ -570,6 +776,7 @@ const Chat = ({
     setMessages([]);
     setInput("");
     setConversationId(null);
+    setActiveMutationToolCount(0);
     setErrorMessage(null);
     setExpandedActivityByMessage({});
     if (presentationId && typeof sessionStorage !== "undefined") {
@@ -579,10 +786,44 @@ const Chat = ({
     inputRef.current?.focus();
   };
 
+  const refreshPresentationIncrementally = useCallback(async () => {
+    if (!onPresentationChanged) {
+      return;
+    }
+    if (refreshInFlightRef.current) {
+      refreshQueuedRef.current = true;
+      return;
+    }
+
+    refreshInFlightRef.current = true;
+    didIncrementalRefreshRef.current = true;
+    try {
+      await onPresentationChanged();
+    } catch (error) {
+      console.error(
+        "Failed to refresh presentation after tool mutation:",
+        error
+      );
+      notify.error("Refresh failed", "Slides were saved, but refresh failed.");
+    } finally {
+      refreshInFlightRef.current = false;
+      if (refreshQueuedRef.current) {
+        refreshQueuedRef.current = false;
+        void refreshPresentationIncrementally();
+      }
+    }
+  }, [onPresentationChanged]);
+
   const refreshPresentationIfNeeded = async (toolCalls: string[]) => {
     const hasSlideMutation =
-      toolCalls.includes("saveSlide") || toolCalls.includes("deleteSlide");
-    if (!hasSlideMutation || !onPresentationChanged) {
+      toolCalls.includes("saveSlide") ||
+      toolCalls.includes("deleteSlide") ||
+      toolCalls.includes("setPresentationTheme");
+    if (
+      !hasSlideMutation ||
+      !onPresentationChanged ||
+      didIncrementalRefreshRef.current
+    ) {
       return;
     }
 
@@ -590,7 +831,10 @@ const Chat = ({
       await onPresentationChanged();
     } catch (error) {
       console.error("Failed to refresh presentation after chat update:", error);
-      toast.error("Chat completed, but slide refresh failed");
+      notify.error(
+        "Refresh failed",
+        "Chat completed, but slide refresh failed."
+      );
     }
   };
 
@@ -688,7 +932,10 @@ const Chat = ({
     }
 
     if (!presentationId) {
-      toast.error("Presentation is not ready yet");
+      notify.error(
+        "Presentation not ready",
+        "The presentation is not ready yet."
+      );
       return;
     }
 
@@ -718,6 +965,9 @@ const Chat = ({
     setErrorMessage(null);
     setIsSending(true);
     setActiveAssistantMessageId(assistantMessageId);
+    didIncrementalRefreshRef.current = false;
+    refreshQueuedRef.current = false;
+    refreshInFlightRef.current = false;
     const streamAbortController = new AbortController();
     abortControllerRef.current = streamAbortController;
 
@@ -748,6 +998,19 @@ const Chat = ({
             });
           },
           onTrace: (trace) => {
+            maybeFollowAgentSlide(trace);
+            if (
+              trace.status === "success" &&
+              trace.tool &&
+              MUTATING_TOOLS.has(trace.tool)
+            ) {
+              void refreshPresentationIncrementally();
+            }
+            if (trace.status === "start") {
+              updateMutationToolActivity(trace.tool, true);
+            } else if (trace.status === "success" || trace.status === "error") {
+              updateMutationToolActivity(trace.tool, false);
+            }
             const traceActivity = formatTraceActivity(trace);
             if (!traceActivity) {
               return;
@@ -838,8 +1101,9 @@ const Chat = ({
           content: message,
         },
       ]);
-      toast.error(message);
+      notify.error("Chat error", message);
     } finally {
+      setActiveMutationToolCount(0);
       if (abortControllerRef.current === streamAbortController) {
         abortControllerRef.current = null;
       }
@@ -867,11 +1131,12 @@ const Chat = ({
     setErrorMessage(null);
     inputRef.current?.focus();
   };
+  const variant = "outline";
 
   const isOutlineVariant = variant === "outline";
 
   return (
-    <div className={cn("flex h-full w-full flex-col bg-white", className)}>
+    <div className={cn("flex h-full w-full flex-col bg-white", "")}>
       <div className="flex items-center justify-between px-4 pt-8">
         <div className="flex items-center gap-2">
           <h4 className="flex items-center gap-2 text-sm font-semibold text-[#101828]">
@@ -965,7 +1230,6 @@ const Chat = ({
                 </div>
               </div>
             )}
-
           </>
         ) : (
           <div className="flex flex-col gap-9">
@@ -976,7 +1240,9 @@ const Chat = ({
                   className="flex items-start justify-end gap-2"
                 >
                   <div className="max-w-[78%] rounded-[20px] bg-[#A100FF] px-4 py-3 text-sm font-medium leading-5 text-white">
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    <p className="whitespace-pre-wrap">
+                      {stripBackendContextFromUserMessage(message.content)}
+                    </p>
                   </div>
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FF8617] text-sm font-semibold text-white">
                     U
@@ -1069,10 +1335,7 @@ const Chat = ({
 
       <form
         onSubmit={handleSubmit}
-        className={cn(
-          "relative mx-4 rounded-[8px] border border-[#F4F4F4] bg-white px-2.5 py-3",
-          isOutlineVariant ? "mb-2" : "mb-4"
-        )}
+        className="mx-4 mb-4 rounded-[8px] border border-[#F4F4F4] bg-white px-2.5 py-3"
         style={{
           boxShadow: "0 4px 14px 0 rgba(0, 0, 0, 0.04)",
         }}
@@ -1081,65 +1344,150 @@ const Chat = ({
           ref={inputRef}
           name="chat-input"
           id="chat-input"
-          className={cn(
-            "w-full resize-none bg-transparent pb-10 text-sm text-[#101828] placeholder:text-[#99A1AF] focus:outline-none focus:ring-0",
-            isOutlineVariant ? "min-h-[88px]" : "min-h-[92px]"
-          )}
-          rows={4}
+          className="min-h-[92px] w-full resize-none bg-transparent text-sm text-[#101828] placeholder:text-[#99A1AF] focus:outline-none focus:ring-0"
+          rows={3}
           value={input}
           disabled={isSending || isHistoryLoading}
           onChange={(event) => setInput(event.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={
-            isOutlineVariant ? "Regenerate this outline" : "Improve your slides..."
+            isOutlineVariant
+              ? "Regenerate this outline"
+              : "Improve your slides..."
           }
           aria-invalid={Boolean(errorMessage)}
         />
-        <button
-          type="button"
-          disabled
-          className="absolute bottom-3 left-3 h-[28px] rounded-[64px] border border-[#EDEEEF] bg-white px-3 py-1 opacity-50"
-          aria-label="Attach files"
-          title="Attachments are not supported yet"
-        >
-          <Plus className="h-3 w-3 text-black" />
-        </button>
-        {isSending ? (
-          <div className="absolute bottom-3 right-3 flex items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 border border-[#EDEEEF] bg-white px-3 py-1 rounded-[64px]">
             <button
               type="button"
               disabled
-              className="flex cursor-wait items-center gap-1.5 rounded-[34px] border border-[#EAECF0] bg-[#F9FAFB] px-3 py-2 text-sm font-medium text-[#667085]"
-              aria-label="Chat is processing"
+              className="inline-flex h-[28px] items-center rounded-[64px] disabled:opacity-50"
+              aria-label="Attach files"
+              title="Attachments are not supported yet"
             >
-              <Loader2 className="h-3 w-3 animate-spin text-[#667085]" />
-              Processing
+              <Plus className="h-3 w-3 text-black" />
             </button>
-            <button
-              type="button"
-              onClick={stopStreaming}
-              className="flex items-center gap-1.5 rounded-[34px] border border-[#E4E7EC] bg-white px-3 py-2 text-sm font-medium text-[#344054] transition-colors hover:bg-[#F9FAFB]"
-              aria-label="Stop chat response"
+            <svg
+              className="mx-[8px]"
+              xmlns="http://www.w3.org/2000/svg"
+              width="2"
+              height="17"
+              viewBox="0 0 2 17"
+              fill="none"
             >
-              <Square className="h-3 w-3 fill-current" />
-              Stop
-            </button>
+              <path d="M1 0V16.5" stroke="#EDECEC" strokeWidth="2" />
+            </svg>
+            <ToolTip
+              content={
+                isFollowAgentEnabled
+                  ? "Disable follow AI mode"
+                  : "Enable follow AI mode"
+              }
+            >
+              <button
+                type="button"
+                onClick={() => setIsFollowAgentEnabled((previous) => !previous)}
+                disabled={isHistoryLoading || isSending}
+                className={`inline-flex h-[28px] items-center gap-1 rounded-[64px]  text-[11px] font-medium transition-colors  disabled:cursor-not-allowed disabled:opacity-50`}
+                aria-label={
+                  isFollowAgentEnabled
+                    ? "Disable follow AI mode"
+                    : "Enable follow AI mode"
+                }
+                title={
+                  isFollowAgentEnabled
+                    ? "Follow AI is on: auto-jump to active slide"
+                    : "Follow AI is off"
+                }
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 11 11"
+                  fill="none"
+                >
+                  <g clipPath="url(#clip0_6216_326)">
+                    <path
+                      d="M5.50008 10.0837C8.03139 10.0837 10.0834 8.03163 10.0834 5.50033C10.0834 2.96902 8.03139 0.916992 5.50008 0.916992C2.96878 0.916992 0.916748 2.96902 0.916748 5.50033C0.916748 8.03163 2.96878 10.0837 5.50008 10.0837Z"
+                      stroke={isFollowAgentEnabled ? "#7A5AF8" : "#000000"}
+                      strokeWidth="0.938667"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M10.0833 5.5H8.25"
+                      stroke={isFollowAgentEnabled ? "#7A5AF8" : "#000000"}
+                      strokeWidth="0.938667"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M2.75008 5.5H0.916748"
+                      stroke={isFollowAgentEnabled ? "#7A5AF8" : "#000000"}
+                      strokeWidth="0.938667"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M5.5 2.75033V0.916992"
+                      stroke={isFollowAgentEnabled ? "#7A5AF8" : "#000000"}
+                      strokeWidth="0.938667"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M5.5 10.0833V8.25"
+                      stroke={isFollowAgentEnabled ? "#7A5AF8" : "#000000"}
+                      strokeWidth="0.938667"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </g>
+                  <defs>
+                    <clipPath id="clip0_6216_326">
+                      <rect width="11" height="11" fill="white" />
+                    </clipPath>
+                  </defs>
+                </svg>
+
+                {/* <span>{isFollowAgentEnabled ? "Following" : "Follow AI"}</span> */}
+              </button>
+            </ToolTip>
           </div>
-        ) : (
-          <button
-            type="submit"
-            disabled={!input.trim() || isHistoryLoading}
-            className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-[#191919] disabled:cursor-not-allowed disabled:opacity-60"
-            style={{
-              background:
-                "linear-gradient(270deg, #D5CAFC 2.4%, #E3D2EB 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
-              borderRadius: "34px",
-            }}
-          >
-            <Send className="h-3 w-3 text-[#191919]" />
-            Send
-          </button>
-        )}
+          <div className="ml-auto flex items-center gap-2">
+            {isSending ? (
+              <button
+                type="button"
+                onClick={stopStreaming}
+                className="flex items-center gap-1.5 whitespace-nowrap rounded-[34px] border border-[#E4E7EC] bg-white px-3 py-2 text-sm font-medium text-[#344054] transition-colors hover:bg-[#F9FAFB]"
+                aria-label="Stop chat response"
+              >
+                <Loader2
+                  className="h-3 w-3 animate-spin text-[#667085]"
+                  aria-hidden="true"
+                />
+                <Square className="h-3 w-3 fill-current" aria-hidden="true" />
+                Stop
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!input.trim() || isHistoryLoading}
+                className="flex items-center gap-1.5 whitespace-nowrap px-3 py-2 text-sm font-medium text-[#191919] disabled:cursor-not-allowed disabled:opacity-60"
+                style={{
+                  background:
+                    "linear-gradient(270deg, #D5CAFC 2.4%, #E3D2EB 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+                  borderRadius: "34px",
+                }}
+              >
+                <Send className="h-3 w-3 text-[#191919]" />
+                Send
+              </button>
+            )}
+          </div>
+        </div>
       </form>
       {isOutlineVariant && (
         <div className="mx-4 mb-4 flex flex-wrap gap-2">

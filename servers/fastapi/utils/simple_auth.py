@@ -2,7 +2,6 @@ import base64
 import hashlib
 import hmac
 import json
-import os
 import secrets
 import time
 from typing import Optional
@@ -10,11 +9,13 @@ from typing import Optional
 from fastapi import Request
 from starlette.responses import Response
 
-from utils.get_env import get_user_config_path_env
+from utils.get_env import get_user_config_path_env, is_disable_auth_enabled
+from utils.user_config_store import read_user_config_file, update_user_config_file
 
 SESSION_COOKIE_NAME = "presenton_session"
 PBKDF2_ITERATIONS = 200_000
 SESSION_TTL_SECONDS = 60 * 60 * 24 * 30
+AUTH_CONFIG_FIELDS = ("AUTH_USERNAME", "AUTH_PASSWORD_HASH", "AUTH_SECRET_KEY")
 
 
 def _base64url_encode(data: bytes) -> str:
@@ -28,25 +29,33 @@ def _base64url_decode(value: str) -> bytes:
 
 def _load_user_config() -> dict:
     user_config_path = get_user_config_path_env()
-    if not user_config_path or not os.path.exists(user_config_path):
+    if not user_config_path:
         return {}
 
     try:
-        with open(user_config_path, "r", encoding="utf-8") as config_file:
-            data = json.load(config_file)
-            return data if isinstance(data, dict) else {}
+        return read_user_config_file(user_config_path)
     except Exception:
         return {}
 
 
-def _save_user_config(config: dict) -> None:
+def _save_user_config(config: dict, removed_keys: tuple[str, ...] = ()) -> None:
     user_config_path = get_user_config_path_env()
     if not user_config_path:
         raise ValueError("USER_CONFIG_PATH is not set")
 
-    os.makedirs(os.path.dirname(user_config_path), exist_ok=True)
-    with open(user_config_path, "w", encoding="utf-8") as config_file:
-        json.dump(config, config_file)
+    auth_config = {
+        key: config[key]
+        for key in AUTH_CONFIG_FIELDS
+        if key in config
+    }
+
+    def merge_auth_config(existing: dict) -> dict:
+        existing.update(auth_config)
+        for key in removed_keys:
+            existing.pop(key, None)
+        return existing
+
+    update_user_config_file(user_config_path, merge_auth_config)
 
 
 def _hash_password(password: str, salt: bytes) -> bytes:
@@ -150,7 +159,7 @@ def clear_stored_credentials() -> None:
             config.pop(key, None)
             removed = True
     if removed:
-        _save_user_config(config)
+        _save_user_config(config, removed_keys=AUTH_CONFIG_FIELDS)
 
 
 def verify_credentials(username: str, password: str) -> bool:
@@ -292,6 +301,18 @@ def get_auth_status(session_token: Optional[str] = None) -> dict:
         "authenticated": bool(username),
         "username": username,
     }
+
+
+def get_internal_auth_headers() -> dict[str, str]:
+    """Return auth headers for trusted same-host service-to-service API calls."""
+    if is_disable_auth_enabled():
+        return {}
+
+    username = get_configured_auth_username()
+    if not username:
+        return {}
+
+    return {"Authorization": f"Bearer {create_session_token(username)}"}
 
 
 def _is_secure_request(request: Request) -> bool:

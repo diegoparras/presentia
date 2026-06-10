@@ -20,9 +20,13 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/sonner";
 import { getApiUrl } from "@/utils/api";
 import { Button } from "@/components/ui/button";
+import {
+    CHATGPT_MODELS,
+    DEFAULT_CODEX_MODEL,
+} from "@/components/CodexConfig";
 
 interface CodexConfigProps {
     codexModel: string;
@@ -39,22 +43,6 @@ interface StatusResponse {
     is_pro?: boolean;
     detail?: string;
 }
-
-interface CodexModel {
-    id: string;
-    name: string;
-}
-
-const CHATGPT_MODELS: CodexModel[] = [
-    { id: "gpt-5.4", name: "GPT-5.4" },
-    { id: "gpt-5.2-codex", name: "GPT-5.2-Codex" },
-    { id: "gpt-5.1-codex-max", name: "GPT-5.1-Codex-Max" },
-    { id: "gpt-5.4-mini", name: "GPT-5.4-Mini" },
-    { id: "gpt-5.3-codex", name: "GPT-5.3-Codex" },
-    { id: "gpt-5.2", name: "GPT-5.2" },
-];
-
-const DEFAULT_CODEX_MODEL = "gpt-5.2";
 
 export default function CodexConfig({
     codexModel,
@@ -144,19 +132,28 @@ export default function CodexConfig({
                         if (!codexModel) {
                             onInputChange(DEFAULT_CODEX_MODEL, "codex_model");
                         }
-                        toast.success("Signed in to ChatGPT successfully");
+                        notify.success(
+                            "Signed in to ChatGPT",
+                            "Your ChatGPT account is connected and ready to use."
+                        );
                     } else if (pollData.status === "failed") {
                         stopPolling();
                         setAuthStatus("unauthenticated");
                         applyProfile({});
-                        toast.error("Authentication failed. Please try again.");
+                        notify.error(
+                            "Sign-in failed",
+                            "Authentication did not complete. Please try signing in again."
+                        );
                     }
                 } catch {
                     // keep polling on transient errors
                 }
             }, 2000);
         } catch (err) {
-            toast.error("Failed to start sign-in flow");
+            notify.error(
+                "Sign-in failed",
+                "Could not start the sign-in flow. Please try again."
+            );
             setAuthStatus("unauthenticated");
             applyProfile({});
         }
@@ -184,9 +181,15 @@ export default function CodexConfig({
             if (!codexModel) {
                 onInputChange(DEFAULT_CODEX_MODEL, "codex_model");
             }
-            toast.success("Signed in to ChatGPT successfully");
+            notify.success(
+                "Signed in to ChatGPT",
+                "Your ChatGPT account is connected and ready to use."
+            );
         } catch (err: any) {
-            toast.error(err.message || "Code exchange failed");
+            notify.error(
+                "Sign-in failed",
+                err.message || "The verification code could not be accepted. Please try again."
+            );
         } finally {
             setIsExchanging(false);
         }
@@ -207,9 +210,15 @@ export default function CodexConfig({
             applyProfile({});
             onInputChange("codex", "LLM");
             onInputChange('', "codex_model");
-            toast.success("Signed out from ChatGPT");
+            notify.success(
+                "Signed out",
+                "You have been disconnected from ChatGPT."
+            );
         } catch {
-            toast.error("Sign out failed");
+            notify.error(
+                "Sign-out failed",
+                "Could not disconnect from ChatGPT. Please try again."
+            );
         } finally {
             setIsLoggingOut(false);
         }
@@ -224,9 +233,15 @@ export default function CodexConfig({
             if (!res.ok) throw new Error("Refresh failed");
             const data = await res.json();
             applyProfile(data);
-            toast.success("Token refreshed successfully");
+            notify.success(
+                "Session refreshed",
+                "Your ChatGPT connection was renewed successfully."
+            );
         } catch {
-            toast.error("Token refresh failed. Please sign in again.");
+            notify.error(
+                "Session refresh failed",
+                "Your ChatGPT session could not be renewed. Please sign in again."
+            );
             setAuthStatus("unauthenticated");
             applyProfile({});
         } finally {

@@ -2,7 +2,7 @@
 
 import React, { ChangeEvent, useEffect, useMemo, useState } from 'react'
 import { File, Paperclip, Plus, X } from 'lucide-react'
-import { toast } from 'sonner'
+import { notify } from '@/components/ui/sonner'
 
 interface SupportingDocProps {
     files: File[]
@@ -18,9 +18,9 @@ const TEXT_TYPES = ['.txt']
 const WORD_TYPES = ['.doc', '.docx', '.docm', '.odt', '.rtf']
 const POWERPOINT_TYPES = ['.ppt', '.pptx', '.pptm', '.odp']
 const SPREADSHEET_TYPES = ['.xls', '.xlsx', '.xlsm', '.ods', '.csv', '.tsv']
-const IMAGE_TYPES = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp', '.svg']
+const IMAGE_TYPES = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp']
 
-const ALLOWED_MIME_PREFIXES: string[] = ['image/']
+const ALLOWED_MIME_PREFIXES: string[] = []
 const ALLOWED_MIME_TYPES = [
     'application/pdf',
     'text/plain',
@@ -48,7 +48,6 @@ const ALLOWED_MIME_TYPES = [
     'image/bmp',
     'image/tiff',
     'image/webp',
-    'image/svg+xml',
 ]
 const ALLOWED_EXTENSIONS = [
     ...PDF_TYPES,
@@ -89,9 +88,7 @@ const SupportingDoc = ({
     const handleValidate = (filesToReview: File[]) => {
         const disallowed = filesToReview.filter((file) => !isAllowedFile(file))
         if (disallowed.length > 0) {
-            toast.error('Some files are not supported', {
-                description: 'Supported: Word, PowerPoint, spreadsheets, PDF/TXT, and image files.',
-            })
+            notify.error('Some files are not supported', 'Supported: Word, PowerPoint, spreadsheets, PDF/TXT, and image files.')
         }
     }
 
@@ -100,9 +97,7 @@ const SupportingDoc = ({
             return candidateFiles
         }
 
-        toast.warning('Maximum file limit reached', {
-            description: `You can upload up to ${MAX_SUPPORTED_FILES} documents only.`,
-        })
+        notify.warning('Maximum file limit reached', `You can upload up to ${MAX_SUPPORTED_FILES} documents only.`)
 
         return candidateFiles.slice(0, MAX_SUPPORTED_FILES)
     }
@@ -117,9 +112,7 @@ const SupportingDoc = ({
         onFilesChange(allowedFiles)
         handleValidate(nextFiles)
         if (allowedFiles.length > files.length) {
-            toast.success('Files selected', {
-                description: `${allowedFiles.length - files.length} file(s) have been added`,
-            })
+            notify.success('Files selected', `${allowedFiles.length - files.length} file(s) have been added.`)
         }
         e.currentTarget.value = ''
     }
@@ -137,9 +130,7 @@ const SupportingDoc = ({
         onFilesChange(allowedFiles)
         handleValidate(nextFiles)
         if (allowedFiles.length > files.length) {
-            toast.success('Files selected', {
-                description: `${allowedFiles.length - files.length} file(s) have been added`,
-            })
+            notify.success('Files selected', `${allowedFiles.length - files.length} file(s) have been added.`)
         }
     }
 

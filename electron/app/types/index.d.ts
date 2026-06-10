@@ -13,6 +13,22 @@ interface FastApiEnv {
   CUSTOM_LLM_URL?: string,
   CUSTOM_LLM_API_KEY?: string,
   CUSTOM_MODEL?: string,
+  BEDROCK_REGION?: string,
+  BEDROCK_API_KEY?: string,
+  BEDROCK_AWS_ACCESS_KEY_ID?: string,
+  BEDROCK_AWS_SECRET_ACCESS_KEY?: string,
+  BEDROCK_AWS_SESSION_TOKEN?: string,
+  BEDROCK_PROFILE_NAME?: string,
+  BEDROCK_MODEL?: string,
+  FIREWORKS_API_KEY?: string,
+  FIREWORKS_MODEL?: string,
+  FIREWORKS_BASE_URL?: string,
+  TOGETHER_API_KEY?: string,
+  TOGETHER_MODEL?: string,
+  TOGETHER_BASE_URL?: string,
+  LMSTUDIO_BASE_URL?: string,
+  LMSTUDIO_API_KEY?: string,
+  LMSTUDIO_MODEL?: string,
   PEXELS_API_KEY?: string,
   PIXABAY_API_KEY?: string,
   IMAGE_PROVIDER?: string,
@@ -36,8 +52,18 @@ interface FastApiEnv {
   DISABLE_AUTH?: string,
   /** Absolute path to the resolved LibreOffice executable discovered at startup. */
   SOFFICE_PATH?: string,
-  /** Absolute path to the ImageMagick binary resolved at startup by imagemagick-check.ts. */
+  /** Office renderer for PPTX/office conversion (always libreoffice when set). */
+  PRESENTON_OFFICE_RENDERER?: string,
+  /** Absolute path to the bundled/resolved ImageMagick magick executable. */
   IMAGEMAGICK_BINARY?: string,
+  /** ImageMagick runtime root used by the bundled portable build. */
+  MAGICK_HOME?: string,
+  /** ImageMagick configuration directory used by the bundled portable build. */
+  MAGICK_CONFIGURE_PATH?: string,
+  /** POSIX-style path key used on macOS/Linux child processes. */
+  PATH?: string,
+  /** Windows path key, preserved to avoid duplicate PATH/Path env entries. */
+  Path?: string,
   /** Absolute path to the bundled LiteParse runner script. */
   LITEPARSE_RUNNER_PATH?: string,
   /** Binary path used by LiteParseService to execute liteparse_runner.mjs. */
@@ -65,7 +91,6 @@ interface NextJsEnv {
   EXPORT_PACKAGE_ROOT?: string,
   PRESENTON_APP_ROOT?: string,
   BUILT_PYTHON_MODULE_PATH?: string,
-  PUPPETEER_EXECUTABLE_PATH?: string,
 }
 
 interface UserConfig {
@@ -82,6 +107,22 @@ interface UserConfig {
   CUSTOM_LLM_URL?: string,
   CUSTOM_LLM_API_KEY?: string,
   CUSTOM_MODEL?: string,
+  BEDROCK_REGION?: string,
+  BEDROCK_API_KEY?: string,
+  BEDROCK_AWS_ACCESS_KEY_ID?: string,
+  BEDROCK_AWS_SECRET_ACCESS_KEY?: string,
+  BEDROCK_AWS_SESSION_TOKEN?: string,
+  BEDROCK_PROFILE_NAME?: string,
+  BEDROCK_MODEL?: string,
+  FIREWORKS_API_KEY?: string,
+  FIREWORKS_MODEL?: string,
+  FIREWORKS_BASE_URL?: string,
+  TOGETHER_API_KEY?: string,
+  TOGETHER_MODEL?: string,
+  TOGETHER_BASE_URL?: string,
+  LMSTUDIO_BASE_URL?: string,
+  LMSTUDIO_API_KEY?: string,
+  LMSTUDIO_MODEL?: string,
   PEXELS_API_KEY?: string,
   PIXABAY_API_KEY?: string,
   IMAGE_PROVIDER?: string,
