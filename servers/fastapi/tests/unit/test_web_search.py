@@ -51,19 +51,26 @@ def test_auto_can_fallback_when_native_search_cannot_combine_with_tools(monkeypa
     )
 
 
-def test_format_web_search_context_includes_sources():
+def test_format_web_search_context_excludes_source_urls():
     context = web_search.format_web_search_context(
         [
             web_search.WebSearchResult(
                 title="Presenton",
                 url="https://example.com/presenton",
-                snippet="Presentation generation",
+                snippet=(
+                    "Presentation generation [6][7] with "
+                    "[documentation](https://example.com/docs)"
+                ),
             )
         ]
     )
 
     assert "Web search results" in context
-    assert "https://example.com/presenton" in context
+    assert "https://example.com/presenton" not in context
+    assert "https://example.com/docs" not in context
+    assert "URL:" not in context
+    assert "[6]" not in context
+    assert "documentation" in context
     assert "Presentation generation" in context
 
 

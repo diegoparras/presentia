@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 from fastapi import HTTPException
+from llmai.shared import WebSearchTool
 from pydantic import ValidationError
 
 from models.presentation_outline_model import PresentationOutlineModel
@@ -36,6 +37,55 @@ def test_get_user_prompt_uses_autodetect_defaults():
     assert "Language: auto-detect" in prompt
     assert "Tone: professional" in prompt
     assert "Context: None" in prompt
+
+
+def test_system_prompt_forbids_sources_in_outlines():
+    prompt = outline_module.get_system_prompt()
+
+    assert "Do not include URLs" in prompt
+    assert "without mentioning sources" in prompt
+
+
+def test_generate_ppt_outline_default_openai_uses_native_search_tool(monkeypatch):
+    captured_kwargs = {}
+    captured_config_kwargs = {}
+
+    async def fake_stream_generate_events(_client, **kwargs):
+        captured_kwargs.update(kwargs)
+        yield content_event('{"slides": [{"content": "## Current facts"}]}')
+
+    def fake_get_llm_config(**kwargs):
+        captured_config_kwargs.update(kwargs)
+        return {}
+
+    monkeypatch.setenv("LLM", "openai")
+    monkeypatch.setenv("WEB_SEARCH_PROVIDER", "auto")
+
+    with patch.object(outline_module, "get_model", return_value="fake-model"), patch.object(
+        outline_module, "get_client", return_value=object()
+    ), patch.object(
+        outline_module,
+        "get_llm_config",
+        side_effect=fake_get_llm_config,
+    ), patch.object(
+        outline_module,
+        "get_generate_kwargs",
+        side_effect=lambda **kwargs: kwargs,
+    ), patch.object(
+        outline_module, "stream_generate_events", side_effect=fake_stream_generate_events
+    ):
+        _collect_async_chunks(
+            outline_module.generate_ppt_outline(
+                content="Who is the current PM of Nepal?",
+                n_slides=1,
+                language="English",
+                web_search=True,
+            )
+        )
+
+    assert captured_config_kwargs == {"use_openai_responses_api": True}
+    assert len(captured_kwargs["tools"]) == 1
+    assert isinstance(captured_kwargs["tools"][0], WebSearchTool)
 
 
 def test_generate_ppt_outline_streams_json_chunks_and_keeps_schema_shape():
@@ -124,7 +174,7 @@ def test_generate_ppt_outline_injects_external_search_context_without_hosted_too
     ), patch.object(
         outline_module,
         "get_web_search_context",
-        return_value="Web search results:\nURL: https://example.com",
+        return_value="Web search results:\nSummary: Current market facts",
     ), patch.object(
         outline_module,
         "get_generate_kwargs",
@@ -142,7 +192,8 @@ def test_generate_ppt_outline_injects_external_search_context_without_hosted_too
         )
 
     assert captured_kwargs["tools"] is None
-    assert "https://example.com" in str(captured_kwargs["messages"][1].content)
+    assert "Current market facts" in str(captured_kwargs["messages"][1].content)
+    assert "URL:" not in str(captured_kwargs["messages"][1].content)
 
 
 def test_generate_ppt_outline_uses_fallback_query_when_query_generation_fails():
