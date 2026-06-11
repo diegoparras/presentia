@@ -45,6 +45,20 @@ def test_explicit_external_search_overrides_native_llm(monkeypatch):
     assert web_search.should_expose_external_web_search_tool() is True
 
 
+def test_explicit_brave_search_is_supported(monkeypatch):
+    monkeypatch.setenv("WEB_SEARCH_PROVIDER", WebSearchProvider.BRAVE.value)
+
+    assert web_search.resolve_external_web_search_provider() == WebSearchProvider.BRAVE
+    assert web_search.should_expose_external_web_search_tool() is True
+
+
+def test_explicit_serper_search_is_supported(monkeypatch):
+    monkeypatch.setenv("WEB_SEARCH_PROVIDER", WebSearchProvider.SERPER.value)
+
+    assert web_search.resolve_external_web_search_provider() == WebSearchProvider.SERPER
+    assert web_search.should_expose_external_web_search_tool() is True
+
+
 def test_explicit_native_search_does_not_fallback_for_unsupported_llm(monkeypatch):
     monkeypatch.setenv("LLM", LLMProvider.OLLAMA.value)
     monkeypatch.setenv("WEB_SEARCH_PROVIDER", WebSearchProvider.NATIVE.value)

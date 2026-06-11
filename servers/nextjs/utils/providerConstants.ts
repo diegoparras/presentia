@@ -59,6 +59,20 @@ export const WEB_SEARCH_PROVIDERS: Record<string, WebSearchProviderOption> = {
     apiKeyField: "TAVILY_API_KEY",
     apiKeyLabel: "Tavily API key",
   },
+  brave: {
+    value: "brave",
+    label: "Brave",
+    description: "Brave Search API for web search results.",
+    apiKeyField: "BRAVE_SEARCH_API_KEY",
+    apiKeyLabel: "Brave Search API key",
+  },
+  serper: {
+    value: "serper",
+    label: "Serper",
+    description: "Google search results via Serper.",
+    apiKeyField: "SERPER_API_KEY",
+    apiKeyLabel: "Serper API key",
+  },
 };
 
 export const IMAGE_PROVIDERS: Record<string, ImageProviderOption> = {

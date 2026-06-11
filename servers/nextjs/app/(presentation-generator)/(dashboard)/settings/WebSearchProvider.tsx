@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { LLMConfig } from "@/types/llm_config";
 import { WEB_SEARCH_PROVIDERS } from "@/utils/providerConstants";
 
-const EXTERNAL_WEB_SEARCH_OPTIONS = ["tavily", "searxng"] as const;
+const EXTERNAL_WEB_SEARCH_OPTIONS = ["tavily", "brave", "serper", "searxng"] as const;
 const WEB_SEARCH_PROVIDER_OPTIONS = [
   WEB_SEARCH_PROVIDERS.auto,
   ...EXTERNAL_WEB_SEARCH_OPTIONS.map((value) => WEB_SEARCH_PROVIDERS[value]),
