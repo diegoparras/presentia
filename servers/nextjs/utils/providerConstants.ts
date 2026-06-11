@@ -43,12 +43,7 @@ export const WEB_SEARCH_PROVIDERS: Record<string, WebSearchProviderOption> = {
     value: "auto",
     label: "Default (Model)",
     description:
-      "Use model-native web grounding when available, otherwise fallback to external search.",
-  },
-  duckduckgo: {
-    value: "duckduckgo",
-    label: "DuckDuckGo",
-    description: "Keyless public web search. Suitable as a simple fallback.",
+      "Use model-native web grounding when available. Otherwise web search stays off until you choose an external provider.",
   },
   searxng: {
     value: "searxng",

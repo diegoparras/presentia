@@ -44,7 +44,6 @@ class OutlineGenerationStatus:
 
 def _web_search_provider_display_name(provider_name: str) -> str:
     return {
-        "duckduckgo": "DuckDuckGo",
         "searxng": "SearXNG",
         "tavily": "Tavily",
         "brave": "Brave",

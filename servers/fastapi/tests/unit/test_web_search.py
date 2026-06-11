@@ -14,12 +14,27 @@ def test_auto_uses_native_search_for_supported_llm(monkeypatch):
     assert web_search.should_expose_external_web_search_tool() is False
 
 
-def test_auto_falls_back_to_external_search_for_local_llm(monkeypatch):
+def test_auto_reports_unavailable_without_configured_external_provider(monkeypatch):
     monkeypatch.setenv("LLM", LLMProvider.OLLAMA.value)
     monkeypatch.setenv("WEB_SEARCH_PROVIDER", WebSearchProvider.AUTO.value)
 
     assert web_search.should_use_native_web_search() is False
-    assert web_search.should_expose_external_web_search_tool() is True
+    assert web_search.should_expose_external_web_search_tool() is False
+
+
+def test_auto_still_hides_external_search_when_configured(monkeypatch):
+    monkeypatch.setenv("LLM", LLMProvider.OLLAMA.value)
+    monkeypatch.setenv("WEB_SEARCH_PROVIDER", WebSearchProvider.AUTO.value)
+
+    assert web_search.should_use_native_web_search() is False
+    assert web_search.should_expose_external_web_search_tool() is False
+
+
+def test_get_web_search_route_reports_unavailable_without_configured_external_provider(monkeypatch):
+    monkeypatch.setenv("LLM", LLMProvider.OLLAMA.value)
+    monkeypatch.setenv("WEB_SEARCH_PROVIDER", WebSearchProvider.AUTO.value)
+
+    assert web_search.get_web_search_route() == ("unavailable", None)
 
 
 def test_explicit_external_search_overrides_native_llm(monkeypatch):
@@ -38,7 +53,7 @@ def test_explicit_native_search_does_not_fallback_for_unsupported_llm(monkeypatc
     assert web_search.should_expose_external_web_search_tool() is False
 
 
-def test_auto_can_fallback_when_native_search_cannot_combine_with_tools(monkeypatch):
+def test_auto_does_not_expose_external_search_when_native_tools_are_unavailable(monkeypatch):
     monkeypatch.setenv("LLM", LLMProvider.GOOGLE.value)
     monkeypatch.setenv("WEB_SEARCH_PROVIDER", WebSearchProvider.AUTO.value)
 
@@ -47,7 +62,7 @@ def test_auto_can_fallback_when_native_search_cannot_combine_with_tools(monkeypa
         web_search.should_expose_external_web_search_tool(
             native_search_available=False
         )
-        is True
+        is False
     )
 
 
@@ -74,24 +89,21 @@ def test_format_web_search_context_excludes_source_urls():
     assert "Presentation generation" in context
 
 
-def test_auto_external_provider_prefers_configured_searxng(monkeypatch):
+def test_auto_does_not_resolve_external_provider_from_configuration(monkeypatch):
     monkeypatch.setenv("WEB_SEARCH_PROVIDER", WebSearchProvider.AUTO.value)
     monkeypatch.setenv("SEARXNG_BASE_URL", "http://127.0.0.1:8080")
     monkeypatch.setenv("TAVILY_API_KEY", "configured-tavily-key")
 
-    assert (
-        web_search.resolve_external_web_search_provider()
-        == WebSearchProvider.SEARXNG
-    )
+    assert web_search.resolve_external_web_search_provider() is None
 
 
 def test_explicit_external_provider_is_not_replaced(monkeypatch):
-    monkeypatch.setenv("WEB_SEARCH_PROVIDER", WebSearchProvider.DUCKDUCKGO.value)
+    monkeypatch.setenv("WEB_SEARCH_PROVIDER", WebSearchProvider.SEARXNG.value)
     monkeypatch.setenv("SEARXNG_BASE_URL", "http://127.0.0.1:8080")
 
     assert (
         web_search.resolve_external_web_search_provider()
-        == WebSearchProvider.DUCKDUCKGO
+        == WebSearchProvider.SEARXNG
     )
 
 

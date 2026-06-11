@@ -3,9 +3,8 @@ import logging
 import re
 import time
 from dataclasses import dataclass
-from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import parse_qs, unquote, urlparse, urlunparse
+from urllib.parse import urlparse, urlunparse
 
 import aiohttp
 from fastapi import HTTPException
@@ -36,50 +35,6 @@ class WebSearchResult:
     snippet: str = ""
 
 
-class _DuckDuckGoParser(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__()
-        self.results: list[WebSearchResult] = []
-        self._href = ""
-        self._title_parts: list[str] = []
-        self._snippet_parts: list[str] = []
-        self._in_title = False
-        self._in_snippet = False
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        classes = dict(attrs).get("class") or ""
-        if tag == "a" and "result__a" in classes:
-            self._href = dict(attrs).get("href") or ""
-            self._title_parts = []
-            self._in_title = True
-        elif "result__snippet" in classes:
-            self._snippet_parts = []
-            self._in_snippet = True
-
-    def handle_data(self, data: str) -> None:
-        if self._in_title:
-            self._title_parts.append(data)
-        if self._in_snippet:
-            self._snippet_parts.append(data)
-
-    def handle_endtag(self, tag: str) -> None:
-        if tag == "a" and self._in_title:
-            self._in_title = False
-            url = _normalize_duckduckgo_url(self._href)
-            title = _clean_text(" ".join(self._title_parts))
-            if title and url:
-                self.results.append(WebSearchResult(title=title, url=url))
-        elif self._in_snippet and tag in {"a", "div", "span"}:
-            self._in_snippet = False
-            if self.results:
-                latest = self.results[-1]
-                self.results[-1] = WebSearchResult(
-                    title=latest.title,
-                    url=latest.url,
-                    snippet=_clean_text(" ".join(self._snippet_parts)),
-                )
-
-
 def supports_native_web_search(provider: LLMProvider | None = None) -> bool:
     return (provider or get_llm_provider()) in NATIVE_WEB_SEARCH_PROVIDERS
 
@@ -106,9 +61,7 @@ def should_expose_external_web_search_tool(
     selected = get_selected_web_search_provider()
     if selected == WebSearchProvider.NATIVE:
         return False
-    if selected != WebSearchProvider.AUTO:
-        return True
-    return not (native_search_available and supports_native_web_search())
+    return selected != WebSearchProvider.AUTO
 
 
 def get_web_search_route(
@@ -122,9 +75,8 @@ def get_web_search_route(
             native_search_supported = False
         if native_search_supported:
             return "native", None
-        if selected == WebSearchProvider.NATIVE:
-            return "unavailable", None
-    return "external", resolve_external_web_search_provider()
+        return "unavailable", None
+    return "external", selected
 
 
 def _get_max_results() -> int:
@@ -134,19 +86,11 @@ def _get_max_results() -> int:
         return DEFAULT_MAX_RESULTS
 
 
-def resolve_external_web_search_provider() -> WebSearchProvider:
+def resolve_external_web_search_provider() -> WebSearchProvider | None:
     selected = get_selected_web_search_provider()
-    if selected not in {WebSearchProvider.AUTO, WebSearchProvider.NATIVE}:
-        return selected
-    if get_searxng_base_url_env():
-        return WebSearchProvider.SEARXNG
-    if get_tavily_api_key_env():
-        return WebSearchProvider.TAVILY
-    if get_brave_search_api_key_env():
-        return WebSearchProvider.BRAVE
-    if get_serper_api_key_env():
-        return WebSearchProvider.SERPER
-    return WebSearchProvider.DUCKDUCKGO
+    if selected in {WebSearchProvider.AUTO, WebSearchProvider.NATIVE}:
+        return None
+    return selected
 
 
 async def search_web(query: str, max_results: int | None = None) -> list[WebSearchResult]:
@@ -157,6 +101,11 @@ async def search_web(query: str, max_results: int | None = None) -> list[WebSear
     requested_limit = max_results if max_results is not None else _get_max_results()
     limit = max(1, min(requested_limit, 10))
     provider = resolve_external_web_search_provider()
+    if provider is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Web search is disabled unless an external provider is selected",
+        )
     started_at = time.monotonic()
     LOGGER.info(
         "Web search started: provider=%s limit=%d query=%r",
@@ -179,7 +128,10 @@ async def search_web(query: str, max_results: int | None = None) -> list[WebSear
             elif provider == WebSearchProvider.SERPER:
                 results = await _search_serper(session, query, limit)
             else:
-                results = await _search_duckduckgo(session, query, limit)
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Unsupported web search provider: {provider.value}",
+                )
     except Exception:
         LOGGER.exception(
             "Web search failed: provider=%s query=%r",
@@ -243,14 +195,6 @@ def _clean_outline_web_text(value: Any) -> str:
     text = re.sub(r"https?://\S+|www\.\S+", "", text)
     text = re.sub(r"\[(?:\d+(?:\s*[-,]\s*\d+)*)\]", "", text)
     return _clean_text(text)
-
-
-def _normalize_duckduckgo_url(value: str) -> str:
-    parsed = urlparse(html.unescape(value))
-    if parsed.netloc.endswith("duckduckgo.com"):
-        target = parse_qs(parsed.query).get("uddg", [""])[0]
-        return unquote(target)
-    return value
 
 
 def _required(value: str | None, label: str) -> str:
@@ -347,12 +291,3 @@ async def _search_serper(session: aiohttp.ClientSession, query: str, limit: int)
         for item in payload.get("organic", [])[:limit]
         if item.get("title") and item.get("link")
     ]
-
-
-async def _search_duckduckgo(session: aiohttp.ClientSession, query: str, limit: int) -> list[WebSearchResult]:
-    async with session.post("https://html.duckduckgo.com/html/", data={"q": query}) as response:
-        if response.status >= 400:
-            raise HTTPException(response.status, detail="DuckDuckGo search request failed")
-        parser = _DuckDuckGoParser()
-        parser.feed(await response.text())
-    return parser.results[:limit]

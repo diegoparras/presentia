@@ -44,7 +44,7 @@ def test_build_chat_llm_tools_includes_web_search_for_other_providers(monkeypatc
 
 def test_build_chat_llm_tools_omits_hosted_search_for_external_provider(monkeypatch):
     monkeypatch.setenv("LLM", LLMProvider.CUSTOM.value)
-    monkeypatch.setenv("WEB_SEARCH_PROVIDER", "duckduckgo")
+    monkeypatch.setenv("WEB_SEARCH_PROVIDER", "searxng")
 
     tools = build_chat_llm_tools(_sample_function_tools())
 
@@ -52,10 +52,11 @@ def test_build_chat_llm_tools_omits_hosted_search_for_external_provider(monkeypa
     assert not any(isinstance(tool, WebSearchTool) for tool in tools)
 
 
-def test_chat_exposes_external_search_for_google_auto_mode(monkeypatch):
+def test_chat_does_not_expose_external_search_for_google_auto_mode(monkeypatch):
     monkeypatch.setenv("LLM", LLMProvider.GOOGLE.value)
     monkeypatch.setenv("WEB_SEARCH_PROVIDER", "auto")
+    monkeypatch.setenv("SEARXNG_BASE_URL", "http://127.0.0.1:8080")
 
     tools = ChatTools(Mock()).get_tool_definitions()
 
-    assert any(tool.name == "webSearch" for tool in tools)
+    assert not any(tool.name == "webSearch" for tool in tools)
