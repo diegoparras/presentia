@@ -282,6 +282,11 @@ export const getLLMConfigValidationError = (
           return "Tavily API key is required.";
         }
         break;
+      case "exa":
+        if (!isProvided(llmConfig.EXA_API_KEY)) {
+          return "Exa API key is required.";
+        }
+        break;
     }
   }
 

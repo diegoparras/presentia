@@ -6,5 +6,6 @@ class WebSearchProvider(Enum):
     NATIVE = "native"
     SEARXNG = "searxng"
     TAVILY = "tavily"
+    EXA = "exa"
     BRAVE = "brave"
     SERPER = "serper"

@@ -450,6 +450,7 @@ const setupUserConfigFromEnv = () => {
     WEB_SEARCH_MAX_RESULTS: process.env.WEB_SEARCH_MAX_RESULTS || existingConfig.WEB_SEARCH_MAX_RESULTS,
     SEARXNG_BASE_URL: process.env.SEARXNG_BASE_URL || existingConfig.SEARXNG_BASE_URL,
     TAVILY_API_KEY: process.env.TAVILY_API_KEY || existingConfig.TAVILY_API_KEY,
+    EXA_API_KEY: process.env.EXA_API_KEY || existingConfig.EXA_API_KEY,
     BRAVE_SEARCH_API_KEY: process.env.BRAVE_SEARCH_API_KEY || existingConfig.BRAVE_SEARCH_API_KEY,
     SERPER_API_KEY: process.env.SERPER_API_KEY || existingConfig.SERPER_API_KEY,
     USE_CUSTOM_URL: process.env.USE_CUSTOM_URL || existingConfig.USE_CUSTOM_URL,

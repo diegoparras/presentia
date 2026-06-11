@@ -13,6 +13,7 @@ from enums.llm_provider import LLMProvider
 from enums.web_search_provider import WebSearchProvider
 from utils.get_env import (
     get_brave_search_api_key_env,
+    get_exa_api_key_env,
     get_searxng_base_url_env,
     get_serper_api_key_env,
     get_tavily_api_key_env,
@@ -123,6 +124,8 @@ async def search_web(query: str, max_results: int | None = None) -> list[WebSear
                 results = await _search_searxng(session, query, limit)
             elif provider == WebSearchProvider.TAVILY:
                 results = await _search_tavily(session, query, limit)
+            elif provider == WebSearchProvider.EXA:
+                results = await _search_exa(session, query, limit)
             elif provider == WebSearchProvider.BRAVE:
                 results = await _search_brave(session, query, limit)
             elif provider == WebSearchProvider.SERPER:
@@ -261,6 +264,39 @@ async def _search_tavily(session: aiohttp.ClientSession, query: str, limit: int)
         for item in payload.get("results", [])[:limit]
         if item.get("title") and item.get("url")
     ]
+
+
+async def _search_exa(session: aiohttp.ClientSession, query: str, limit: int) -> list[WebSearchResult]:
+    api_key = _required(get_exa_api_key_env(), "EXA_API_KEY")
+    async with session.post(
+        "https://api.exa.ai/search",
+        json={
+            "query": query,
+            "numResults": limit,
+            "contents": {"highlights": True},
+        },
+        headers={"x-api-key": api_key},
+    ) as response:
+        payload = await _json_response(response)
+
+    results = []
+    for item in payload.get("results", [])[:limit]:
+        if not item.get("title") or not item.get("url"):
+            continue
+        highlights = item.get("highlights")
+        snippet = (
+            " ".join(str(highlight) for highlight in highlights)
+            if isinstance(highlights, list) and highlights
+            else item.get("summary") or item.get("text")
+        )
+        results.append(
+            WebSearchResult(
+                _clean_text(item.get("title")),
+                str(item.get("url") or ""),
+                _clean_text(snippet),
+            )
+        )
+    return results
 
 
 async def _search_brave(session: aiohttp.ClientSession, query: str, limit: int) -> list[WebSearchResult]:

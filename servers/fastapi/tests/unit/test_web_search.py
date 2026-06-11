@@ -59,6 +59,13 @@ def test_explicit_serper_search_is_supported(monkeypatch):
     assert web_search.should_expose_external_web_search_tool() is True
 
 
+def test_explicit_exa_search_is_supported(monkeypatch):
+    monkeypatch.setenv("WEB_SEARCH_PROVIDER", WebSearchProvider.EXA.value)
+
+    assert web_search.resolve_external_web_search_provider() == WebSearchProvider.EXA
+    assert web_search.should_expose_external_web_search_tool() is True
+
+
 def test_explicit_native_search_does_not_fallback_for_unsupported_llm(monkeypatch):
     monkeypatch.setenv("LLM", LLMProvider.OLLAMA.value)
     monkeypatch.setenv("WEB_SEARCH_PROVIDER", WebSearchProvider.NATIVE.value)
@@ -191,3 +198,66 @@ def test_search_web_logs_provider_and_clamps_max_results(monkeypatch, caplog):
     assert len(results) == 1
     assert "provider=searxng" in caplog.text
     assert "results=1" in caplog.text
+
+
+def test_exa_search_requests_highlights_and_maps_results(monkeypatch):
+    captured = {}
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self, content_type=None):
+            return {
+                "results": [
+                    {
+                        "title": "Presenton",
+                        "url": "https://example.com/presenton",
+                        "highlights": ["AI presentations.", "Open source."],
+                    },
+                    {
+                        "title": "Fallback",
+                        "url": "https://example.com/fallback",
+                        "highlights": [],
+                        "summary": "Summary fallback.",
+                    },
+                ]
+            }
+
+    class FakeSession:
+        def post(self, url, json, headers):
+            captured.update(url=url, json=json, headers=headers)
+            return FakeResponse()
+
+    monkeypatch.setenv("EXA_API_KEY", "test-exa-key")
+
+    results = asyncio.run(
+        web_search._search_exa(FakeSession(), "presentation ai", 2)
+    )
+
+    assert captured == {
+        "url": "https://api.exa.ai/search",
+        "json": {
+            "query": "presentation ai",
+            "numResults": 2,
+            "contents": {"highlights": True},
+        },
+        "headers": {"x-api-key": "test-exa-key"},
+    }
+    assert results == [
+        web_search.WebSearchResult(
+            title="Presenton",
+            url="https://example.com/presenton",
+            snippet="AI presentations. Open source.",
+        ),
+        web_search.WebSearchResult(
+            title="Fallback",
+            url="https://example.com/fallback",
+            snippet="Summary fallback.",
+        ),
+    ]

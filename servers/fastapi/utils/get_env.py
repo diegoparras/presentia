@@ -282,6 +282,10 @@ def get_tavily_api_key_env():
     return os.getenv("TAVILY_API_KEY")
 
 
+def get_exa_api_key_env():
+    return os.getenv("EXA_API_KEY")
+
+
 def get_brave_search_api_key_env():
     return os.getenv("BRAVE_SEARCH_API_KEY")
 

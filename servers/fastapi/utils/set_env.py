@@ -245,6 +245,10 @@ def set_tavily_api_key_env(value):
     os.environ["TAVILY_API_KEY"] = value
 
 
+def set_exa_api_key_env(value):
+    os.environ["EXA_API_KEY"] = value
+
+
 def set_brave_search_api_key_env(value):
     os.environ["BRAVE_SEARCH_API_KEY"] = value
 
