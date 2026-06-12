@@ -16,7 +16,6 @@ from llmai.shared import (  # type: ignore[import-not-found]
     TextContentPart,
     ToolResponseMessage,
     UserMessage,
-    WebSearchTool
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,10 +23,12 @@ from models.sql.presentation import PresentationModel
 from services.chat.conversation_store import ChatConversationStore
 from services.chat.presentation_context_store import PresentationContextStore
 from services.chat.prompts import build_system_prompt
+from services.chat.llm_tools import build_chat_llm_tools
 from services.chat.tools import ChatTools
 from utils.llm_client_error_handler import handle_llm_client_exceptions
 from utils.llm_config import get_llm_config
 from utils.llm_provider import get_model
+from utils.web_search import should_use_native_web_search
 from utils.llm_utils import (
     extract_text,
     get_generate_kwargs,
@@ -80,10 +81,13 @@ class PresentationChatService:
         yield "status", "Reading deck context"
         conversation_id, messages = await self._prepare_turn_context(user_message)
 
-        client = get_client(config=get_llm_config())
+        client = get_client(
+            config=get_llm_config(
+                use_openai_responses_api=should_use_native_web_search()
+            )
+        )
         model = get_model()
-        tools = self._tools.get_tool_definitions()
-        tools.append(WebSearchTool())
+        tools = build_chat_llm_tools(self._tools.get_tool_definitions())
 
         called_tools: list[str] = []
         last_tool_results: list[dict[str, Any]] = []
@@ -293,9 +297,13 @@ class PresentationChatService:
         )
 
     async def _run_llm_with_tools(self, messages: list[Message]) -> tuple[str, list[str]]:
-        client = get_client(config=get_llm_config())
+        client = get_client(
+            config=get_llm_config(
+                use_openai_responses_api=should_use_native_web_search()
+            )
+        )
         model = get_model()
-        tools = self._tools.get_tool_definitions()
+        tools = build_chat_llm_tools(self._tools.get_tool_definitions())
 
         called_tools: list[str] = []
         last_tool_results: list[dict[str, Any]] = []
