@@ -25,7 +25,7 @@ import { WEB_SEARCH_PROVIDERS } from "@/utils/providerConstants";
 const EXTERNAL_WEB_SEARCH_OPTIONS = [
   "exa",
   "tavily",
-  // "brave",
+  "brave",
   // "serper",
   "searxng",
 ] as const;

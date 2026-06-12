@@ -66,13 +66,13 @@ export const WEB_SEARCH_PROVIDERS: Record<string, WebSearchProviderOption> = {
     apiKeyField: "EXA_API_KEY",
     apiKeyLabel: "Exa API key",
   },
-  // brave: {
-  //   value: "brave",
-  //   label: "Brave",
-  //   description: "Brave Search API for web search results.",
-  //   apiKeyField: "BRAVE_SEARCH_API_KEY",
-  //   apiKeyLabel: "Brave Search API key",
-  // },
+  brave: {
+    value: "brave",
+    label: "Brave",
+    description: "Brave Search API for web search results.",
+    apiKeyField: "BRAVE_SEARCH_API_KEY",
+    apiKeyLabel: "Brave Search API key",
+  },
   // serper: {
   //   value: "serper",
   //   label: "Serper",

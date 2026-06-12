@@ -287,6 +287,11 @@ export const getLLMConfigValidationError = (
           return "Exa API key is required.";
         }
         break;
+      case "brave":
+        if (!isProvided(llmConfig.BRAVE_SEARCH_API_KEY)) {
+          return "Brave Search API key is required.";
+        }
+        break;
     }
   }
 
