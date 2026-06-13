@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
-import { ArrowUpRight, Check, CheckCircle, ChevronLeft, ChevronUp, Download, Eye, EyeOff, Info, Loader2, Search } from 'lucide-react';
+import { ArrowUpRight, Blocks, Check, CheckCircle, ChevronLeft, ChevronUp, Download, Eye, EyeOff, Info, Laptop, Loader2, Search } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { DALLE_3_QUALITY_OPTIONS, GPT_IMAGE_1_5_QUALITY_OPTIONS, IMAGE_PROVIDERS, LLM_PROVIDERS, WEB_SEARCH_PROVIDERS } from '@/utils/providerConstants';
 import { cn } from '@/lib/utils';
@@ -22,12 +22,14 @@ import VertexAzureManualFields from '@/components/VertexAzureManualFields';
 import BedrockManualFields from '@/components/BedrockManualFields';
 import OpenAICompatibleImageFields from '@/components/OpenAICompatibleImageFields';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import Image from 'next/image';
 
 const MANUAL_MODEL_PROVIDERS = new Set(["vertex", "azure", "bedrock"]);
 const LOCAL_PROVIDERS = ["ollama", "lmstudio"];
 const OTHER_PROVIDERS = Object.values(LLM_PROVIDERS).filter(
     (provider) => provider.value !== "codex" && !LOCAL_PROVIDERS.includes(provider.value)
 );
+const OTHER_PROVIDER_VALUES = new Set(OTHER_PROVIDERS.map((provider) => provider.value));
 const WEB_SEARCH_PROVIDER_OPTIONS = [
     WEB_SEARCH_PROVIDERS.auto,
     WEB_SEARCH_PROVIDERS.searxng,
@@ -73,6 +75,9 @@ const PresentonMode = ({
         done: boolean;
     } | null>(null);
     const isManualModelProvider = MANUAL_MODEL_PROVIDERS.has(llmConfig.LLM || "");
+    const isActiveNonChatProvider =
+        (textProviderTab === "local" && LOCAL_PROVIDERS.includes(llmConfig.LLM || "")) ||
+        (textProviderTab === "other" && OTHER_PROVIDER_VALUES.has(llmConfig.LLM || ""));
 
     const handleProviderChange = (provider: string) => {
         trackEvent(MixpanelEvent.Onboarding_Text_Provider_Selected, {
@@ -642,8 +647,22 @@ const PresentonMode = ({
     }, [llmConfig.LLM, modelsChecked, modelsLoading]);
 
     useEffect(() => {
-        if (textProviderTab === "chatgpt" && llmConfig.LLM !== "codex") {
-            setLlmConfig(prev => ({ ...prev, LLM: "codex" }));
+        const nextProvider =
+            textProviderTab === "chatgpt"
+                ? "codex"
+                : textProviderTab === "local"
+                    ? "ollama"
+                    : OTHER_PROVIDERS[0].value;
+
+        const providerMatchesTab =
+            (textProviderTab === "chatgpt" && llmConfig.LLM === "codex") ||
+            (textProviderTab === "local" && LOCAL_PROVIDERS.includes(llmConfig.LLM || "")) ||
+            (textProviderTab === "other" && OTHER_PROVIDER_VALUES.has(llmConfig.LLM || ""));
+
+        if (!providerMatchesTab) {
+            setLlmConfig(prev => ({ ...prev, LLM: nextProvider }));
+            setAvailableModels([]);
+            setModelsChecked(false);
         }
     }, [textProviderTab, llmConfig.LLM]);
 
@@ -698,9 +717,18 @@ const PresentonMode = ({
                     className="w-full"
                 >
                     <TabsList className="grid h-11 w-full grid-cols-3 bg-[#F6F6F9] p-1">
-                        <TabsTrigger value="chatgpt">ChatGPT</TabsTrigger>
-                        <TabsTrigger value="local">Local</TabsTrigger>
-                        <TabsTrigger value="other">Other providers</TabsTrigger>
+                        <TabsTrigger value="chatgpt" className="gap-2">
+                            <Image src="/providers/openai.png" alt="" width={16} height={16} className="object-contain" />
+                            ChatGPT
+                        </TabsTrigger>
+                        <TabsTrigger value="local" className="gap-2">
+                            <Laptop className="h-4 w-4" />
+                            Local
+                        </TabsTrigger>
+                        <TabsTrigger value="other" className="gap-2">
+                            <Blocks className="h-4 w-4" />
+                            Other providers
+                        </TabsTrigger>
                     </TabsList>
                     <TabsContent value="chatgpt" className="mt-6">
                         <CodexConfig
@@ -785,7 +813,7 @@ const PresentonMode = ({
                                 >
                                     <div className="flex gap-3 items-center">
                                         <span className="text-sm font-medium text-gray-900">
-                                            {llmConfig.LLM
+                                            {llmConfig.LLM && OTHER_PROVIDER_VALUES.has(llmConfig.LLM)
                                                 ? LLM_PROVIDERS[llmConfig.LLM]
                                                     ?.label || llmConfig.LLM
                                                 : "Select text provider"}
@@ -843,7 +871,7 @@ const PresentonMode = ({
                 </div>
                     </TabsContent>
                 </Tabs>
-                {textProviderTab !== "chatgpt" && (
+                {isActiveNonChatProvider && (
                 <div className="mt-6 flex w-full max-w-[300px] flex-col items-start gap-4">
                     <div className="relative flex w-full flex-col justify-end items-start">
                         <div className="flex flex-col justify-start w-full ">
@@ -892,70 +920,6 @@ const PresentonMode = ({
                                         </>
                                     )}
                                 </>
-                            ) : llmConfig.LLM === 'chatgpt' || llmConfig.LLM === 'codex' ? (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Select GPT Model
-                                    </label>
-                                    <Popover open={openModelSelect} onOpenChange={setOpenModelSelect}>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                variant="outline"
-                                                role="combobox"
-                                                aria-expanded={openModelSelect}
-                                                className="w-full h-12 px-3 outline-none border border-gray-300 rounded-lg hover:border-gray-400 justify-between"
-                                            >
-                                                <span className="text-sm text-gray-900">
-                                                    {llmConfig.CODEX_MODEL
-                                                        ? (CHATGPT_MODELS.find((m) => m.id === llmConfig.CODEX_MODEL)?.name ?? llmConfig.CODEX_MODEL)
-                                                        : "Select a model"}
-                                                </span>
-                                                <ChevronUp className="w-4 h-4 text-gray-400" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent
-                                            className="p-0"
-                                            align="start"
-                                            style={{ width: "var(--radix-popover-trigger-width)" }}
-                                        >
-                                            <Command>
-                                                <CommandInput placeholder="Search models…" />
-                                                <CommandList>
-                                                    <CommandEmpty>No model found.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        {CHATGPT_MODELS.map((model) => (
-                                                            <CommandItem
-                                                                key={model.id}
-                                                                value={model.id}
-                                                                onSelect={(value) => {
-                                                                    trackEvent(MixpanelEvent.Onboarding_Text_Model_Selected, {
-                                                                        provider: "codex",
-                                                                        model: value,
-                                                                    });
-                                                                    setLlmConfig(prev => ({
-                                                                        ...prev,
-                                                                        CODEX_MODEL: value
-                                                                    }));
-                                                                    setOpenModelSelect(false);
-                                                                }}
-                                                            >
-                                                                <Check
-                                                                    className={cn(
-                                                                        "mr-2 h-4 w-4",
-                                                                        llmConfig.CODEX_MODEL === model.id ? "opacity-100" : "opacity-0"
-                                                                    )}
-                                                                />
-                                                                <span className="text-sm text-gray-900">
-                                                                    {model.name}
-                                                                </span>
-                                                            </CommandItem>
-                                                        ))}
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
-                                </div>
                             ) : llmConfig.LLM === 'bedrock' ? (
                                 <BedrockManualFields
                                     llmConfig={llmConfig}
@@ -1132,7 +1096,7 @@ const PresentonMode = ({
 
 
                     {/* Model Selection - only show if models are available */}
-                    {!isManualModelProvider && llmConfig.LLM !== 'chatgpt' && llmConfig.LLM !== 'codex' && modelsChecked && availableModels.length > 0 && (
+                    {isActiveNonChatProvider && !isManualModelProvider && modelsChecked && availableModels.length > 0 && (
                         <div className="w-full">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
