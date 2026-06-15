@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
-import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import OnBoardingSlidebar from "./OnBoarding/OnBoardingSlidebar";
 import OnBoardingHeader from "./OnBoarding/OnBoardingHeader";
 import PresentonMode from "./OnBoarding/PresentonMode";
@@ -16,21 +15,6 @@ export default function Home() {
   const config = useSelector((state: RootState) => state.userConfig);
 
   const canChangeKeys = config.can_change_keys;
-
-  useEffect(() => {
-    const stepName = step === 3
-        ? "finish"
-        : providerStep === 1
-          ? "text_provider"
-          : providerStep === 2
-            ? "image_provider"
-            : "web_search";
-    trackEvent(MixpanelEvent.Onboarding_Step_Viewed, {
-      step_name: stepName,
-      step_number: step === 3 ? 4 : providerStep,
-    });
-  }, [step, providerStep]);
-
 
   useEffect(() => {
     if (!canChangeKeys) {

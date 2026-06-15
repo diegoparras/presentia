@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
 import { ArrowUpRight, Blocks, Check, CheckCircle, ChevronLeft, ChevronUp, Download, Eye, EyeOff, Info, Laptop, Loader2, Search } from 'lucide-react';
@@ -30,6 +30,14 @@ const OTHER_PROVIDERS = Object.values(LLM_PROVIDERS).filter(
     (provider) => provider.value !== "codex" && !LOCAL_PROVIDERS.includes(provider.value)
 );
 const OTHER_PROVIDER_VALUES = new Set(OTHER_PROVIDERS.map((provider) => provider.value));
+type TextProviderTab = "chatgpt" | "local" | "other";
+
+const getTextProviderTab = (provider?: string): TextProviderTab => {
+    if (provider === "codex" || provider === "chatgpt") return "chatgpt";
+    if (LOCAL_PROVIDERS.includes(provider || "")) return "local";
+    return "other";
+};
+
 const WEB_SEARCH_PROVIDER_OPTIONS = [
     WEB_SEARCH_PROVIDERS.auto,
     WEB_SEARCH_PROVIDERS.searxng,
@@ -48,10 +56,12 @@ const PresentonMode = ({
     setProviderStep: (step: number) => void,
 }) => {
     const pathname = usePathname();
-    const [openProviderSelect, setOpenProviderSelect] = useState(false);
-    const [textProviderTab, setTextProviderTab] = useState("chatgpt");
-    const [chatGptAuthenticated, setChatGptAuthenticated] = useState(false);
     const userConfigState = useSelector((state: RootState) => state.userConfig);
+    const [openProviderSelect, setOpenProviderSelect] = useState(false);
+    const [textProviderTab, setTextProviderTab] = useState<TextProviderTab>(
+        getTextProviderTab(userConfigState.llm_config.LLM)
+    );
+    const [chatGptAuthenticated, setChatGptAuthenticated] = useState(false);
 
     const [showApiKey, setShowApiKey] = useState(false);
     const [availableModels, setAvailableModels] = useState<string[]>([]);
@@ -63,6 +73,7 @@ const PresentonMode = ({
     const [llmConfig, setLlmConfig] = useState<LLMConfig>(
         userConfigState.llm_config
     );
+    const llmConfigRef = useRef(llmConfig);
     const [downloadingModel, setDownloadingModel] = useState<{
         name: string;
         size: number | null;
@@ -80,6 +91,8 @@ const PresentonMode = ({
             provider,
             provider_label: LLM_PROVIDERS[provider]?.label || provider,
             provider_group: LOCAL_PROVIDERS.includes(provider) ? "local" : "other",
+            text_provider_tab: textProviderTab,
+            selection_source: "provider_control",
         });
         setLlmConfig(prev => ({
             ...prev,
@@ -243,6 +256,35 @@ const PresentonMode = ({
         if (config.IMAGE_PROVIDER === 'dall-e-3') return config.DALL_E_3_QUALITY || '';
         if (config.IMAGE_PROVIDER === 'gpt-image-1.5') return config.GPT_IMAGE_1_5_QUALITY || '';
         return '';
+    };
+
+    const handleTextProviderTabChange = (tab: string) => {
+        const nextTab = tab as TextProviderTab;
+        const nextProvider =
+            nextTab === "chatgpt"
+                ? "codex"
+                : nextTab === "local"
+                    ? "ollama"
+                    : OTHER_PROVIDERS[0].value;
+        const providerMatchesTab =
+            (nextTab === "chatgpt" && (llmConfig.LLM === "codex" || llmConfig.LLM === "chatgpt")) ||
+            (nextTab === "local" && LOCAL_PROVIDERS.includes(llmConfig.LLM || "")) ||
+            (nextTab === "other" && OTHER_PROVIDER_VALUES.has(llmConfig.LLM || ""));
+
+        trackEvent(MixpanelEvent.Onboarding_Text_Provider_Tab_Selected, {
+            tab: nextTab,
+            previous_tab: textProviderTab,
+        });
+        if (!providerMatchesTab) {
+            trackEvent(MixpanelEvent.Onboarding_Text_Provider_Selected, {
+                provider: nextProvider,
+                provider_label: LLM_PROVIDERS[nextProvider]?.label || nextProvider,
+                provider_group: nextTab,
+                text_provider_tab: nextTab,
+                selection_source: "tab_default",
+            });
+        }
+        setTextProviderTab(nextTab);
     };
 
     const fetchAvailableModels = async () => {
@@ -498,9 +540,12 @@ const PresentonMode = ({
             await handleSaveLLMConfig(llmConfig);
             trackEvent(MixpanelEvent.Onboarding_Configuration_Saved, {
                 text_provider: llmConfig.LLM || "",
+                text_provider_tab: getTextProviderTab(llmConfig.LLM),
                 image_generation_enabled: !llmConfig.DISABLE_IMAGE_GENERATION,
+                image_step_skipped: !!llmConfig.DISABLE_IMAGE_GENERATION,
                 image_provider: llmConfig.DISABLE_IMAGE_GENERATION ? "disabled" : llmConfig.IMAGE_PROVIDER || "",
                 web_search_enabled: !!llmConfig.WEB_GROUNDING,
+                web_search_step_skipped: !llmConfig.WEB_GROUNDING,
                 web_search_provider: llmConfig.WEB_GROUNDING ? llmConfig.WEB_SEARCH_PROVIDER || "auto" : "disabled",
             });
 
@@ -521,15 +566,18 @@ const PresentonMode = ({
                 pathname,
                 text_provider: textProvider,
                 text_provider_label: LLM_PROVIDERS[textProvider]?.label || textProvider || '',
+                text_provider_tab: getTextProviderTab(textProvider),
                 text_model: textModel,
                 uses_chatgpt_login: textProvider === 'chatgpt' || textProvider === 'codex',
                 image_generation_enabled: imageGenerationEnabled,
+                image_step_skipped: !imageGenerationEnabled,
                 image_provider: imageProvider,
                 image_provider_label: imageGenerationEnabled
                     ? (IMAGE_PROVIDERS[imageProvider]?.label || imageProvider || '')
                     : 'Image generation disabled',
                 image_quality: imageGenerationEnabled ? getSelectedImageQuality(llmConfig) : '',
                 web_search_enabled: !!llmConfig.WEB_GROUNDING,
+                web_search_step_skipped: !llmConfig.WEB_GROUNDING,
                 web_search_provider: llmConfig.WEB_GROUNDING ? (llmConfig.WEB_SEARCH_PROVIDER || "auto") : "disabled",
             });
 
@@ -538,6 +586,7 @@ const PresentonMode = ({
                 from_step: "web_search",
                 to_step: "finish",
                 web_search_enabled: !!llmConfig.WEB_GROUNDING,
+                web_search_step_skipped: !llmConfig.WEB_GROUNDING,
                 web_search_provider: llmConfig.WEB_GROUNDING ? llmConfig.WEB_SEARCH_PROVIDER || "auto" : "disabled",
             });
             setStep(3)
@@ -583,6 +632,7 @@ const PresentonMode = ({
                     from_step: "text_provider",
                     to_step: "image_provider",
                     provider: llmConfig.LLM || "",
+                    text_provider_tab: getTextProviderTab(llmConfig.LLM),
                 });
                 setProviderStep(2);
             }
@@ -594,6 +644,7 @@ const PresentonMode = ({
                 trackEvent(MixpanelEvent.Onboarding_Validation_Failed, {
                     step_name: "image_provider",
                     image_generation_enabled: !llmConfig.DISABLE_IMAGE_GENERATION,
+                    image_step_skipped: !!llmConfig.DISABLE_IMAGE_GENERATION,
                     image_provider: llmConfig.IMAGE_PROVIDER || "",
                     validation_error: validationError,
                 });
@@ -604,6 +655,7 @@ const PresentonMode = ({
                 from_step: "image_provider",
                 to_step: "web_search",
                 image_generation_enabled: !llmConfig.DISABLE_IMAGE_GENERATION,
+                image_step_skipped: !!llmConfig.DISABLE_IMAGE_GENERATION,
                 image_provider: llmConfig.DISABLE_IMAGE_GENERATION ? "disabled" : llmConfig.IMAGE_PROVIDER || "",
             });
             setProviderStep(3);
@@ -639,6 +691,43 @@ const PresentonMode = ({
             void fetchAvailableModels();
         }
     }, [llmConfig.LLM, modelsChecked, modelsLoading]);
+
+    useEffect(() => {
+        llmConfigRef.current = llmConfig;
+    }, [llmConfig]);
+
+    useEffect(() => {
+        const config = llmConfigRef.current;
+        const stepName =
+            providerStep === 1
+                ? "text_provider"
+                : providerStep === 2
+                    ? "image_provider"
+                    : "web_search";
+        const stepProps =
+            providerStep === 1
+                ? {
+                    text_provider_tab: getTextProviderTab(config.LLM),
+                    provider: config.LLM || "",
+                }
+                : providerStep === 2
+                    ? {
+                        image_generation_enabled: !config.DISABLE_IMAGE_GENERATION,
+                        image_step_skipped: !!config.DISABLE_IMAGE_GENERATION,
+                        image_provider: config.DISABLE_IMAGE_GENERATION ? "disabled" : config.IMAGE_PROVIDER || "",
+                    }
+                    : {
+                        web_search_enabled: !!config.WEB_GROUNDING,
+                        web_search_step_skipped: !config.WEB_GROUNDING,
+                        web_search_provider: config.WEB_GROUNDING ? config.WEB_SEARCH_PROVIDER || "auto" : "disabled",
+                    };
+
+        trackEvent(MixpanelEvent.Onboarding_Step_Viewed, {
+            step_name: stepName,
+            step_number: providerStep,
+            ...stepProps,
+        });
+    }, [providerStep]);
 
     useEffect(() => {
         const nextProvider =
@@ -704,15 +793,7 @@ const PresentonMode = ({
                 </div>
                 <Tabs
                     value={textProviderTab}
-                    onValueChange={(tab) => {
-                        trackEvent(MixpanelEvent.Onboarding_Text_Provider_Tab_Selected, { tab });
-                        trackEvent(MixpanelEvent.Onboarding_Text_Provider_Selected, {
-                            provider: tab === "chatgpt" ? "codex" : tab === "local" ? "ollama" : OTHER_PROVIDERS[0].value,
-                            provider_group: tab,
-                            source: "tab_switch",
-                        });
-                        setTextProviderTab(tab);
-                    }}
+                    onValueChange={handleTextProviderTabChange}
                     className="w-full"
                 >
                     <TabsList className="grid h-14 w-full grid-cols-3 bg-[#F6F6F9] p-1">
@@ -757,6 +838,7 @@ const PresentonMode = ({
                                         trackEvent(MixpanelEvent.Onboarding_Text_Model_Selected, {
                                             provider: "codex",
                                             model: value,
+                                            text_provider_tab: textProviderTab,
                                         });
                                         setLlmConfig(prev => ({ ...prev, CODEX_MODEL: value }));
                                     }}
@@ -1151,6 +1233,7 @@ const PresentonMode = ({
                                                                         trackEvent(MixpanelEvent.Onboarding_Text_Model_Selected, {
                                                                             provider: llmConfig.LLM || "",
                                                                             model: value,
+                                                                            text_provider_tab: textProviderTab,
                                                                         });
                                                                         setLlmConfig(prev => ({
                                                                             ...prev,
@@ -1200,7 +1283,10 @@ const PresentonMode = ({
                             checked={!llmConfig.DISABLE_IMAGE_GENERATION}
                             className='data-[state=checked]:bg-[#4791FF] h-[22px] w-[36px] data-[state=unchecked]:bg-[#E2E0E1]'
                             onCheckedChange={(checked) => {
-                                trackEvent(MixpanelEvent.Onboarding_Image_Generation_Toggled, { enabled: checked });
+                                trackEvent(MixpanelEvent.Onboarding_Image_Generation_Toggled, {
+                                    enabled: checked,
+                                    image_step_skipped: !checked,
+                                });
                                 setLlmConfig(prev => ({
                                     ...prev,
                                     DISABLE_IMAGE_GENERATION: !checked
@@ -1403,7 +1489,10 @@ const PresentonMode = ({
                             checked={!!llmConfig.WEB_GROUNDING}
                             className='data-[state=checked]:bg-[#4791FF] h-[22px] w-[36px] data-[state=unchecked]:bg-[#E2E0E1]'
                             onCheckedChange={(checked) => {
-                                trackEvent(MixpanelEvent.Onboarding_Web_Search_Toggled, { enabled: checked });
+                                trackEvent(MixpanelEvent.Onboarding_Web_Search_Toggled, {
+                                    enabled: checked,
+                                    web_search_step_skipped: !checked,
+                                });
                                 setLlmConfig(prev => ({
                                     ...prev,
                                     WEB_GROUNDING: checked,

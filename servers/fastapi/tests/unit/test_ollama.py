@@ -1,3 +1,5 @@
+import asyncio
+
 import aiohttp
 import pytest
 from fastapi import HTTPException
@@ -30,29 +32,27 @@ class _FailingClientSession:
         return _FailingRequest()
 
 
-@pytest.mark.asyncio
-async def test_list_models_returns_service_unavailable_when_ollama_is_unreachable(
+def test_list_models_returns_service_unavailable_when_ollama_is_unreachable(
     monkeypatch,
 ):
     monkeypatch.setenv("OLLAMA_URL", "http://host.docker.internal:11434/")
     monkeypatch.setattr(ollama.aiohttp, "ClientSession", _FailingClientSession)
 
     with pytest.raises(HTTPException) as exc_info:
-        await ollama.list_pulled_ollama_models()
+        asyncio.run(ollama.list_pulled_ollama_models())
 
     assert exc_info.value.status_code == 503
     assert "http://host.docker.internal:11434" in exc_info.value.detail
     assert "instead of localhost" in exc_info.value.detail
 
 
-@pytest.mark.asyncio
-async def test_pull_model_returns_service_unavailable_when_ollama_is_unreachable(
+def test_pull_model_returns_service_unavailable_when_ollama_is_unreachable(
     monkeypatch,
 ):
     monkeypatch.setenv("OLLAMA_URL", "http://host.docker.internal:11434")
     monkeypatch.setattr(ollama.aiohttp, "ClientSession", _FailingClientSession)
 
     with pytest.raises(HTTPException) as exc_info:
-        await anext(ollama.pull_ollama_model("llama3:8b"))
+        asyncio.run(anext(ollama.pull_ollama_model("llama3:8b")))
 
     assert exc_info.value.status_code == 503

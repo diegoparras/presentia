@@ -19,8 +19,11 @@ PRIMARY FUNNEL
 1. Onboarding Step Viewed
    Fired whenever a user reaches an onboarding step.
    Properties:
-   - step_name: mode | text_provider | image_provider | web_search | finish
-   - step_number: 1 | 2 | 3 | 4 | 5
+   - step_name: text_provider | image_provider | web_search | finish
+   - step_number: 1 | 2 | 3 | 4
+   - text-provider entry: text_provider_tab, provider
+   - image-provider entry: image_generation_enabled, image_step_skipped, image_provider
+   - web-search entry: web_search_enabled, web_search_step_skipped, web_search_provider
 
 2. Onboarding Step Continued
    Fired when the user successfully advances to the next step.
@@ -28,11 +31,13 @@ PRIMARY FUNNEL
    - from_step
    - to_step
    Step-specific properties may include:
-   - selected_mode
    - provider
+   - text_provider_tab
    - image_generation_enabled
+   - image_step_skipped
    - image_provider
    - web_search_enabled
+   - web_search_step_skipped
    - web_search_provider
 
 3. Onboarding Validation Failed
@@ -46,9 +51,12 @@ PRIMARY FUNNEL
    Fired after the complete provider configuration is successfully saved.
    Properties:
    - text_provider
+   - text_provider_tab
    - image_generation_enabled
+   - image_step_skipped
    - image_provider
    - web_search_enabled
+   - web_search_step_skipped
    - web_search_provider
 
 5. Onboarding Completed
@@ -66,12 +74,6 @@ Properties:
 - from_step_number / to_step_number when using the progress header
 - source: footer_button | progress_header
 
-Onboarding Mode Selected
-Fired when a generation mode is selected.
-Properties:
-- mode
-
-
 TEXT PROVIDER ACTIONS
 ---------------------
 
@@ -79,19 +81,23 @@ Onboarding Text Provider Tab Selected
 Fired when a user switches between text-provider tabs.
 Properties:
 - tab: chatgpt | local | other
+- previous_tab: chatgpt | local | other
 
 Onboarding Text Provider Selected
 Fired when a local or other text provider is selected.
 Properties:
 - provider
 - provider_label
-- provider_group: local | other
+- provider_group: chatgpt | local | other
+- text_provider_tab: chatgpt | local | other
+- selection_source: provider_control | tab_default
 
 Onboarding Text Model Selected
 Fired when a text model is selected.
 Properties:
 - provider
 - model
+- text_provider_tab: chatgpt | local | other
 
 Codex Sign In API Call
 Fired when the user starts ChatGPT sign-in.
@@ -120,6 +126,7 @@ Onboarding Image Generation Toggled
 Fired when image generation is enabled or disabled.
 Properties:
 - enabled
+- image_step_skipped
 
 Onboarding Image Provider Selected
 Fired when an image provider is selected.
@@ -141,6 +148,7 @@ Onboarding Web Search Toggled
 Fired when web search is enabled or disabled.
 Properties:
 - enabled
+- web_search_step_skipped
 
 Onboarding Web Search Provider Selected
 Fired when a web-search provider is selected.
@@ -158,13 +166,16 @@ Properties:
 - pathname
 - text_provider
 - text_provider_label
+- text_provider_tab
 - text_model
 - uses_chatgpt_login
 - image_generation_enabled
+- image_step_skipped
 - image_provider
 - image_provider_label
 - image_quality
 - web_search_enabled
+- web_search_step_skipped
 - web_search_provider
 
 

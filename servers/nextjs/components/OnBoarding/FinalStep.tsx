@@ -29,6 +29,10 @@ const FinalStep = () => {
 
     useEffect(() => {
         fireRealisticConfetti();
+        trackEvent(MixpanelEvent.Onboarding_Step_Viewed, {
+            step_name: "finish",
+            step_number: 4,
+        });
         trackEvent(MixpanelEvent.Onboarding_Completed);
     }, []);
 
