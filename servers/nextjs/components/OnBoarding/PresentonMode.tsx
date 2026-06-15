@@ -64,7 +64,7 @@ const PresentonMode = ({
     const [chatGptAuthenticated, setChatGptAuthenticated] = useState(false);
 
     const [showApiKey, setShowApiKey] = useState(false);
-    const [availableModels, setAvailableModels] = useState<string[]>([]);
+    const [availableModels, setAvailableModels] = useState<ModelOption[]>([]);
     const [openModelSelect, setOpenModelSelect] = useState(false);
     const [modelsLoading, setModelsLoading] = useState(false);
     const [modelsChecked, setModelsChecked] = useState(false);
@@ -343,12 +343,15 @@ const PresentonMode = ({
             if (response.ok) {
                 const data = await response.json();
                 const normalizedModels: string[] = Array.isArray(data) ? data : [];
+                const normalizedModels: string[] = Array.isArray(data) ? data : [];
 
                 setAvailableModels(normalizedModels);
                 setModelsChecked(true);
 
                 if (normalizedModels.length > 0 && currentModelField) {
-                    if (llmConfig[currentModelField] && normalizedModels.includes(llmConfig[currentModelField])) {
+                    const modelValues = normalizedModels.map((model) => model.value);
+
+                    if (llmConfig[currentModelField] && modelValues.includes(llmConfig[currentModelField])) {
                         setLlmConfig(prev => ({
                             ...prev,
                             [currentModelField]: llmConfig[currentModelField]
@@ -375,9 +378,9 @@ const PresentonMode = ({
                                                 ? 'gpt-4.1'
                                             : llmConfig.LLM === 'lmstudio'
                                                 ? 'openai/gpt-oss-20b'
-                                                : normalizedModels[0];
+                                                : modelValues[0];
 
-                    const nextModel = normalizedModels.includes(preferredDefault) ? preferredDefault : normalizedModels[0];
+                    const nextModel = modelValues.includes(preferredDefault) ? preferredDefault : modelValues[0];
                     setLlmConfig(prev => ({
                         ...prev,
                         [currentModelField]: nextModel
@@ -1141,6 +1144,7 @@ const PresentonMode = ({
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     {`Select ${LLM_PROVIDERS[llmConfig.LLM!]?.label} Model`}
+                                    {`Select ${LLM_PROVIDERS[llmConfig.LLM!]?.label} Model`}
                                 </label>
                                 <div className="w-full">
                                     <Popover
@@ -1160,12 +1164,15 @@ const PresentonMode = ({
                                                 className="w-full h-12 px-4 py-4 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors hover:border-gray-400 justify-between"
                                             >
                                                 <span className="text-sm truncate font-medium text-gray-900">
-                                                    {
-                                                        currentModel
-                                                            ? availableModels.find(model => model === currentModel) || currentModel
-                                                            :
-                                                            "Select a model"
-                                                    }
+                                                    {(() => {
+                                                        if (!currentModel) return "Select a model";
+                                                        const selectedModel = availableModels.find((model) => model.value === currentModel);
+                                                        if (!selectedModel) return currentModel;
+                                                        if (llmConfig.LLM === 'ollama' && selectedModel.size) {
+                                                            return `${selectedModel.label} (${selectedModel.size})`;
+                                                        }
+                                                        return selectedModel.label;
+                                                    })()}
                                                 </span>
 
                                                 <ChevronUp className="w-4 h-4 text-gray-500" />
@@ -1181,11 +1188,11 @@ const PresentonMode = ({
                                                 <CommandList>
                                                     <CommandEmpty>No model found.</CommandEmpty>
                                                     <CommandGroup>
-                                                        {availableModels.map((model, index) => (
+                                                        {availableModels.map((model) => (
                                                             <CommandItem
-                                                                key={index}
-                                                                value={model}
-                                                                onSelect={(value) => {
+                                                                key={model.value}
+                                                                value={model.value}
+                                                                onSelect={() => {
                                                                     if (currentModelField) {
                                                                         trackEvent(MixpanelEvent.Onboarding_Text_Model_Selected, {
                                                                             provider: llmConfig.LLM || "",
@@ -1194,7 +1201,7 @@ const PresentonMode = ({
                                                                         });
                                                                         setLlmConfig(prev => ({
                                                                             ...prev,
-                                                                            [currentModelField]: value
+                                                                            [currentModelField]: model.value
                                                                         }));
                                                                     }
                                                                     setOpenModelSelect(false);
@@ -1203,7 +1210,7 @@ const PresentonMode = ({
                                                                 <Check
                                                                     className={cn(
                                                                         "mr-2 h-4 w-4",
-                                                                        currentModel === model
+                                                                        currentModel === model.value
                                                                             ? "opacity-100"
                                                                             : "opacity-0"
                                                                     )}
@@ -1212,8 +1219,23 @@ const PresentonMode = ({
                                                                     <div className="flex flex-col space-y-1 flex-1">
                                                                         <div className="flex items-center justify-between gap-2">
                                                                             <span className="text-sm font-medium text-gray-900">
-                                                                                {model}
+                                                                                {model.label}
                                                                             </span>
+                                                                            {llmConfig.LLM === 'ollama' && model.size ? (
+                                                                                <span className="text-xs font-medium text-gray-500">
+                                                                                    {model.size}
+                                                                                </span>
+                                                                            ) : null}
+                                                                            {llmConfig.LLM === 'ollama' ? (
+                                                                                <span className={cn(
+                                                                                    "text-xs px-2 py-1 rounded-full",
+                                                                                    model.tested === false
+                                                                                        ? "text-amber-700 bg-amber-50"
+                                                                                        : "text-green-700 bg-green-50"
+                                                                                )}>
+                                                                                    {model.tested === false ? "Experimental" : "Recommended"}
+                                                                                </span>
+                                                                            ) : null}
                                                                         </div>
                                                                     </div>
                                                                 </div>

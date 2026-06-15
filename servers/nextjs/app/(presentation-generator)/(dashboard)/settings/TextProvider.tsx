@@ -35,6 +35,7 @@ interface ModelOption {
   value: string;
   label: string;
   size?: string;
+  tested?: boolean;
 }
 
 const MANUAL_MODEL_PROVIDERS = new Set(["vertex", "azure", "bedrock"]);
@@ -292,6 +293,7 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
 
       if (response.ok) {
         const data = await response.json();
+        const normalizedModels: ModelOption[] = Array.isArray(data)
         const normalizedModels: ModelOption[] = Array.isArray(data)
             ? data
                 .filter((model): model is string => typeof model === "string")
@@ -732,7 +734,7 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   {selectedProvider === "ollama"
-                    ? "Choose an available model"
+                    ? "Choose an Ollama model"
                     : `Select ${modelLabel} Model`}
                 </label>
                 <div className="w-full">
@@ -813,6 +815,20 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
                                       model.size ? (
                                         <span className="text-xs font-medium text-gray-500">
                                           {model.size}
+                                        </span>
+                                      ) : null}
+                                      {selectedProvider === "ollama" ? (
+                                        <span
+                                          className={cn(
+                                            "text-xs px-2 py-1 rounded-full",
+                                            model.tested === false
+                                              ? "text-amber-700 bg-amber-50"
+                                              : "text-green-700 bg-green-50"
+                                          )}
+                                        >
+                                          {model.tested === false
+                                            ? "Experimental"
+                                            : "Recommended"}
                                         </span>
                                       ) : null}
                                     </div>
