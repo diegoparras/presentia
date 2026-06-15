@@ -69,7 +69,9 @@ export default function OllamaConfig({
   const [pullTotal, setPullTotal] = useState<number | null>(null);
   const [pullError, setPullError] = useState<string | null>(null);
   const [pullDone, setPullDone] = useState(false);
+  const [pullCancelled, setPullCancelled] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const pullRequestIdRef = useRef(0);
   const isElectronRuntime =
     typeof window !== "undefined" && !!window.electron;
 
@@ -160,6 +162,8 @@ export default function OllamaConfig({
 
   const handlePullModel = useCallback(
     (modelName: string) => {
+      const requestId = pullRequestIdRef.current + 1;
+      pullRequestIdRef.current = requestId;
       setPullingModel(modelName);
       setPullStatus("Starting pull...");
       setPullProgress(null);
@@ -167,6 +171,7 @@ export default function OllamaConfig({
       setPullTotal(null);
       setPullError(null);
       setPullDone(false);
+      setPullCancelled(false);
       setPullDialogOpen(true);
 
       const controller = new AbortController();
@@ -176,6 +181,13 @@ export default function OllamaConfig({
         modelName,
         ollamaUrl,
         (event: OllamaPullProgressEvent) => {
+          if (
+            pullRequestIdRef.current !== requestId ||
+            controller.signal.aborted
+          ) {
+            return;
+          }
+
           switch (event.type) {
             case "status":
               setPullStatus(event.status || "Processing...");
@@ -190,6 +202,8 @@ export default function OllamaConfig({
               setPullStatus("Model downloaded successfully!");
               setPullProgress(100);
               setPullDone(true);
+              setPullCancelled(false);
+              abortControllerRef.current = null;
               setCombinedModels((prev) =>
                 prev.map((m) =>
                   m.name === modelName ? { ...m, isPulled: true } : m
@@ -201,15 +215,23 @@ export default function OllamaConfig({
             case "error":
               setPullError(event.detail || "Pull failed");
               setPullDone(true);
+              setPullCancelled(false);
+              abortControllerRef.current = null;
               notify.error("Pull failed", event.detail || "Unknown error");
               break;
           }
         },
         controller.signal
       ).catch(() => {
-        if (controller.signal.aborted) {
+        if (
+          controller.signal.aborted &&
+          pullRequestIdRef.current === requestId
+        ) {
           setPullStatus("Pull cancelled");
+          setPullError(null);
           setPullDone(true);
+          setPullCancelled(true);
+          abortControllerRef.current = null;
         }
       });
     },
@@ -476,14 +498,18 @@ export default function OllamaConfig({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Download className="w-5 h-5" />
-              {pullDone && !pullError
+              {pullDone && pullCancelled
+                ? "Download Cancelled"
+                : pullDone && !pullError
                 ? "Download Complete"
                 : pullError
                   ? "Download Failed"
                   : `Downloading ${pullingModel}`}
             </DialogTitle>
             <DialogDescription>
-              {pullDone && !pullError
+              {pullDone && pullCancelled
+                ? `${pullingModel} download was cancelled.`
+                : pullDone && !pullError
                 ? `${pullingModel} is ready to use.`
                 : pullError
                   ? pullError
@@ -519,7 +545,14 @@ export default function OllamaConfig({
                 <p className="text-sm text-red-700">{pullError}</p>
               </div>
             )}
-            {pullDone && !pullError && (
+            {pullDone && pullCancelled && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-sm text-amber-700">
+                  Download was cancelled before completion.
+                </p>
+              </div>
+            )}
+            {pullDone && !pullError && !pullCancelled && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                 <p className="text-sm text-green-700">
                   {pullingModel} has been downloaded and selected as your active
