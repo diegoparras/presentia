@@ -1,9 +1,18 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
-import { Eye, EyeOff, Search } from "lucide-react";
+import { Check, ChevronUp, Eye, EyeOff, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
 
 import { LLMConfig } from "@/types/llm_config";
 import { WEB_SEARCH_PROVIDERS } from "@/utils/providerConstants";
@@ -29,6 +38,7 @@ const WebSearchProvider = ({
   setLlmConfig: React.Dispatch<React.SetStateAction<LLMConfig>>;
 }) => {
   const [showApiKey, setShowApiKey] = useState(false);
+  const [openProviderSelect, setOpenProviderSelect] = useState(false);
   const isWebSearchEnabled = !!llmConfig.WEB_GROUNDING;
 
   const update = useCallback(
@@ -79,37 +89,69 @@ const WebSearchProvider = ({
             </p>
           </div>
           <div className="w-full max-w-[720px] space-y-4">
-                <div>
+                <div className="ml-auto w-[222px]">
                   <label className="mb-2 block text-sm font-medium text-gray-700">
                     Provider
                   </label>
-                  <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
-                    {WEB_SEARCH_PROVIDER_OPTIONS.map((option) => (
-                      <button
-                        type="button"
-                        key={option.value}
-                        onClick={() => {
-                          trackEvent(MixpanelEvent.Settings_Provider_Selected, {
-                            section: "web_search_provider",
-                            provider: option.value,
-                          });
-                          update("WEB_GROUNDING", true);
-                          update("WEB_SEARCH_PROVIDER", option.value);
-                        }}
-                        className={cn(
-                          "flex min-h-32 flex-col items-center justify-center gap-2 rounded-xl border p-3 text-center transition-colors hover:bg-[#F7F6F9]",
-                          selected === option.value
-                            ? "border-[#7A5AF8] bg-[#F4F3FF]"
-                            : "border-[#EDEEEF] bg-white"
-                        )}
-                      >
-                        <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#EDEEEF] bg-white">
-                          {option.icon && <img src={option.icon} alt="" className="h-7 w-7 object-contain" />}
-                        </span>
-                        <span className="text-xs font-semibold text-[#191919]">{option.label}</span>
-                        <span className="line-clamp-2 text-[10px] leading-4 text-gray-500">{option.description}</span>
-                      </button>
-                    ))}
+                  <div className="w-full">
+                    <Popover open={openProviderSelect} onOpenChange={setOpenProviderSelect}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openProviderSelect}
+                          className="h-12 w-[222px] justify-between rounded-lg border border-gray-300 px-4 py-4 outline-none transition-colors hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        >
+                          <span className="truncate text-sm font-medium text-gray-900">
+                            {selected
+                              ? WEB_SEARCH_PROVIDERS[selected]?.label || selected
+                              : "Select web search provider"}
+                          </span>
+                          <ChevronUp className="h-4 w-4 text-gray-500" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0" align="start" style={{ width: "320px" }}>
+                        <Command>
+                          <CommandInput placeholder="Search provider..." />
+                          <CommandList>
+                            <CommandEmpty>No provider found.</CommandEmpty>
+                            <CommandGroup>
+                              {WEB_SEARCH_PROVIDER_OPTIONS.map((option) => (
+                                <CommandItem
+                                  key={option.value}
+                                  value={option.value}
+                                  onSelect={(value) => {
+                                    trackEvent(MixpanelEvent.Settings_Provider_Selected, {
+                                      section: "web_search_provider",
+                                      provider: value,
+                                    });
+                                    update("WEB_GROUNDING", true);
+                                    update("WEB_SEARCH_PROVIDER", value);
+                                    setOpenProviderSelect(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={
+                                      selected === option.value
+                                        ? "mr-2 h-4 w-4 opacity-100"
+                                        : "mr-2 h-4 w-4 opacity-0"
+                                    }
+                                  />
+                                  <div className="flex flex-1 flex-col space-y-1">
+                                    <span className="text-sm font-medium text-gray-900">
+                                      {option.label}
+                                    </span>
+                                    <span className="text-xs leading-relaxed text-gray-600">
+                                      {option.description}
+                                    </span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
 
