@@ -39,20 +39,16 @@ const WEB_SEARCH_PROVIDER_OPTIONS = [
 ];
 
 const PresentonMode = ({
-    currentStep,
     providerStep,
     setStep,
     setProviderStep,
 }: {
-    currentStep: number,
     providerStep: number,
     setStep: (step: number) => void,
     setProviderStep: (step: number) => void,
 }) => {
     const pathname = usePathname();
     const [openProviderSelect, setOpenProviderSelect] = useState(false);
-    const [openImageProviderSelect, setOpenImageProviderSelect] = useState(false);
-    const [openWebProviderSelect, setOpenWebProviderSelect] = useState(false);
     const [textProviderTab, setTextProviderTab] = useState("chatgpt");
     const [chatGptAuthenticated, setChatGptAuthenticated] = useState(false);
     const userConfigState = useSelector((state: RootState) => state.userConfig);
@@ -619,19 +615,17 @@ const PresentonMode = ({
     const handleBack = () => {
         trackEvent(MixpanelEvent.Onboarding_Back_Clicked, {
             from_step: providerStep === 1 ? "text_provider" : providerStep === 2 ? "image_provider" : "web_search",
-            to_step: providerStep === 1 ? "mode" : providerStep === 2 ? "text_provider" : "image_provider",
+            to_step: providerStep === 1 ? "text_provider" : providerStep === 2 ? "text_provider" : "image_provider",
             source: "footer_button",
         });
         if (providerStep > 1) {
             setProviderStep(providerStep - 1);
-        } else {
-            setStep(currentStep - 1);
         }
     };
 
     const selectedWebProvider = WEB_SEARCH_PROVIDER_OPTIONS.find(
-        (provider) => provider.value === (llmConfig.WEB_SEARCH_PROVIDER || "auto")
-    ) || WEB_SEARCH_PROVIDERS.auto;
+        (provider) => provider.value === llmConfig.WEB_SEARCH_PROVIDER
+    );
 
     const downloadProgress = useMemo(() => {
         if (downloadingModel && downloadingModel.downloaded !== null && downloadingModel.size !== null) {
@@ -712,24 +706,36 @@ const PresentonMode = ({
                     value={textProviderTab}
                     onValueChange={(tab) => {
                         trackEvent(MixpanelEvent.Onboarding_Text_Provider_Tab_Selected, { tab });
+                        trackEvent(MixpanelEvent.Onboarding_Text_Provider_Selected, {
+                            provider: tab === "chatgpt" ? "codex" : tab === "local" ? "ollama" : OTHER_PROVIDERS[0].value,
+                            provider_group: tab,
+                            source: "tab_switch",
+                        });
                         setTextProviderTab(tab);
                     }}
                     className="w-full"
                 >
-                    <TabsList className="grid h-11 w-full grid-cols-3 bg-[#F6F6F9] p-1">
-                        <TabsTrigger value="chatgpt" className="gap-2">
+                    <TabsList className="grid h-14 w-full grid-cols-3 bg-[#F6F6F9] p-1">
+                        <TabsTrigger value="chatgpt" className="h-12 gap-2 px-4 text-sm font-semibold">
                             <Image src="/providers/openai.png" alt="" width={16} height={16} className="object-contain" />
                             ChatGPT
                         </TabsTrigger>
-                        <TabsTrigger value="local" className="gap-2">
+                        <TabsTrigger value="local" className="h-12 gap-2 px-4 text-sm font-semibold">
                             <Laptop className="h-4 w-4" />
                             Local
                         </TabsTrigger>
-                        <TabsTrigger value="other" className="gap-2">
+                        <TabsTrigger value="other" className="h-12 gap-2 px-4 text-sm font-semibold">
                             <Blocks className="h-4 w-4" />
-                            Other providers
+                            AI Providers
                         </TabsTrigger>
                     </TabsList>
+                    <p className="mt-3 text-xs leading-relaxed text-gray-500">
+                        {textProviderTab === "chatgpt"
+                            ? "Connect your ChatGPT account and choose a supported model."
+                            : textProviderTab === "local"
+                                ? "Run models on your machine with Ollama or LM Studio."
+                                : "Connect hosted AI providers using an API key or custom endpoint."}
+                    </p>
                     <TabsContent value="chatgpt" className="mt-6">
                         <CodexConfig
                             codexModel={llmConfig.CODEX_MODEL || ''}
@@ -1225,85 +1231,33 @@ const PresentonMode = ({
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Select Image Provider
                             </label>
-                            <div className="w-full">
-                                <Popover
-                                    open={openImageProviderSelect}
-                                    onOpenChange={setOpenImageProviderSelect}
-
-                                >
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={openImageProviderSelect}
-                                            className=" w-full h-12 px-4 py-4 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors hover:border-gray-400 justify-between"
-                                        >
-                                            <div className="flex gap-3 items-center">
-                                                <span className="text-sm font-medium capitalize text-gray-900">
-                                                    {llmConfig.IMAGE_PROVIDER
-                                                        ? IMAGE_PROVIDERS[llmConfig.IMAGE_PROVIDER]
-                                                            ?.label || llmConfig.IMAGE_PROVIDER
-                                                        : 'Select Image Provider'}
-                                                </span>
-                                            </div>
-                                            <ChevronUp className="w-4 h-4 text-gray-500" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent
-                                        className="p-0 w-full"
-                                        align="start"
-
+                            <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3">
+                                {Object.values(IMAGE_PROVIDERS).map((provider) => (
+                                    <button
+                                        type="button"
+                                        key={provider.value}
+                                        onClick={() => {
+                                            trackEvent(MixpanelEvent.Onboarding_Image_Provider_Selected, {
+                                                image_provider: provider.value,
+                                                image_provider_label: provider.label,
+                                            });
+                                            setLlmConfig(prev => ({ ...prev, IMAGE_PROVIDER: provider.value }));
+                                        }}
+                                        className={cn(
+                                            "flex min-h-24 flex-col items-center justify-center gap-2 rounded-xl border p-3 text-center transition-colors hover:bg-[#F7F6F9]",
+                                            llmConfig.IMAGE_PROVIDER === provider.value
+                                                ? "border-[#7A5AF8] bg-[#F4F3FF]"
+                                                : "border-[#EDEEEF] bg-white"
+                                        )}
                                     >
-                                        <Command>
-                                            <CommandInput placeholder="Search provider..." />
-                                            <CommandList>
-                                                <CommandEmpty>No provider found.</CommandEmpty>
-                                                <CommandGroup>
-                                                    {Object.values(IMAGE_PROVIDERS).map(
-                                                        (provider, index) => (
-                                                            <CommandItem
-                                                                key={index}
-                                                                value={provider.value}
-                                                                onSelect={(value) => {
-                                                                    trackEvent(MixpanelEvent.Onboarding_Image_Provider_Selected, {
-                                                                        image_provider: value,
-                                                                        image_provider_label: IMAGE_PROVIDERS[value]?.label || value,
-                                                                    });
-                                                                    setLlmConfig(prev => ({
-                                                                        ...prev,
-                                                                        IMAGE_PROVIDER: value
-                                                                    }));
-                                                                    setOpenImageProviderSelect(false);
-                                                                }}
-                                                            >
-                                                                <Check
-                                                                    className={cn(
-                                                                        "mr-2 h-4 w-4",
-                                                                        llmConfig.IMAGE_PROVIDER === provider.value
-                                                                            ? "opacity-100"
-                                                                            : "opacity-0"
-                                                                    )}
-                                                                />
-                                                                <div className="flex gap-3 items-center">
-                                                                    <div className="flex flex-col space-y-1 flex-1">
-                                                                        <div className="flex items-center justify-between gap-2">
-                                                                            <span className="text-sm font-medium text-gray-900 capitalize">
-                                                                                {provider.label}
-                                                                            </span>
-                                                                        </div>
-                                                                        <span className="text-xs text-gray-600 leading-relaxed">
-                                                                            {provider.description}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            </CommandItem>
-                                                        )
-                                                    )}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
+                                        <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#EDEEEF] bg-white">
+                                            {provider.icon
+                                                ? <img src={provider.icon} alt="" className="h-7 w-7 object-contain" />
+                                                : <span className="text-sm font-semibold">{provider.label.slice(0, 1)}</span>}
+                                        </span>
+                                        <span className="text-xs font-semibold text-[#191919]">{provider.label}</span>
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
@@ -1453,12 +1407,11 @@ const PresentonMode = ({
                                 setLlmConfig(prev => ({
                                     ...prev,
                                     WEB_GROUNDING: checked,
-                                    WEB_SEARCH_PROVIDER: prev.WEB_SEARCH_PROVIDER || "auto",
                                 }));
                             }}
                         />
                     </ToolTip>
-                    <div className={`flex items-center gap-6 ${llmConfig.WEB_GROUNDING ? "mb-[42px]" : ""}`}>
+                    <div className="mb-[42px] flex items-center gap-6">
                         <div className='flex h-[74px] w-[74px] items-center justify-center rounded-[4px] bg-[#F4F3FF]'>
                             <Search className="h-9 w-9 text-[#5146E5]" />
                         </div>
@@ -1467,50 +1420,42 @@ const PresentonMode = ({
                             <p className="text-sm text-gray-500">Bring current information into generated presentations</p>
                         </div>
                     </div>
-                    {llmConfig.WEB_GROUNDING && (
-                        <div className="space-y-4">
+                    <div className="space-y-4">
                             <div>
                                 <label className="mb-2 block text-sm font-medium text-gray-700">Select Web Search Provider</label>
-                                <Popover open={openWebProviderSelect} onOpenChange={setOpenWebProviderSelect}>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" className="h-12 w-full justify-between rounded-lg border-gray-300 px-4">
-                                            <span>{selectedWebProvider.label}</span>
-                                            <ChevronUp className="h-4 w-4 text-gray-500" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="p-0" align="start" style={{ width: "var(--radix-popover-trigger-width)" }}>
-                                        <Command>
-                                            <CommandInput placeholder="Search provider..." />
-                                            <CommandList>
-                                                <CommandGroup>
-                                                    {WEB_SEARCH_PROVIDER_OPTIONS.map((provider) => (
-                                                        <CommandItem
-                                                            key={provider.value}
-                                                            value={provider.value}
-                                                            onSelect={() => {
-                                                                trackEvent(MixpanelEvent.Onboarding_Web_Search_Provider_Selected, {
-                                                                    web_search_provider: provider.value,
-                                                                    web_search_provider_label: provider.label,
-                                                                });
-                                                                setLlmConfig(prev => ({ ...prev, WEB_SEARCH_PROVIDER: provider.value }));
-                                                                setOpenWebProviderSelect(false);
-                                                            }}
-                                                        >
-                                                            <Check className={cn("mr-2 h-4 w-4", selectedWebProvider.value === provider.value ? "opacity-100" : "opacity-0")} />
-                                                            <div>
-                                                                <p className="text-sm font-medium">{provider.label}</p>
-                                                                <p className="text-xs text-gray-500">{provider.description}</p>
-                                                            </div>
-                                                        </CommandItem>
-                                                    ))}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                                <p className="mt-2 text-xs text-gray-500">{selectedWebProvider.description}</p>
+                                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                    {WEB_SEARCH_PROVIDER_OPTIONS.map((provider) => (
+                                        <button
+                                            type="button"
+                                            key={provider.value}
+                                            onClick={() => {
+                                                trackEvent(MixpanelEvent.Onboarding_Web_Search_Provider_Selected, {
+                                                    web_search_provider: provider.value,
+                                                    web_search_provider_label: provider.label,
+                                                });
+                                                setLlmConfig(prev => ({
+                                                    ...prev,
+                                                    WEB_GROUNDING: true,
+                                                    WEB_SEARCH_PROVIDER: provider.value,
+                                                }));
+                                            }}
+                                            className={cn(
+                                                "flex min-h-32 flex-col items-center justify-center gap-2 rounded-xl border p-3 text-center transition-colors hover:bg-[#F7F6F9]",
+                                                selectedWebProvider?.value === provider.value
+                                                    ? "border-[#7A5AF8] bg-[#F4F3FF]"
+                                                    : "border-[#EDEEEF] bg-white"
+                                            )}
+                                        >
+                                            <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#EDEEEF] bg-white">
+                                                {provider.icon && <img src={provider.icon} alt="" className="h-7 w-7 object-contain" />}
+                                            </span>
+                                            <span className="text-xs font-semibold text-[#191919]">{provider.label}</span>
+                                            <span className="line-clamp-2 text-[10px] leading-4 text-gray-500">{provider.description}</span>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                            {selectedWebProvider.urlField && (
+                            {selectedWebProvider?.urlField && (
                                 <div>
                                     <label className="mb-2 block text-sm font-medium text-gray-700">{selectedWebProvider.urlLabel}</label>
                                     <input
@@ -1522,7 +1467,7 @@ const PresentonMode = ({
                                     />
                                 </div>
                             )}
-                            {selectedWebProvider.apiKeyField && (
+                            {selectedWebProvider?.apiKeyField && (
                                 <div>
                                     <label className="mb-2 block text-sm font-medium text-gray-700">{selectedWebProvider.apiKeyLabel}</label>
                                     <div className="relative">
@@ -1538,7 +1483,7 @@ const PresentonMode = ({
                                     </div>
                                 </div>
                             )}
-                            {selectedWebProvider.value !== "auto" && (
+                            {selectedWebProvider && selectedWebProvider.value !== "auto" && (
                                 <div>
                                     <label className="mb-2 block text-sm font-medium text-gray-700">Maximum results</label>
                                     <input
@@ -1552,16 +1497,17 @@ const PresentonMode = ({
                                 </div>
                             )}
                         </div>
-                    )}
                 </div>
             )}
 
             <div className='fixed bottom-16 mr-8  max-w-[1440px]  right-16 flex justify-end items-center gap-2.5 '>
-                <button
-                    onClick={handleBack}
-                    className='border border-[#EDEEEF] rounded-[53px] px-4 py-1 h-[36px]'>
-                    <ChevronLeft className='w-4 h-4 text-gray-500' />
-                </button>
+                {providerStep > 1 && (
+                    <button
+                        onClick={handleBack}
+                        className='border border-[#EDEEEF] rounded-[53px] px-4 py-1 h-[36px]'>
+                        <ChevronLeft className='w-4 h-4 text-gray-500' />
+                    </button>
+                )}
                 <button
 
                     disabled={savingConfig}

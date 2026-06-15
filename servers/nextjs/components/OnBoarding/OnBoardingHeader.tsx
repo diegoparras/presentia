@@ -1,7 +1,7 @@
 import React from 'react'
 import { MixpanelEvent, trackEvent } from '@/utils/mixpanel'
 
-const STEPS = ["Select Mode", "Text Provider", "Image Provider", "Web Search", "Finish Setup"];
+const STEPS = ["Text Provider", "Image Provider", "Web Search", "Finish Setup"];
 
 const OnBoardingHeader = ({
     currentStep,
@@ -14,7 +14,7 @@ const OnBoardingHeader = ({
     setStep: (step: number) => void,
     setProviderStep: (step: number) => void,
 }) => {
-    const activeStep = currentStep === 1 ? 1 : currentStep === 3 ? 5 : providerStep + 1;
+    const activeStep = currentStep === 3 ? 4 : providerStep;
 
     const goToStep = (target: number) => {
         if (target >= activeStep) return;
@@ -23,11 +23,7 @@ const OnBoardingHeader = ({
             to_step_number: target,
             source: "progress_header",
         });
-        if (target === 1) {
-            setStep(1);
-            return;
-        }
-        setProviderStep(target - 1);
+        setProviderStep(target);
         setStep(2);
     };
 

@@ -1,48 +1,24 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store/store";
-import { handleSaveLLMConfig } from "@/utils/storeHelpers";
-import {
-  checkIfSelectedOllamaModelIsPulled,
-  pullOllamaModel,
-} from "@/utils/providerUtils";
-import { LLMConfig } from "@/types/llm_config";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
-import { usePathname } from "next/navigation";
 import OnBoardingSlidebar from "./OnBoarding/OnBoardingSlidebar";
 import OnBoardingHeader from "./OnBoarding/OnBoardingHeader";
-import ModeSelectStep from "./OnBoarding/ModeSelectStep";
 import PresentonMode from "./OnBoarding/PresentonMode";
-import GenerationWithImage from "./OnBoarding/GenerationWithImage";
 import FinalStep from "./OnBoarding/FinalStep";
-
-// Button state interface
-interface ButtonState {
-  isLoading: boolean;
-  isDisabled: boolean;
-  text: string;
-  showProgress: boolean;
-  progressPercentage?: number;
-  status?: string;
-}
-
-
 
 export default function Home() {
   const router = useRouter();
-  const [step, setStep] = useState<number>(1)
+  const [step, setStep] = useState<number>(2)
   const [providerStep, setProviderStep] = useState<number>(1)
-  const [selectedMode, setSelectedMode] = useState<string>("presenton")
   const config = useSelector((state: RootState) => state.userConfig);
 
   const canChangeKeys = config.can_change_keys;
 
   useEffect(() => {
-    const stepName = step === 1
-      ? "mode"
-      : step === 3
+    const stepName = step === 3
         ? "finish"
         : providerStep === 1
           ? "text_provider"
@@ -51,7 +27,7 @@ export default function Home() {
             : "web_search";
     trackEvent(MixpanelEvent.Onboarding_Step_Viewed, {
       step_name: stepName,
-      step_number: step === 1 ? 1 : step === 3 ? 5 : providerStep + 1,
+      step_number: step === 3 ? 4 : providerStep,
     });
   }, [step, providerStep]);
 
@@ -73,9 +49,7 @@ export default function Home() {
       <main className="w-full pl-20 pr-8 max-w-[1440px] mx-auto relative z-10">
 
         <OnBoardingHeader currentStep={step} providerStep={providerStep} setStep={setStep} setProviderStep={setProviderStep} />
-        {step === 1 && <ModeSelectStep selectedMode={selectedMode} setStep={setStep} setSelectedMode={setSelectedMode} />}
-        {step === 2 && selectedMode === "presenton" && <PresentonMode currentStep={step} providerStep={providerStep} setStep={setStep} setProviderStep={setProviderStep} />}
-        {step === 2 && selectedMode === "image" && <GenerationWithImage />}
+        {step === 2 && <PresentonMode providerStep={providerStep} setStep={setStep} setProviderStep={setProviderStep} />}
         {step === 3 && <FinalStep />}
       </main>
     </div>

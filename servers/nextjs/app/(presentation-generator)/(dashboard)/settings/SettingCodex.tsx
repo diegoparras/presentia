@@ -27,6 +27,9 @@ import {
     CHATGPT_MODELS,
     DEFAULT_CODEX_MODEL,
 } from "@/components/CodexConfig";
+import { useRouter } from "next/navigation";
+import { syncStoreAfterCodexSignOut } from "@/utils/storeHelpers";
+import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 
 interface CodexConfigProps {
     codexModel: string;
@@ -60,6 +63,7 @@ export default function CodexConfig({
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [openModelSelect, setOpenModelSelect] = useState(false);
     const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const router = useRouter();
 
     const stopPolling = () => {
         if (pollIntervalRef.current) {
@@ -206,10 +210,20 @@ export default function CodexConfig({
         setIsLoggingOut(true);
         try {
             await fetch(getApiUrl("/api/v1/ppt/codex/auth/logout"), { method: "POST" });
+            trackEvent(MixpanelEvent.Codex_Signed_Out);
             setAuthStatus("unauthenticated");
             applyProfile({});
             onInputChange("codex", "LLM");
             onInputChange('', "codex_model");
+            onInputChange("", "CODEX_ACCESS_TOKEN");
+            onInputChange("", "CODEX_REFRESH_TOKEN");
+            onInputChange("", "CODEX_TOKEN_EXPIRES");
+            onInputChange("", "CODEX_ACCOUNT_ID");
+            onInputChange("", "CODEX_USERNAME");
+            onInputChange("", "CODEX_EMAIL");
+            onInputChange(false, "CODEX_IS_PRO");
+            syncStoreAfterCodexSignOut();
+            router.replace("/settings");
             notify.success(
                 "Signed out",
                 "You have been disconnected from ChatGPT."
@@ -386,6 +400,10 @@ export default function CodexConfig({
                                                 key={model.id}
                                                 value={model.id}
                                                 onSelect={(value) => {
+                                                    trackEvent(MixpanelEvent.Settings_Model_Selected, {
+                                                        provider: "codex",
+                                                        model: value,
+                                                    });
                                                     onInputChange(value, "codex_model");
                                                     setOpenModelSelect(false);
                                                 }}

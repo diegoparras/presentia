@@ -10,6 +10,8 @@ import {
 import { notify } from "@/components/ui/sonner";
 import { getApiUrl } from "@/utils/api";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
+import { usePathname, useRouter } from "next/navigation";
+import { syncStoreAfterCodexSignOut } from "@/utils/storeHelpers";
 
 interface CodexConfigProps {
   codexModel: string;
@@ -59,6 +61,8 @@ export default function CodexConfig({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pathname = usePathname();
+  const router = useRouter();
 
   const stopPolling = () => {
     if (pollIntervalRef.current) {
@@ -224,8 +228,16 @@ export default function CodexConfig({
       setAccountId(null);
       setUsername(null);
       setEmail(null);
-      onInputChange("openai", "LLM");
       onInputChange("", "codex_model");
+      onInputChange("", "CODEX_ACCESS_TOKEN");
+      onInputChange("", "CODEX_REFRESH_TOKEN");
+      onInputChange("", "CODEX_TOKEN_EXPIRES");
+      onInputChange("", "CODEX_ACCOUNT_ID");
+      onInputChange("", "CODEX_USERNAME");
+      onInputChange("", "CODEX_EMAIL");
+      onInputChange(false, "CODEX_IS_PRO");
+      syncStoreAfterCodexSignOut();
+      router.replace(pathname.startsWith("/settings") ? "/settings" : "/");
       notify.success(
         "Signed out",
         "You have been disconnected from ChatGPT."

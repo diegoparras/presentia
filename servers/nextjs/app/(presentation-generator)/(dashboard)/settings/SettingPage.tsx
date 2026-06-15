@@ -16,7 +16,7 @@ import {
 import { useRouter, usePathname } from "next/navigation";
 import { LLMConfig } from "@/types/llm_config";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
-import SettingSideBar from "./SettingSideBar";
+import SettingSideBar, { SettingsSection } from "./SettingSideBar";
 import TextProvider from "./TextProvider";
 import ImageProvider from "./ImageProvider";
 import WebSearchProvider from "./WebSearchProvider";
@@ -45,10 +45,7 @@ interface ButtonState {
 const SettingsPage = () => {
   const router = useRouter();
   const pathname = usePathname();
-  const [mode, setMode] = useState<'nanobanana' | 'presenton'>('presenton')
-  const [selectedProvider, setSelectedProvider] = useState<
-    "text-provider" | "image-provider" | "web-search-provider" | "privacy" | "session"
-  >("text-provider");
+  const [selectedProvider, setSelectedProvider] = useState<SettingsSection>("text-provider");
   const userConfigState = useSelector((state: RootState) => state.userConfig);
   const [llmConfig, setLlmConfig] = useState<LLMConfig>(
     userConfigState.llm_config
@@ -70,6 +67,22 @@ const SettingsPage = () => {
   } | null>(null);
   const [showDownloadModal, setShowDownloadModal] = useState<boolean>(false);
   const downloadAbortRef = React.useRef<AbortController | null>(null);
+
+  const selectSettingsSection = (section: SettingsSection) => {
+    trackEvent(MixpanelEvent.Settings_Tab_Switched, {
+      from_section: selectedProvider,
+      to_section: section,
+    });
+    setSelectedProvider(section);
+  };
+
+  useEffect(() => {
+    trackEvent(MixpanelEvent.Settings_Section_Entered, {
+      section: selectedProvider,
+      image_generation_enabled: !llmConfig.DISABLE_IMAGE_GENERATION,
+      web_search_enabled: !!llmConfig.WEB_GROUNDING,
+    });
+  }, [selectedProvider, llmConfig.DISABLE_IMAGE_GENERATION, llmConfig.WEB_GROUNDING]);
 
   const downloadProgress = React.useMemo(() => {
     if (
@@ -337,10 +350,10 @@ const SettingsPage = () => {
       ? IMAGE_PROVIDERS[llmConfig.IMAGE_PROVIDER]?.label ||
       llmConfig.IMAGE_PROVIDER
       : "No image provider";
-  const webSearchProviderKey = (llmConfig.WEB_SEARCH_PROVIDER || "auto").toLowerCase();
-  const webSearchSummary = `Web: ${
-    WEB_SEARCH_PROVIDERS[webSearchProviderKey]?.label || webSearchProviderKey
-  }`;
+  const webSearchProviderKey = (llmConfig.WEB_SEARCH_PROVIDER || "").toLowerCase();
+  const webSearchSummary = llmConfig.WEB_GROUNDING
+    ? `Web: ${WEB_SEARCH_PROVIDERS[webSearchProviderKey]?.label || "No provider"}`
+    : "Web search disabled";
 
 
   useEffect(() => {
@@ -423,10 +436,8 @@ const SettingsPage = () => {
     <div className="h-screen font-syne flex flex-col overflow-hidden relative">
       <main className="w-full mx-auto gap-6   overflow-hidden flex ">
         <SettingSideBar
-          mode={mode}
-          setMode={setMode}
           selectedProvider={selectedProvider}
-          setSelectedProvider={setSelectedProvider}
+          setSelectedProvider={selectSettingsSection}
         />
         <div className="w-full">
           <div className="sticky top-0 right-0 z-50 py-[28px]   backdrop-blur mb-4 ">
@@ -440,10 +451,7 @@ const SettingsPage = () => {
             </div>
           </div>
 
-          {mode === 'nanobanana' && <div className=" w-full bg-[#F9F8F8] p-7 rounded-[20px]">
-            <h4>Nano Banana</h4>
-          </div>}
-          {mode === 'presenton' && selectedProvider === 'text-provider' && <TextProvider
+          {selectedProvider === 'text-provider' && <TextProvider
 
 
             onInputChange={(value, field) => {
@@ -454,8 +462,8 @@ const SettingsPage = () => {
             }}
             llmConfig={llmConfig}
           />}
-          {mode === 'presenton' && selectedProvider === 'image-provider' && <ImageProvider llmConfig={llmConfig} setLlmConfig={setLlmConfig} />}
-          {mode === 'presenton' && selectedProvider === 'web-search-provider' && <WebSearchProvider llmConfig={llmConfig} setLlmConfig={setLlmConfig} />}
+          {selectedProvider === 'image-provider' && <ImageProvider llmConfig={llmConfig} setLlmConfig={setLlmConfig} />}
+          {selectedProvider === 'web-search-provider' && <WebSearchProvider llmConfig={llmConfig} setLlmConfig={setLlmConfig} />}
           {selectedProvider === 'privacy' && <PrivacySettings />}
           {selectedProvider === "session" && (
             <div className="w-full max-w-lg space-y-5 rounded-[20px] border border-[#EDEEEF] bg-white p-7">

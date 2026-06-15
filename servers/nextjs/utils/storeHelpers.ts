@@ -44,34 +44,6 @@ export const normalizeLLMConfig = (llmConfig: LLMConfig): LLMConfig => {
     normalizedConfig.WEB_GROUNDING = parsedWebGrounding;
   }
 
-  if (normalizedConfig.DISABLE_IMAGE_GENERATION || normalizedConfig.IMAGE_PROVIDER) {
-    return normalizedConfig;
-  }
-
-  if (
-    normalizedConfig.OPENAI_COMPAT_IMAGE_BASE_URL &&
-    normalizedConfig.OPENAI_COMPAT_IMAGE_API_KEY &&
-    normalizedConfig.OPENAI_COMPAT_IMAGE_MODEL
-  ) {
-    normalizedConfig.IMAGE_PROVIDER = "openai_compatible";
-  } else if (normalizedConfig.OPEN_WEBUI_IMAGE_URL) {
-    normalizedConfig.IMAGE_PROVIDER = "open_webui";
-  } else if (normalizedConfig.COMFYUI_URL) {
-    normalizedConfig.IMAGE_PROVIDER = "comfyui";
-  } else if (normalizedConfig.PEXELS_API_KEY) {
-    normalizedConfig.IMAGE_PROVIDER = "pexels";
-  } else if (normalizedConfig.PIXABAY_API_KEY) {
-    normalizedConfig.IMAGE_PROVIDER = "pixabay";
-  } else if (normalizedConfig.LLM === "openai" && normalizedConfig.OPENAI_API_KEY) {
-    normalizedConfig.IMAGE_PROVIDER = "gpt-image-1.5";
-    normalizedConfig.GPT_IMAGE_1_5_QUALITY =
-      normalizedConfig.GPT_IMAGE_1_5_QUALITY || "medium";
-  } else if (normalizedConfig.LLM === "google" && normalizedConfig.GOOGLE_API_KEY) {
-    normalizedConfig.IMAGE_PROVIDER = "gemini_flash";
-  } else {
-    normalizedConfig.DISABLE_IMAGE_GENERATION = true;
-  }
-
   return normalizedConfig;
 };
 
@@ -271,6 +243,9 @@ export const getLLMConfigValidationError = (
   }
 
   if (llmConfig.WEB_GROUNDING) {
+    if (!isProvided(llmConfig.WEB_SEARCH_PROVIDER)) {
+      return "Select a web search provider, or turn off web search.";
+    }
     switch (llmConfig.WEB_SEARCH_PROVIDER) {
       case "searxng":
         if (!isProvided(llmConfig.SEARXNG_BASE_URL)) {
@@ -292,6 +267,10 @@ export const getLLMConfigValidationError = (
           return "Brave Search API key is required.";
         }
         break;
+      case "auto":
+        break;
+      default:
+        return "Select a valid web search provider.";
     }
   }
 
@@ -330,6 +309,13 @@ export function syncStoreAfterCodexSignOut(): void {
       ...prev,
       LLM: "codex",
       CODEX_MODEL: "",
+      CODEX_ACCESS_TOKEN: "",
+      CODEX_REFRESH_TOKEN: "",
+      CODEX_TOKEN_EXPIRES: "",
+      CODEX_ACCOUNT_ID: "",
+      CODEX_USERNAME: "",
+      CODEX_EMAIL: "",
+      CODEX_IS_PRO: false,
     })
   );
 }
