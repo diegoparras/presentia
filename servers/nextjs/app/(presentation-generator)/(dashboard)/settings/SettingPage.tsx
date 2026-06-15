@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Loader2, ChevronRight } from "lucide-react";
 import { notify } from "@/components/ui/sonner";
 import { RootState } from "@/store/store";
@@ -53,6 +53,16 @@ const SettingsPage = () => {
     text: "Save Configuration",
     showProgress: false,
   });
+
+  const handleTextProviderInputChange = useCallback(
+    (value: string | boolean, field: string) => {
+      setLlmConfig((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    },
+    []
+  );
 
   const selectSettingsSection = (section: SettingsSection) => {
     trackEvent(MixpanelEvent.Settings_Tab_Switched, {
@@ -350,14 +360,7 @@ const SettingsPage = () => {
           </div>
 
           {selectedProvider === 'text-provider' && <TextProvider
-
-
-            onInputChange={(value, field) => {
-              setLlmConfig(prev => ({
-                ...prev,
-                [field]: value
-              }));
-            }}
+            onInputChange={handleTextProviderInputChange}
             llmConfig={llmConfig}
           />}
           {selectedProvider === 'image-provider' && <ImageProvider llmConfig={llmConfig} setLlmConfig={setLlmConfig} />}
