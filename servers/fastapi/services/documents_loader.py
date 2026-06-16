@@ -25,6 +25,7 @@ from services.office_document_service import (
     OfficeDocumentError,
     extract_office_document_text,
 )
+from services.temp_file_service import TEMP_FILE_SERVICE
 from utils.ocr_language import presentation_language_to_ocr_code
 
 # Optional fallback converter (primarily useful on Windows)

@@ -102,16 +102,21 @@ def test_load_image_converts_to_png_before_ocr(mock_convert, mock_parse):
 
 
 @patch("services.documents_loader.DocumentsLoader.load_office_document")
-def test_load_documents_parses_office_files_without_liteparse(mock_extract, tmp_path):
-    office_file = tmp_path / "deck.pptx"
-    office_file.write_bytes(b"pptx")
+def test_load_documents_parses_office_files_without_liteparse(
+    mock_extract, tmp_path, monkeypatch
+):
+    managed_dir = tmp_path / "presenton-temp"
+    managed_dir.mkdir()
+    monkeypatch.setattr(TEMP_FILE_SERVICE, "base_dir", str(managed_dir))
+    upload_dir = TEMP_FILE_SERVICE.create_temp_dir("upload-case")
+    office_file = TEMP_FILE_SERVICE.create_temp_file("deck.pptx", b"pptx", upload_dir)
     mock_extract.return_value = "slide text"
-    loader = DocumentsLoader(file_paths=[str(office_file)])
+    loader = DocumentsLoader(file_paths=[office_file])
 
     asyncio.run(loader.load_documents())
 
     assert loader.documents == ["slide text"]
-    mock_extract.assert_called_once_with(str(office_file))
+    mock_extract.assert_called_once_with(office_file)
 
 
 def _make_mock_page(text: str) -> MagicMock:
