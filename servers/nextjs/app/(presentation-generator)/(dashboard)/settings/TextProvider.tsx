@@ -294,7 +294,6 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
       if (response.ok) {
         const data = await response.json();
         const normalizedModels: ModelOption[] = Array.isArray(data)
-        const normalizedModels: ModelOption[] = Array.isArray(data)
             ? data
                 .filter((model): model is string => typeof model === "string")
                 .map((model) => ({
