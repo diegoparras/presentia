@@ -4,6 +4,9 @@ interface FastApiEnv {
   LLM?: string,
   OPENAI_API_KEY?: string,
   OPENAI_MODEL?: string,
+  DEEPSEEK_API_KEY?: string,
+  DEEPSEEK_MODEL?: string,
+  DEEPSEEK_BASE_URL?: string,
   GOOGLE_API_KEY?: string,
   GOOGLE_MODEL?: string,
   ANTHROPIC_API_KEY?: string,
@@ -57,6 +60,7 @@ interface FastApiEnv {
   USER_CONFIG_PATH?: string,
   MIGRATE_DATABASE_ON_STARTUP?: string,
   DISABLE_AUTH?: string,
+  PRESENTON_ELECTRON?: string,
   /** Absolute path to the bundled/resolved ImageMagick magick executable. */
   IMAGEMAGICK_BINARY?: string,
   /** ImageMagick runtime root used by the bundled portable build. */
@@ -107,6 +111,9 @@ interface UserConfig {
   LLM?: string,
   OPENAI_API_KEY?: string,
   OPENAI_MODEL?: string,
+  DEEPSEEK_API_KEY?: string,
+  DEEPSEEK_MODEL?: string,
+  DEEPSEEK_BASE_URL?: string,
   GOOGLE_API_KEY?: string,
   GOOGLE_MODEL?: string,
   ANTHROPIC_API_KEY?: string,
