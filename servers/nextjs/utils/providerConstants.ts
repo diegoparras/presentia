@@ -194,6 +194,14 @@ export const LLM_PROVIDERS: Record<string, LLMProviderOption> = {
     icon: "/providers/openai.png",
     getApiKeyUrl: "https://www.google.com/search?q=how+to+get+openai+api+key&ie=UTF-8",
   },
+  deepseek: {
+    value: "deepseek",
+    label: "DeepSeek",
+    description: "DeepSeek models via DeepSeek API",
+    url: "https://api.deepseek.com/v1",
+    icon: "/providers/openai.png",
+    getApiKeyUrl: "https://platform.deepseek.com/api_keys",
+  },
   google: {
     value: "google",
     label: "Google",

@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
 import { Button } from '../ui/button';
-import { ArrowUpRight, Blocks, Check, ChevronLeft, ChevronUp, Eye, EyeOff, Info, Laptop, Loader2, Search } from 'lucide-react';
+import { ArrowUpRight, Blocks, Check, ChevronDown, ChevronLeft, ChevronUp, Eye, EyeOff, Info, Laptop, Loader2, Search } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { DALLE_3_QUALITY_OPTIONS, GPT_IMAGE_1_5_QUALITY_OPTIONS, IMAGE_PROVIDERS, LLM_PROVIDERS, WEB_SEARCH_PROVIDERS } from '@/utils/providerConstants';
 import { cn } from '@/lib/utils';
@@ -64,6 +65,9 @@ const PresentonMode = ({
     const [chatGptAuthenticated, setChatGptAuthenticated] = useState(false);
 
     const [showApiKey, setShowApiKey] = useState(false);
+    const [deepseekAdvancedOpen, setDeepseekAdvancedOpen] = useState(() =>
+        !!(userConfigState.llm_config.DEEPSEEK_BASE_URL || '').trim()
+    );
     const [availableModels, setAvailableModels] = useState<string[]>([]);
     const [openModelSelect, setOpenModelSelect] = useState(false);
     const [modelsLoading, setModelsLoading] = useState(false);
@@ -108,6 +112,8 @@ const PresentonMode = ({
         switch (llmConfig.LLM) {
             case 'openai':
                 return 'OPENAI_MODEL';
+            case 'deepseek':
+                return 'DEEPSEEK_MODEL';
             case 'google':
                 return 'GOOGLE_MODEL';
             case 'vertex':
@@ -142,6 +148,8 @@ const PresentonMode = ({
         switch (llmConfig.LLM) {
             case 'openai':
                 return 'OPENAI_API_KEY';
+            case 'deepseek':
+                return 'DEEPSEEK_API_KEY';
             case 'google':
                 return 'GOOGLE_API_KEY';
             case 'vertex':
@@ -180,6 +188,7 @@ const PresentonMode = ({
 
     const currentApiKey = currentApiKeyField ? ((llmConfig as Record<string, unknown>)[currentApiKeyField] as string || '') : '';
     const currentModel = currentModelField ? ((llmConfig as Record<string, unknown>)[currentModelField] as string || '') : '';
+    const currentDeepseekBaseUrl = (llmConfig.DEEPSEEK_BASE_URL || '').trim();
     const currentLitellmUrl = (llmConfig.LITELLM_BASE_URL || '').trim();
     const currentLmStudioUrl = (llmConfig.LMSTUDIO_BASE_URL || '').trim();
     const currentFireworksUrl = (llmConfig.FIREWORKS_BASE_URL || '').trim();
@@ -188,6 +197,8 @@ const PresentonMode = ({
     const providerApiKeyLabel =
         llmConfig.LLM === 'custom'
             ? 'Custom LLM API Key'
+            : llmConfig.LLM === 'deepseek'
+                ? 'DeepSeek API Key'
             : llmConfig.LLM === 'vertex'
                 ? 'Vertex API Key'
                 : llmConfig.LLM === 'azure'
@@ -208,10 +219,16 @@ const PresentonMode = ({
                                     ? 'LM Studio API key (optional)'
                                 : `${llmConfig.LLM} API Key`;
 
+    useEffect(() => {
+        if (currentDeepseekBaseUrl) setDeepseekAdvancedOpen(true);
+    }, [currentDeepseekBaseUrl]);
+
     const getSelectedTextModel = (config: LLMConfig): string => {
         switch (config.LLM) {
             case 'openai':
                 return config.OPENAI_MODEL || '';
+            case 'deepseek':
+                return config.DEEPSEEK_MODEL || '';
             case 'google':
                 return config.GOOGLE_MODEL || '';
             case 'vertex':
@@ -284,6 +301,7 @@ const PresentonMode = ({
     const fetchAvailableModels = async () => {
         if (isManualModelProvider) return;
         if (llmConfig.LLM === 'openai' && !currentApiKey) return;
+        if (llmConfig.LLM === 'deepseek' && !currentApiKey) return;
         if (llmConfig.LLM === 'google' && !currentApiKey) return;
         if (llmConfig.LLM === 'anthropic' && !currentApiKey) return;
         if (llmConfig.LLM === 'openrouter' && !currentApiKey) return;
@@ -319,6 +337,8 @@ const PresentonMode = ({
                 const openAiCompatibleUrl =
                     llmConfig.LLM === 'custom'
                         ? llmConfig.CUSTOM_LLM_URL
+                        : llmConfig.LLM === 'deepseek'
+                            ? currentDeepseekBaseUrl || LLM_PROVIDERS[llmConfig.LLM!]?.url || ''
                         : llmConfig.LLM === 'litellm'
                             ? currentLitellmUrl
                             : llmConfig.LLM === 'lmstudio'
@@ -359,6 +379,8 @@ const PresentonMode = ({
                     const preferredDefault =
                         llmConfig.LLM === 'openai'
                             ? 'gpt-4.1'
+                            : llmConfig.LLM === 'deepseek'
+                                ? 'deepseek-chat'
                             : llmConfig.LLM === 'google'
                                 ? 'models/gemini-2.5-flash'
                                 : llmConfig.LLM === 'anthropic'
@@ -1276,6 +1298,46 @@ const PresentonMode = ({
                                     placeholder="OpenAI-compatible URL"
                                 />
                             )}
+                            {llmConfig.LLM === 'deepseek' && (
+                                <Collapsible
+                                    open={deepseekAdvancedOpen}
+                                    onOpenChange={setDeepseekAdvancedOpen}
+                                    className="mt-3"
+                                >
+                                    <CollapsibleTrigger asChild>
+                                        <button
+                                            type="button"
+                                            className="flex w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-gray-200 bg-[#F9F9FA] px-3 py-2.5 text-left text-sm font-medium text-gray-800 transition-colors hover:bg-gray-100"
+                                        >
+                                            <span>Advanced settings</span>
+                                            <ChevronDown
+                                                className={cn(
+                                                    "h-4 w-4 shrink-0 text-gray-600 transition-transform duration-200",
+                                                    deepseekAdvancedOpen && "rotate-180"
+                                                )}
+                                                aria-hidden
+                                            />
+                                        </button>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent className="space-y-3 overflow-hidden">
+                                        <div className="space-y-1.5 border-t border-gray-100 pt-3">
+                                            <label className="block text-sm font-medium text-gray-700">
+                                                DeepSeek base URL (optional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={llmConfig.DEEPSEEK_BASE_URL || ''}
+                                                onChange={(e) => setLlmConfig(prev => ({
+                                                    ...prev,
+                                                    DEEPSEEK_BASE_URL: e.target.value
+                                                }))}
+                                                className="w-full px-2 py-3 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                                                placeholder="https://api.deepseek.com/v1"
+                                            />
+                                        </div>
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            )}
                             {llmConfig.LLM === 'litellm' && (
                                 <>
                                     <label className="mt-3 block text-sm font-medium text-gray-700 mb-2">
@@ -1370,6 +1432,7 @@ const PresentonMode = ({
                                 disabled={
                                     modelsLoading ||
                                     (llmConfig.LLM === 'openai' && !currentApiKey) ||
+                                    (llmConfig.LLM === 'deepseek' && !currentApiKey) ||
                                     (llmConfig.LLM === 'google' && !currentApiKey) ||
                                     (llmConfig.LLM === 'anthropic' && !currentApiKey) ||
                                     (llmConfig.LLM === 'openrouter' && !currentApiKey) ||

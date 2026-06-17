@@ -67,6 +67,9 @@ export const updateLLMConfig = (
   const fieldMappings: Record<string, keyof LLMConfig> = {
     openai_api_key: "OPENAI_API_KEY",
     openai_model: "OPENAI_MODEL",
+    deepseek_api_key: "DEEPSEEK_API_KEY",
+    deepseek_model: "DEEPSEEK_MODEL",
+    deepseek_base_url: "DEEPSEEK_BASE_URL",
     google_api_key: "GOOGLE_API_KEY",
     google_model: "GOOGLE_MODEL",
     vertex_api_key: "VERTEX_API_KEY",

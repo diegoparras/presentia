@@ -12,11 +12,23 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { LLMConfig } from "@/types/llm_config";
 import { getApiUrl } from "@/utils/api";
 import { LLM_PROVIDERS } from "@/utils/providerConstants";
-import { Check, Loader2, Eye, EyeOff, ChevronUp } from "lucide-react";
+import {
+  Check,
+  Loader2,
+  Eye,
+  EyeOff,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { notify } from "@/components/ui/sonner";
 import CodexConfig from "./SettingCodex";
@@ -47,6 +59,9 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
   const [modelsLoading, setModelsLoading] = useState(false);
   const [modelsChecked, setModelsChecked] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [deepseekAdvancedOpen, setDeepseekAdvancedOpen] = useState(() =>
+    !!(llmConfig.DEEPSEEK_BASE_URL || "").trim()
+  );
   const isFirstRender = useRef(true);
 
   const selectedProvider = (llmConfig.LLM ||
@@ -57,6 +72,8 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
     switch (selectedProvider) {
       case "openai":
         return "OPENAI_MODEL";
+      case "deepseek":
+        return "DEEPSEEK_MODEL";
       case "google":
         return "GOOGLE_MODEL";
       case "vertex":
@@ -94,6 +111,8 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
     switch (selectedProvider) {
       case "openai":
         return "OPENAI_API_KEY";
+      case "deepseek":
+        return "DEEPSEEK_API_KEY";
       case "google":
         return "GOOGLE_API_KEY";
       case "vertex":
@@ -132,6 +151,7 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
       ""
     : "";
   const currentCustomUrl = llmConfig.CUSTOM_LLM_URL || "";
+  const currentDeepseekBaseUrl = (llmConfig.DEEPSEEK_BASE_URL || "").trim();
   const currentLitellmUrl = (llmConfig.LITELLM_BASE_URL || "").trim();
   const currentLmStudioUrl = (llmConfig.LMSTUDIO_BASE_URL || "").trim();
   const currentFireworksUrl = (llmConfig.FIREWORKS_BASE_URL || "").trim();
@@ -141,6 +161,8 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
   const providerApiKeyLabel =
     selectedProvider === "custom"
       ? "Custom LLM API Key"
+      : selectedProvider === "deepseek"
+      ? "DeepSeek API Key"
       : selectedProvider === "vertex"
       ? "Vertex API Key"
       : selectedProvider === "azure"
@@ -162,6 +184,10 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
       : `${selectedProvider} API Key`;
 
   useEffect(() => {
+    if (currentDeepseekBaseUrl) setDeepseekAdvancedOpen(true);
+  }, [currentDeepseekBaseUrl]);
+
+  useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
@@ -180,6 +206,7 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
     selectedProvider,
     currentApiKey,
     currentCustomUrl,
+    currentDeepseekBaseUrl,
     currentLitellmUrl,
     currentLmStudioUrl,
     currentFireworksUrl,
@@ -192,6 +219,8 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
     const keyField =
       llm === "openai"
         ? "OPENAI_API_KEY"
+        : llm === "deepseek"
+        ? "DEEPSEEK_API_KEY"
         : llm === "google"
         ? "GOOGLE_API_KEY"
         : llm === "vertex"
@@ -225,6 +254,7 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
   const fetchAvailableModels = async () => {
     if (isManualModelProvider) return;
     if (selectedProvider === "openai" && !currentApiKey) return;
+    if (selectedProvider === "deepseek" && !currentApiKey) return;
     if (selectedProvider === "google" && !currentApiKey) return;
     if (selectedProvider === "anthropic" && !currentApiKey) return;
     if (selectedProvider === "openrouter" && !currentApiKey) return;
@@ -267,6 +297,8 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
         const openAiCompatibleUrl =
           selectedProvider === "custom"
             ? currentCustomUrl
+            : selectedProvider === "deepseek"
+            ? currentDeepseekBaseUrl || selectedProviderMeta?.url || ""
             : selectedProvider === "litellm"
             ? currentLitellmUrl
             : selectedProvider === "lmstudio"
@@ -315,6 +347,8 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
           const preferredDefault =
             selectedProvider === "openai"
               ? "gpt-4.1"
+              : selectedProvider === "deepseek"
+              ? "deepseek-chat"
               : selectedProvider === "google"
               ? "models/gemini-2.5-flash"
               : selectedProvider === "anthropic"
@@ -598,6 +632,45 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
                     placeholder="OpenAI-compatible URL"
                   />
                 )}
+                {selectedProvider === "deepseek" && (
+                  <Collapsible
+                    open={deepseekAdvancedOpen}
+                    onOpenChange={setDeepseekAdvancedOpen}
+                    className="mt-3"
+                  >
+                    <CollapsibleTrigger asChild>
+                      <button
+                        type="button"
+                        className="flex w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-gray-200 bg-[#F9F9FA] px-3 py-2.5 text-left text-sm font-medium text-gray-800 transition-colors hover:bg-gray-100"
+                      >
+                        <span>Advanced settings</span>
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 shrink-0 text-gray-600 transition-transform duration-200",
+                            deepseekAdvancedOpen && "rotate-180"
+                          )}
+                          aria-hidden
+                        />
+                      </button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="space-y-3 overflow-hidden">
+                      <div className="space-y-1.5 border-t border-gray-100 pt-3">
+                        <label className="block text-sm font-medium text-gray-700">
+                          DeepSeek base URL (optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={llmConfig.DEEPSEEK_BASE_URL || ""}
+                          onChange={(e) =>
+                            onInputChange(e.target.value, "DEEPSEEK_BASE_URL")
+                          }
+                          className="w-full px-2 py-3 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                          placeholder="https://api.deepseek.com/v1"
+                        />
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
                 {selectedProvider === "litellm" && (
                   <>
                     <label className="mt-3 block text-sm font-medium text-gray-700 mb-2">
@@ -696,6 +769,7 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
                     disabled={
                       modelsLoading ||
                       (selectedProvider === "openai" && !currentApiKey) ||
+                      (selectedProvider === "deepseek" && !currentApiKey) ||
                       (selectedProvider === "google" && !currentApiKey) ||
                       (selectedProvider === "anthropic" && !currentApiKey) ||
                       (selectedProvider === "openrouter" && !currentApiKey) ||

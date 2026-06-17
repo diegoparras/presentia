@@ -234,9 +234,12 @@ Other optional variables exist in code (for example advanced Mem0 paths, LitePar
 #### LLM and API keys
 
 - **CAN_CHANGE_KEYS**=[true/false]: Set to **false** if you want to keep API keys hidden and make them unmodifiable.
-- **LLM**=[openai/google/vertex/azure/bedrock/anthropic/lmstudio/ollama/custom/codex]: Select the text **LLM**.
+- **LLM**=[openai/deepseek/google/vertex/azure/bedrock/anthropic/lmstudio/ollama/custom/codex]: Select the text **LLM**.
 - **OPENAI_API_KEY**: Required if **LLM** is **openai**.
 - **OPENAI_MODEL**: Required if **LLM** is **openai** (default: `gpt-4.1`).
+- **DEEPSEEK_API_KEY**: Required if **LLM** is **deepseek**.
+- **DEEPSEEK_MODEL**: Required if **LLM** is **deepseek** (default: `deepseek-chat`).
+- **DEEPSEEK_BASE_URL**: Optional if **LLM** is **deepseek** (default: `https://api.deepseek.com`).
 - **GOOGLE_API_KEY**: Required if **LLM** is **google**.
 - **GOOGLE_MODEL**: Required if **LLM** is **google** (default: `models/gemini-2.0-flash`).
 - **VERTEX_MODEL**: Required if **LLM** is **vertex** (default: `gemini-2.5-flash`).
@@ -269,7 +272,7 @@ Other optional variables exist in code (for example advanced Mem0 paths, LitePar
 - **LMSTUDIO_BASE_URL**: Optional LM Studio base URL if **LLM** is **lmstudio** (default: `http://localhost:1234/v1`; `/v1` is auto-appended when omitted).
 - **LMSTUDIO_API_KEY**: Optional API key if **LLM** is **lmstudio**.
 - **LMSTUDIO_MODEL**: Required if **LLM** is **lmstudio** (example: `openai/gpt-oss-20b`).
-- **DISABLE_THINKING**=[true/false]: If **true**, disables “thinking” on the custom LLM.
+- **DISABLE_THINKING**=[true/false]: If **true**, disables “thinking” for providers that support it (including DeepSeek).
 - **WEB_GROUNDING**=[true/false]: If **true**, enables web search by default.
 - **WEB_SEARCH_PROVIDER**=[auto/native/searxng/tavily/exa]: Selects the web search mode. `auto` uses native search for OpenAI, Google, and Anthropic, and otherwise leaves web search off unless you choose an external provider.
 <!-- Brave and Serper search providers are hidden until they are tested. -->

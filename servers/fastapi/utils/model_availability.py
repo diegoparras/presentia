@@ -42,6 +42,9 @@ from utils.get_env import (
     get_vertex_project_env,
     get_comfyui_url_env,
     get_comfyui_workflow_env,
+    get_deepseek_api_key_env,
+    get_deepseek_base_url_env,
+    get_deepseek_model_env,
 )
 from utils.get_env import get_google_api_key_env
 from utils.get_env import get_ollama_model_env
@@ -129,6 +132,24 @@ async def check_llm_and_image_provider_api_or_model_availability():
                     print("-" * 50)
                     print("Available models: ", available_models)
                     raise Exception(f"Model {google_model} is not available")
+
+        elif get_llm_provider() == LLMProvider.DEEPSEEK:
+            deepseek_api_key = (get_deepseek_api_key_env() or "").strip()
+            deepseek_model = (get_deepseek_model_env() or "").strip()
+            if not deepseek_api_key:
+                raise Exception("DEEPSEEK_API_KEY must be provided")
+            if not deepseek_model:
+                raise Exception("DEEPSEEK_MODEL must be provided")
+            deepseek_base_url = normalize_openai_compatible_base_url(
+                get_deepseek_base_url_env() or "https://api.deepseek.com/v1"
+            )
+            available_models = await list_available_openai_compatible_models(
+                deepseek_base_url, deepseek_api_key
+            )
+            print("-" * 50)
+            print("Available models: ", available_models)
+            if deepseek_model not in available_models:
+                raise Exception(f"Model {deepseek_model} is not available")
 
         elif get_llm_provider() == LLMProvider.VERTEX:
             vertex_api_key = get_vertex_api_key_env()

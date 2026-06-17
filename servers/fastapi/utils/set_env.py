@@ -21,6 +21,18 @@ def set_custom_llm_url_env(value):
     os.environ["CUSTOM_LLM_URL"] = value
 
 
+def set_deepseek_base_url_env(value):
+    os.environ["DEEPSEEK_BASE_URL"] = value
+
+
+def set_deepseek_api_key_env(value):
+    os.environ["DEEPSEEK_API_KEY"] = value
+
+
+def set_deepseek_model_env(value):
+    os.environ["DEEPSEEK_MODEL"] = value
+
+
 def set_openai_api_key_env(value):
     os.environ["OPENAI_API_KEY"] = value
 

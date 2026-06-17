@@ -5,6 +5,11 @@ export interface LLMConfig {
   OPENAI_API_KEY?: string;
   OPENAI_MODEL?: string;
 
+  // DeepSeek
+  DEEPSEEK_API_KEY?: string;
+  DEEPSEEK_MODEL?: string;
+  DEEPSEEK_BASE_URL?: string;
+
   // Google
   GOOGLE_API_KEY?: string;
   GOOGLE_MODEL?: string;

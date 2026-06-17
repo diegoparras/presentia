@@ -115,6 +115,14 @@ export function ConfigurationInitializer({ children }: { children: React.ReactNo
             return;
           }
         }
+        if (llmConfig.LLM === 'deepseek') {
+          const isAvailable = await checkIfSelectedDeepSeekModelIsAvailable(llmConfig);
+          if (!isAvailable) {
+            router.push('/');
+            setLoadingToFalseAfterNavigatingTo('/');
+            return;
+          }
+        }
         if (route === '/') {
           router.push('/upload');
           setLoadingToFalseAfterNavigatingTo('/upload');
@@ -154,6 +162,26 @@ export function ConfigurationInitializer({ children }: { children: React.ReactNo
       return data.includes(llmConfig.CUSTOM_MODEL);
     } catch (error) {
       console.error('Error fetching custom models:', error);
+      return false;
+    }
+  }
+
+  const checkIfSelectedDeepSeekModelIsAvailable = async (llmConfig: LLMConfig) => {
+    try {
+      const response = await fetch(getApiUrl('/api/v1/ppt/openai/models/available'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: llmConfig.DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1",
+          api_key: llmConfig.DEEPSEEK_API_KEY,
+        }),
+      });
+      const data = await response.json();
+      return data.includes(llmConfig.DEEPSEEK_MODEL);
+    } catch (error) {
+      console.error('Error fetching DeepSeek models:', error);
       return false;
     }
   }
