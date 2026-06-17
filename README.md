@@ -411,7 +411,7 @@ The response includes:
 Notes:
 
 - If you rotate credentials with `AUTH_OVERRIDE_FROM_ENV=true`, previously issued session tokens are invalidated.
-- In Electron mode (`DISABLE_AUTH=true`), MCP auth is disabled to match the local desktop auth behavior.
+- MCP is not available in the Electron desktop app (`PRESENTON_ELECTRON=true`). Electron runs with `DISABLE_AUTH=true` by default, and the MCP server is disabled there to avoid auth conflicts.
 
 > Note: LLM and image variables above are forwarded from **`docker-compose.yml`** when set in `.env`.
 

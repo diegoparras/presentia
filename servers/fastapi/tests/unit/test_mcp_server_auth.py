@@ -6,6 +6,18 @@ import httpx
 import mcp_server
 
 
+def test_is_mcp_server_enabled_in_server_deployments(monkeypatch):
+    monkeypatch.setattr(mcp_server, "is_presenton_electron_desktop", lambda: False)
+
+    assert mcp_server.is_mcp_server_enabled() is True
+
+
+def test_is_mcp_server_disabled_in_electron_desktop(monkeypatch):
+    monkeypatch.setattr(mcp_server, "is_presenton_electron_desktop", lambda: True)
+
+    assert mcp_server.is_mcp_server_enabled() is False
+
+
 def test_create_mcp_auth_provider_disabled_when_auth_is_disabled(monkeypatch):
     monkeypatch.setattr(mcp_server, "is_disable_auth_enabled", lambda: True)
     monkeypatch.setattr(mcp_server, "is_auth_configured", lambda: True)

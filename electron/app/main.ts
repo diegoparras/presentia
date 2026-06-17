@@ -400,6 +400,7 @@ async function startServers(fastApiPort: number, nextjsPort: number) {
         USER_CONFIG_PATH: userConfigPath,
         MIGRATE_DATABASE_ON_STARTUP: "True",
         DISABLE_AUTH: disableAuthForElectron,
+        PRESENTON_ELECTRON: "true",
         ...buildImageMagickEnv(imageMagickRuntime),
         LITEPARSE_RUNNER_PATH: getLiteParseRunnerPath(),
         // Use Electron's embedded runtime for LiteParse so parsing does not
@@ -482,6 +483,7 @@ app.whenReady().then(async () => {
   const disableAuthForElectron = resolveElectronDisableAuth();
   process.env.DISABLE_AUTH = disableAuthForElectron;
   process.env.ELECTRON_DISABLE_AUTH = disableAuthForElectron;
+  process.env.PRESENTON_ELECTRON = "true";
 
   // Ensure all required directories exist before starting
   ensureDirectoriesExist();
