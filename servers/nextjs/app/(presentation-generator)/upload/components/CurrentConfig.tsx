@@ -12,6 +12,8 @@ const CurrentConfig = ({ webSearchEnabled }: { webSearchEnabled: boolean }) => {
     const selectedTextModel =
         textProviderKey === "openai"
             ? llmConfig.OPENAI_MODEL
+            : textProviderKey === "deepseek"
+                ? llmConfig.DEEPSEEK_MODEL
             : textProviderKey === "google"
                 ? llmConfig.GOOGLE_MODEL
                 : textProviderKey === "vertex"

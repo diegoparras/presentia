@@ -90,6 +90,13 @@ export const getLLMConfigValidationError = (
     if (!isProvided(llmConfig.OPENAI_MODEL)) {
       return 'Text provider (OpenAI): choose a chat model on the Text Provider tab—use "Check models" after your API key, then pick a model. The model under Image Provider → Custom is only for image generation.';
     }
+  } else if (llm === "deepseek") {
+    if (!isProvided(llmConfig.DEEPSEEK_API_KEY)) {
+      return "DeepSeek API key is required.";
+    }
+    if (!isProvided(llmConfig.DEEPSEEK_MODEL)) {
+      return 'No DeepSeek model selected. Use "Check models" after entering your API key, then choose a model.';
+    }
   } else if (llm === "google") {
     if (!isProvided(llmConfig.GOOGLE_API_KEY)) {
       return "Google API key is required.";

@@ -80,6 +80,11 @@ class UserConfig(BaseModel):
     CUSTOM_LLM_API_KEY: Optional[str] = None
     CUSTOM_MODEL: Optional[str] = None
 
+    # DeepSeek
+    DEEPSEEK_BASE_URL: Optional[str] = None
+    DEEPSEEK_API_KEY: Optional[str] = None
+    DEEPSEEK_MODEL: Optional[str] = None
+
     # Image Provider
     DISABLE_IMAGE_GENERATION: Optional[bool] = None
     IMAGE_PROVIDER: Optional[str] = None
