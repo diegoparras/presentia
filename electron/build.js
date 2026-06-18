@@ -524,7 +524,11 @@ const config = {
   },
 }
 
-const targets = macTarget ? builder.Platform.MAC.createTarget([macTarget]) : undefined
+const effectiveMacTarget = macTarget || "dmg"
+const targets =
+  process.platform === "darwin"
+    ? builder.Platform.MAC.createTarget([effectiveMacTarget])
+    : undefined
 
 if (macTarget === "mas" && process.env.PRESENTON_SKIP_CODESIGN_PREFLIGHT !== "1") {
   assertCodesignCanUseIdentity(masAppSigningIdentity)
