@@ -12,9 +12,46 @@ const {
 const buildId = (process.env.EXPORT_CHROME_BUILD_ID || "146.0.7680.76").trim();
 const cacheDir = path.join(__dirname, "..", "resources", "chromium");
 const manifestPath = path.join(cacheDir, "presenton-runtime.json");
+const windowsRequiredRuntimeFiles = [
+  "chrome.dll",
+  "chrome_100_percent.pak",
+  "chrome_200_percent.pak",
+  "icudtl.dat",
+  "resources.pak",
+  "v8_context_snapshot.bin",
+  path.join("locales", "en-US.pak"),
+];
 
 function getRevisionDir(platform) {
   return path.join(cacheDir, Browser.CHROME, `${platform}-${buildId}`);
+}
+
+function fileLooksPresent(filePath) {
+  try {
+    const stat = fs.statSync(filePath);
+    return stat.isFile() && stat.size > 0;
+  } catch {
+    return false;
+  }
+}
+
+function validateWindowsRuntimeLayout(executablePath) {
+  if (!fileLooksPresent(executablePath)) {
+    return { ok: false, reason: `Chromium executable is missing: ${executablePath}` };
+  }
+
+  const chromeDir = path.dirname(executablePath);
+  const missingFiles = windowsRequiredRuntimeFiles.filter(
+    (fileName) => !fileLooksPresent(path.join(chromeDir, fileName))
+  );
+  if (missingFiles.length > 0) {
+    return {
+      ok: false,
+      reason: `Chromium runtime layout is incomplete. Missing: ${missingFiles.join(", ")}`,
+    };
+  }
+
+  return { ok: true };
 }
 
 function runtimeLooksComplete(executablePath) {
@@ -28,10 +65,7 @@ function runtimeLooksComplete(executablePath) {
     return true;
   }
 
-  const chromeDir = path.dirname(executablePath);
-  return ["chrome.dll", "icudtl.dat"].every((fileName) =>
-    fs.existsSync(path.join(chromeDir, fileName))
-  );
+  return validateWindowsRuntimeLayout(executablePath).ok;
 }
 
 function removeProbeProfile(profileDir) {
@@ -50,6 +84,12 @@ function removeProbeProfile(profileDir) {
 }
 
 function validateExecutable(executablePath) {
+  if (process.platform === "win32") {
+    // Windows Chrome startup can be slow or session-dependent during packaging.
+    // Runtime export still probes launchability, so the build validates the bundle.
+    return validateWindowsRuntimeLayout(executablePath);
+  }
+
   if (!runtimeLooksComplete(executablePath)) {
     return { ok: false, reason: "Chromium runtime layout is incomplete." };
   }

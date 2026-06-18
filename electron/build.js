@@ -432,7 +432,14 @@ const config = {
   appId: APP_ID,
   productName: "Presenton",
   asar: true,
-  asarUnpack: ["resources/**", "node_modules/**/*.node"],
+  asarUnpack: [
+    "resources/**",
+    "node_modules/**/*.node",
+    "node_modules/sharp/**",
+    "node_modules/@img/**",
+    "node_modules/detect-libc/**",
+    "node_modules/semver/**",
+  ],
   copyright: "Copyright © 2026 Presenton",
   directories: {
     output: "dist",
