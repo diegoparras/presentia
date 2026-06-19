@@ -12,6 +12,7 @@ from services.documents_loader import (
     _unwrap_liteparse_json_line_if_stored,
     clean_extracted_document_text,
 )
+from services.temp_file_service import TEMP_FILE_SERVICE
 
 
 def test_unwrap_liteparse_json_line_extracts_text_field():
@@ -98,6 +99,24 @@ def test_load_image_converts_to_png_before_ocr(mock_convert, mock_parse):
         timeout_seconds=DocumentsLoader.DECOMPOSE_TIMEOUT_SECONDS,
     )
     mock_parse.assert_called_once_with("/tmp/converted.png", dpi=300)
+
+
+@patch("services.documents_loader.DocumentsLoader.load_office_document")
+def test_load_documents_parses_office_files_without_liteparse(
+    mock_extract, tmp_path, monkeypatch
+):
+    managed_dir = tmp_path / "presenton-temp"
+    managed_dir.mkdir()
+    monkeypatch.setattr(TEMP_FILE_SERVICE, "base_dir", str(managed_dir))
+    upload_dir = TEMP_FILE_SERVICE.create_temp_dir("upload-case")
+    office_file = TEMP_FILE_SERVICE.create_temp_file("deck.pptx", b"pptx", upload_dir)
+    mock_extract.return_value = "slide text"
+    loader = DocumentsLoader(file_paths=[office_file])
+
+    asyncio.run(loader.load_documents())
+
+    assert loader.documents == ["slide text"]
+    mock_extract.assert_called_once_with(office_file)
 
 
 def _make_mock_page(text: str) -> MagicMock:

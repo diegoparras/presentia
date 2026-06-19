@@ -4,6 +4,9 @@ interface FastApiEnv {
   LLM?: string,
   OPENAI_API_KEY?: string,
   OPENAI_MODEL?: string,
+  DEEPSEEK_API_KEY?: string,
+  DEEPSEEK_MODEL?: string,
+  DEEPSEEK_BASE_URL?: string,
   GOOGLE_API_KEY?: string,
   GOOGLE_MODEL?: string,
   ANTHROPIC_API_KEY?: string,
@@ -37,6 +40,13 @@ interface FastApiEnv {
   TOOL_CALLS?: string,
   DISABLE_THINKING?: string,
   WEB_GROUNDING?: string,
+  WEB_SEARCH_PROVIDER?: string,
+  WEB_SEARCH_MAX_RESULTS?: string,
+  SEARXNG_BASE_URL?: string,
+  TAVILY_API_KEY?: string,
+  EXA_API_KEY?: string,
+  BRAVE_SEARCH_API_KEY?: string,
+  SERPER_API_KEY?: string,
   DATABASE_URL?: string,
   DISABLE_ANONYMOUS_TRACKING?: string,
   COMFYUI_URL?: string,
@@ -50,10 +60,7 @@ interface FastApiEnv {
   USER_CONFIG_PATH?: string,
   MIGRATE_DATABASE_ON_STARTUP?: string,
   DISABLE_AUTH?: string,
-  /** Absolute path to the resolved LibreOffice executable discovered at startup. */
-  SOFFICE_PATH?: string,
-  /** Office renderer for PPTX/office conversion (always libreoffice when set). */
-  PRESENTON_OFFICE_RENDERER?: string,
+  PRESENTON_ELECTRON?: string,
   /** Absolute path to the bundled/resolved ImageMagick magick executable. */
   IMAGEMAGICK_BINARY?: string,
   /** ImageMagick runtime root used by the bundled portable build. */
@@ -74,6 +81,12 @@ interface FastApiEnv {
   EXPORT_PACKAGE_ROOT?: string,
   /** Directory used by FastAPI export task runtime resolution. */
   EXPORT_RUNTIME_DIR?: string,
+  /** Absolute path to the Chromium executable used by the export runtime. */
+  PUPPETEER_EXECUTABLE_PATH?: string,
+  /** Writable Puppeteer browser cache directory. */
+  PUPPETEER_CACHE_DIR?: string,
+  /** Writable Puppeteer temporary directory. */
+  PUPPETEER_TMP_DIR?: string,
   /** Absolute path to bundled PyInstaller converter binary for export runtime. */
   BUILT_PYTHON_MODULE_PATH?: string,
 }
@@ -98,6 +111,9 @@ interface UserConfig {
   LLM?: string,
   OPENAI_API_KEY?: string,
   OPENAI_MODEL?: string,
+  DEEPSEEK_API_KEY?: string,
+  DEEPSEEK_MODEL?: string,
+  DEEPSEEK_BASE_URL?: string,
   GOOGLE_API_KEY?: string,
   GOOGLE_MODEL?: string,
   ANTHROPIC_API_KEY?: string,
@@ -131,6 +147,13 @@ interface UserConfig {
   TOOL_CALLS?: string,
   DISABLE_THINKING?: string,
   WEB_GROUNDING?: string,
+  WEB_SEARCH_PROVIDER?: string,
+  WEB_SEARCH_MAX_RESULTS?: string,
+  SEARXNG_BASE_URL?: string,
+  TAVILY_API_KEY?: string,
+  EXA_API_KEY?: string,
+  BRAVE_SEARCH_API_KEY?: string,
+  SERPER_API_KEY?: string,
   DATABASE_URL?: string,
   DISABLE_ANONYMOUS_TRACKING?: string,
   COMFYUI_URL?: string,

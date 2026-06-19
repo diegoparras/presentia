@@ -36,7 +36,7 @@ const OutlinePromptBar: React.FC<OutlinePromptBarProps> = ({
           />
         </div>
         <div className="flex justify-start xl:justify-end">
-          <CurrentConfig />
+          <CurrentConfig webSearchEnabled={config.webSearch} />
         </div>
       </div>
 

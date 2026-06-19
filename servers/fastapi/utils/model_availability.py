@@ -1,4 +1,3 @@
-from constants.supported_ollama_models import SUPPORTED_OLLAMA_MODELS
 from constants.llm import OPENAI_URL
 from enums.image_provider import ImageProvider
 from enums.llm_provider import LLMProvider
@@ -43,6 +42,9 @@ from utils.get_env import (
     get_vertex_project_env,
     get_comfyui_url_env,
     get_comfyui_workflow_env,
+    get_deepseek_api_key_env,
+    get_deepseek_base_url_env,
+    get_deepseek_model_env,
 )
 from utils.get_env import get_google_api_key_env
 from utils.get_env import get_ollama_model_env
@@ -54,7 +56,7 @@ from utils.llm_provider import (
     is_custom_llm_selected,
     is_ollama_selected,
 )
-from utils.ollama import pull_ollama_model
+from utils.ollama import list_available_ollama_models
 from utils.image_provider import (
     get_selected_image_provider,
     is_image_generation_disabled,
@@ -130,6 +132,24 @@ async def check_llm_and_image_provider_api_or_model_availability():
                     print("-" * 50)
                     print("Available models: ", available_models)
                     raise Exception(f"Model {google_model} is not available")
+
+        elif get_llm_provider() == LLMProvider.DEEPSEEK:
+            deepseek_api_key = (get_deepseek_api_key_env() or "").strip()
+            deepseek_model = (get_deepseek_model_env() or "").strip()
+            if not deepseek_api_key:
+                raise Exception("DEEPSEEK_API_KEY must be provided")
+            if not deepseek_model:
+                raise Exception("DEEPSEEK_MODEL must be provided")
+            deepseek_base_url = normalize_openai_compatible_base_url(
+                get_deepseek_base_url_env() or "https://api.deepseek.com/v1"
+            )
+            available_models = await list_available_openai_compatible_models(
+                deepseek_base_url, deepseek_api_key
+            )
+            print("-" * 50)
+            print("Available models: ", available_models)
+            if deepseek_model not in available_models:
+                raise Exception(f"Model {deepseek_model} is not available")
 
         elif get_llm_provider() == LLMProvider.VERTEX:
             vertex_api_key = get_vertex_api_key_env()
@@ -256,15 +276,12 @@ async def check_llm_and_image_provider_api_or_model_availability():
             if not ollama_model:
                 raise Exception("OLLAMA_MODEL must be provided")
 
-            if ollama_model not in SUPPORTED_OLLAMA_MODELS:
-                raise Exception(f"Model {ollama_model} is not supported")
-
-            print("-" * 50)
-            print("Pulling model: ", ollama_model)
-            async for event in pull_ollama_model(ollama_model):
-                print(event)
-            print("Pulled model: ", ollama_model)
-            print("-" * 50)
+            available_models = await list_available_ollama_models()
+            if ollama_model not in {model.name for model in available_models}:
+                raise Exception(
+                    f"Model {ollama_model} is not available in Ollama. "
+                    "Pull it in Ollama, then check models in Presenton."
+                )
 
         elif is_custom_llm_selected():
             custom_model = get_custom_model_env()
