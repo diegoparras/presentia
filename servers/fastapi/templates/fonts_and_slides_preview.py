@@ -75,6 +75,8 @@ class _PreviewLogger:
 
 PREVIEW_WIDTH = 1280
 PREVIEW_HEIGHT = 720
+MAX_FONT_CHECK_UPLOAD_SIZE_BYTES = 100 * 1024 * 1024
+FONT_CHECK_UPLOAD_SIZE_ERROR = "File size must be less than 100MB."
 
 
 def _preview_dimensions_from_document(width: float, height: float) -> Tuple[int, int]:
@@ -588,6 +590,11 @@ def _build_modified_pptx_filename(original_filename: str) -> str:
     return f"{base_stem}-modified{extension or '.pptx'}"
 
 
+def _raise_if_font_check_upload_too_large(size: int | None) -> None:
+    if size is not None and size >= MAX_FONT_CHECK_UPLOAD_SIZE_BYTES:
+        raise HTTPException(status_code=413, detail=FONT_CHECK_UPLOAD_SIZE_ERROR)
+
+
 async def check_fonts_in_pptx_handler(pptx_file: UploadFile) -> FontCheckResponse:
     """
     Extract fonts from a PPTX file and check their availability in Google Fonts.
@@ -601,11 +608,13 @@ async def check_fonts_in_pptx_handler(pptx_file: UploadFile) -> FontCheckRespons
         raise HTTPException(
             status_code=400, detail="Invalid file type. Expected PPTX file"
         )
+    _raise_if_font_check_upload_too_large(getattr(pptx_file, "size", None))
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # Save uploaded PPTX file
         pptx_path = os.path.join(temp_dir, "presentation.pptx")
         pptx_content = await pptx_file.read()
+        _raise_if_font_check_upload_too_large(len(pptx_content))
         await asyncio.to_thread(_write_bytes_to_path, pptx_path, pptx_content)
         font_variants_by_name = await asyncio.to_thread(
             extract_used_font_variants_from_pptx, pptx_path

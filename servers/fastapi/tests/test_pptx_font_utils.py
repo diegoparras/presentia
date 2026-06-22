@@ -17,10 +17,19 @@ class DummyLogger:
         return None
 
 
+_SIZE_UNSET = object()
+
+
 class DummyUploadFile:
-    def __init__(self, filename: str, content: bytes = b"font") -> None:
+    def __init__(
+        self,
+        filename: str,
+        content: bytes = b"font",
+        size: int | None | object = _SIZE_UNSET,
+    ) -> None:
         self.filename = filename
         self._content = content
+        self.size = len(content) if size is _SIZE_UNSET else size
 
     async def read(self) -> bytes:
         return self._content
@@ -39,6 +48,35 @@ def test_build_google_fonts_stylesheet_url_includes_regular_and_bold_weights():
 
 def test_normalize_font_family_name_strips_localized_bold_token():
     assert pptx_font_utils.normalize_font_family_name("Arial Gras") == "Arial"
+
+
+def test_check_fonts_in_pptx_rejects_100mb_file_from_upload_size():
+    upload = DummyUploadFile(
+        "deck.pptx",
+        content=b"",
+        size=fonts_and_slides_preview.MAX_FONT_CHECK_UPLOAD_SIZE_BYTES,
+    )
+
+    with pytest.raises(fonts_and_slides_preview.HTTPException) as exc_info:
+        asyncio.run(fonts_and_slides_preview.check_fonts_in_pptx_handler(upload))
+
+    assert exc_info.value.status_code == 413
+    assert exc_info.value.detail == "File size must be less than 100MB."
+
+
+def test_check_fonts_in_pptx_rejects_oversize_after_read_when_size_missing(
+    monkeypatch,
+):
+    monkeypatch.setattr(
+        fonts_and_slides_preview, "MAX_FONT_CHECK_UPLOAD_SIZE_BYTES", 4
+    )
+    upload = DummyUploadFile("deck.pptx", content=b"abcd", size=None)
+
+    with pytest.raises(fonts_and_slides_preview.HTTPException) as exc_info:
+        asyncio.run(fonts_and_slides_preview.check_fonts_in_pptx_handler(upload))
+
+    assert exc_info.value.status_code == 413
+    assert exc_info.value.detail == "File size must be less than 100MB."
 
 
 def test_build_google_fonts_stylesheet_url_sorts_and_deduplicates_weights():
