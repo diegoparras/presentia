@@ -16,7 +16,7 @@ import { Select, SelectItem, SelectContent, SelectValue, SelectTrigger } from '.
 import { MixpanelEvent, trackEvent } from '@/utils/mixpanel';
 import { usePathname } from 'next/navigation';
 import { getLLMConfigValidationError, handleSaveLLMConfig } from '@/utils/storeHelpers';
-import { getDefaultOllamaUrl, isOllamaModelAvailable } from '@/utils/providerUtils';
+import { isOllamaModelAvailable } from '@/utils/providerUtils';
 import { getApiErrorMessage, getApiUrl } from '@/utils/api';
 import CodexConfig from '../CodexConfig';
 import { CODEX_MODELS } from '@/utils/codexModels';
@@ -93,9 +93,6 @@ const PresentonMode = ({
         setLlmConfig(prev => ({
             ...prev,
             LLM: provider,
-            ...(provider === "ollama" && !(prev.OLLAMA_URL || "").trim()
-                ? { OLLAMA_URL: getDefaultOllamaUrl() }
-                : {})
         }));
         setOpenProviderSelect(false);
         setAvailableModels([]);
@@ -724,7 +721,7 @@ const PresentonMode = ({
                 !(await isOllamaModelAvailable(llmConfig.OLLAMA_MODEL, currentOllamaUrl))
             ) {
                 throw new Error(
-                    `The selected model "${llmConfig.OLLAMA_MODEL}" is not available at ${currentOllamaUrl}. Check models and select an available model.`
+                    `The selected model "${llmConfig.OLLAMA_MODEL}" is not available at ${currentOllamaUrl || "the default Ollama URL"}. Check models and select an available model.`
                 );
             }
             await handleSaveLLMConfig(llmConfig);
@@ -993,9 +990,6 @@ const PresentonMode = ({
             setLlmConfig(prev => ({
                 ...prev,
                 LLM: nextProvider,
-                ...(nextProvider === "ollama" && !(prev.OLLAMA_URL || "").trim()
-                    ? { OLLAMA_URL: getDefaultOllamaUrl() }
-                    : {})
             }));
             setAvailableModels([]);
             setModelsChecked(false);
