@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Send,
   Square,
+  UserRound,
 } from "lucide-react";
 import React, {
   FormEvent,
@@ -1207,7 +1208,7 @@ const Chat = ({
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-9 hide-scrollbar">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-9 [scrollbar-color:#C7CBD6_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#C7CBD6] [&::-webkit-scrollbar-track]:bg-transparent">
         {isHistoryLoading && messages.length === 0 ? (
           <div className="flex items-center justify-center py-8 text-sm text-[#99A1AF]">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1271,8 +1272,8 @@ const Chat = ({
                       {stripBackendContextFromUserMessage(message.content)}
                     </p>
                   </div>
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FF8617] text-sm font-semibold text-white">
-                    U
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FF8617] text-white">
+                    <UserRound className="h-4 w-4" aria-hidden="true" />
                   </div>
                 </div>
               ) : (

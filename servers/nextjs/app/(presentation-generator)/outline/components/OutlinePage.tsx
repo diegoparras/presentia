@@ -285,7 +285,7 @@ const OutlinePage: React.FC = () => {
               </div>
 
               {activeTab === TABS.OUTLINE && (
-                <aside className="min-h-[560px] overflow-hidden border border-[#EDEEEF] bg-white lg:sticky lg:top-[92px] lg:h-[calc(100vh-92px)]">
+                <aside className="h-[min(760px,calc(100vh-250px))] overflow-hidden border border-[#EDEEEF] bg-white lg:sticky lg:top-[92px] lg:h-[min(760px,calc(100vh-250px))]">
                   <Chat
                     key={presentation_id}
                     presentationId={presentation_id}

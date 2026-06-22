@@ -331,14 +331,14 @@ const UploadPage = () => {
   const handleDirectPresentationGeneration = async () => {
     setLoadingState({
       isLoading: true,
-      message: "Generating outlines...",
+      message: "Preparing outline generation...",
       showProgress: true,
       duration: 30,
     });
 
     const selectedLanguage = config?.language ?? "";
 
-    // Use the first available layout group for direct generation
+    // Start the outline job; template selection happens on the outline page.
     const createResponse = await PresentationGenerationApi.createPresentation({
       content: config?.prompt ?? "",
       n_slides: config?.slides ? parseInt(config.slides, 10) : null,
