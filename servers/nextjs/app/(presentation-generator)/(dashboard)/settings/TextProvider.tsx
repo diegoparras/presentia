@@ -35,7 +35,6 @@ import CodexConfig from "./SettingCodex";
 import VertexAzureManualFields from "@/components/VertexAzureManualFields";
 import BedrockManualFields from "@/components/BedrockManualFields";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
-import { getDefaultOllamaUrl } from "@/utils/providerUtils";
 import OllamaConfig from "@/components/OllamaConfig";
 
 interface OpenAIConfigProps {
@@ -503,12 +502,6 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
                                     section: "text_provider",
                                     provider: value,
                                   });
-                                  if (
-                                    value === "ollama" &&
-                                    !(currentOllamaUrl || "").trim()
-                                  ) {
-                                    onInputChange(getDefaultOllamaUrl(), "OLLAMA_URL");
-                                  }
                                   onInputChange(value, "LLM");
                                   setOpenProviderSelect(false);
                                 }}

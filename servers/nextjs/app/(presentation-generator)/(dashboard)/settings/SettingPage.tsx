@@ -174,7 +174,7 @@ const SettingsPage = () => {
         ))
       ) {
         throw new Error(
-          `The selected model "${llmConfig.OLLAMA_MODEL}" is not available at ${llmConfig.OLLAMA_URL}. Check models and select an available model.`
+          `The selected model "${llmConfig.OLLAMA_MODEL}" is not available at ${llmConfig.OLLAMA_URL || "the default Ollama URL"}. Check models and select an available model.`
         );
       }
       await handleSaveLLMConfig(llmConfig);
