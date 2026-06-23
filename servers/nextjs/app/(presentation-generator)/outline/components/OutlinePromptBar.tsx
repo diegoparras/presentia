@@ -14,6 +14,7 @@ interface OutlinePromptBarProps {
   config: PresentationConfig;
   disabled?: boolean;
   isBusy: boolean;
+  regenerateDisabled?: boolean;
   onConfigChange: (key: keyof PresentationConfig, value: unknown) => void;
   onRegenerate: () => void;
 }
@@ -22,9 +23,12 @@ const OutlinePromptBar: React.FC<OutlinePromptBarProps> = ({
   config,
   disabled = false,
   isBusy,
+  regenerateDisabled = false,
   onConfigChange,
   onRegenerate,
 }) => {
+  const isRegenerateDisabled = disabled || isBusy || regenerateDisabled;
+
   return (
     <section className="w-full font-syne">
       <div className="mb-5 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
@@ -51,6 +55,9 @@ const OutlinePromptBar: React.FC<OutlinePromptBarProps> = ({
           onKeyDown={(event) => {
             if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
               event.preventDefault();
+              if (isRegenerateDisabled) {
+                return;
+              }
               onRegenerate();
             }
           }}
@@ -60,12 +67,12 @@ const OutlinePromptBar: React.FC<OutlinePromptBarProps> = ({
         <button
           type="button"
           onClick={onRegenerate}
-          disabled={disabled || isBusy}
+          disabled={isRegenerateDisabled}
           aria-label="Regenerate outline"
           title="Regenerate outline"
           className={cn(
             "absolute right-5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center gap-2 rounded-full px-0 text-xs font-semibold text-[#191919] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7A00FF]/25 sm:w-auto sm:px-4",
-            (disabled || isBusy) && "cursor-not-allowed opacity-70"
+            isRegenerateDisabled && "cursor-not-allowed opacity-70"
           )}
           style={{
             background:

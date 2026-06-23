@@ -86,6 +86,8 @@ const OutlinePage: React.FC = () => {
     savedConfig ?? DEFAULT_OUTLINE_CONFIG
   );
   const [isRegeneratingOutline, setIsRegeneratingOutline] = useState(false);
+  const [hasOutlineStreamFinished, setHasOutlineStreamFinished] =
+    useState(false);
 
   // Custom hooks
   const streamState = useOutlineStreaming(
@@ -103,6 +105,15 @@ const OutlinePage: React.FC = () => {
   const documentPaths = useMemo(() => getDocumentPaths(files), [files]);
   const outlineControlsBusy =
     isRegeneratingOutline || streamState.isLoading || streamState.isStreaming;
+  const hasSelectedTemplate = selectedTemplate !== null;
+  const isOutlineReady =
+    hasSelectedTemplate && hasOutlineStreamFinished && !outlineControlsBusy;
+  const isRegenerateDisabled =
+    !hasSelectedTemplate || (activeTab === TABS.OUTLINE && !isOutlineReady);
+  const outlineStreamFinished =
+    activeTab === TABS.OUTLINE &&
+    !outlineControlsBusy &&
+    (outlines.length > 0 || streamState.statusMessage === "Outline ready");
 
   useEffect(() => {
     if (savedConfig) {
@@ -110,10 +121,31 @@ const OutlinePage: React.FC = () => {
     }
   }, [savedConfig]);
 
-  const handleTabChange = (tab: string) => {
-    if (tab === TABS.OUTLINE && !selectedTemplate) {
-      toast.error("Please select a template first");
+  useEffect(() => {
+    setHasOutlineStreamFinished(false);
+  }, [presentation_id]);
+
+  useEffect(() => {
+    if (!presentation_id || !hasSelectedTemplate) {
+      setHasOutlineStreamFinished(false);
       return;
+    }
+
+    if (outlineStreamFinished) {
+      setHasOutlineStreamFinished(true);
+    }
+  }, [hasSelectedTemplate, outlineStreamFinished, presentation_id]);
+
+  const handleTabChange = (tab: string) => {
+    if (tab === TABS.OUTLINE) {
+      if (!hasSelectedTemplate) {
+        toast.error("Please select a template first");
+        return;
+      }
+
+      if (!isOutlineReady) {
+        return;
+      }
     }
 
     if (streamState.isStreaming) {
@@ -143,6 +175,15 @@ const OutlinePage: React.FC = () => {
       return;
     }
 
+    if (!hasSelectedTemplate) {
+      toast.error("Please select a template first");
+      return;
+    }
+
+    if (activeTab === TABS.OUTLINE && !isOutlineReady) {
+      return;
+    }
+
     if (!draftConfig.language) {
       toast.error("Please select language");
       return;
@@ -159,6 +200,7 @@ const OutlinePage: React.FC = () => {
     }
 
     setIsRegeneratingOutline(true);
+    setHasOutlineStreamFinished(false);
     try {
       const createResponse = await PresentationGenerationApi.createPresentation({
         content: draftConfig.prompt ?? "",
@@ -185,7 +227,16 @@ const OutlinePage: React.FC = () => {
     } finally {
       setIsRegeneratingOutline(false);
     }
-  }, [dispatch, documentPaths, draftConfig, files, outlineControlsBusy]);
+  }, [
+    activeTab,
+    dispatch,
+    documentPaths,
+    draftConfig,
+    files,
+    hasSelectedTemplate,
+    isOutlineReady,
+    outlineControlsBusy,
+  ]);
 
   const handleOutlineChanged = useCallback(async () => {
     if (!presentation_id) {
@@ -236,6 +287,7 @@ const OutlinePage: React.FC = () => {
                     config={draftConfig}
                     disabled={outlineControlsBusy}
                     isBusy={outlineControlsBusy}
+                    regenerateDisabled={isRegenerateDisabled}
                     onConfigChange={handleConfigChange}
                     onRegenerate={handleRegenerateOutline}
                   />
@@ -252,10 +304,10 @@ const OutlinePage: React.FC = () => {
                     <Separator orientation="vertical" className="mx-1 h-6" />
                     <TabsTrigger
                       value={TABS.OUTLINE}
-                      disabled={!selectedTemplate}
+                      disabled={!isOutlineReady}
                       className={cn(
                         "rounded-full px-5 py-2 text-xs font-medium text-[#2D2D2D] shadow-none data-[state=active]:bg-[#F4F3FF] data-[state=active]:text-[#7E3AF2] data-[state=active]:shadow-none",
-                        !selectedTemplate && "cursor-not-allowed opacity-50"
+                        !isOutlineReady && "cursor-not-allowed opacity-50"
                       )}
                     >
                       Outline & Content
