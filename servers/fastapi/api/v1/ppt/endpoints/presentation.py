@@ -372,6 +372,10 @@ async def prepare_presentation(
     sql_session.add(presentation)
     presentation.outlines = presentation_outline_model.model_dump(mode="json")
     presentation.title = title or presentation.title
+    # Final slide generation should follow the reviewed outline text. The
+    # original upload language can be stale after outline-page chat edits such
+    # as "convert these to Chinese".
+    presentation.language = ""
     presentation.set_layout(layout)
     presentation.set_structure(presentation_structure)
     await sql_session.commit()
