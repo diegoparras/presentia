@@ -38,7 +38,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ secrets.ACTOR }}
           password: ${{ secrets.RELEASE_REPO_TOKEN }}
 
       - name: Prepare Docker tags
