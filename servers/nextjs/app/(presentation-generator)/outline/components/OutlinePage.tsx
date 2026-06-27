@@ -108,6 +108,8 @@ const OutlinePage: React.FC = () => {
   const hasSelectedTemplate = selectedTemplate !== null;
   const isOutlineReady =
     hasSelectedTemplate && hasOutlineStreamFinished && !outlineControlsBusy;
+  const isOutlineAssistantVisible =
+    activeTab === TABS.OUTLINE && isOutlineReady;
   const isRegenerateDisabled =
     !hasSelectedTemplate || (activeTab === TABS.OUTLINE && !isOutlineReady);
   const outlineStreamFinished =
@@ -276,7 +278,7 @@ const OutlinePage: React.FC = () => {
             <div
               className={cn(
                 "w-full gap-5",
-                activeTab === TABS.OUTLINE
+                isOutlineAssistantVisible
                   ? "grid lg:grid-cols-[minmax(0,1fr)_352px]"
                   : "block"
               )}
@@ -336,7 +338,7 @@ const OutlinePage: React.FC = () => {
                 </TabsContent>
               </div>
 
-              {activeTab === TABS.OUTLINE && (
+              {isOutlineAssistantVisible && (
                 <aside className="h-[min(760px,calc(100vh-250px))] overflow-hidden border border-[#EDEEEF] bg-white lg:sticky lg:top-[92px] lg:h-[min(760px,calc(100vh-250px))]">
                   <Chat
                     key={presentation_id}
@@ -353,7 +355,7 @@ const OutlinePage: React.FC = () => {
           <div
             className={cn(
               "fixed bottom-[26px] z-50",
-              activeTab === TABS.OUTLINE
+              isOutlineAssistantVisible
                 ? "left-5 sm:left-10 lg:left-auto lg:right-[calc(5rem+352px+2.5rem)]"
                 : "right-[26px]"
             )}
