@@ -4,6 +4,8 @@ Use this guide to ship Presenton as a signed and notarized macOS app outside the
 
 This is not a Mac App Store build. Do not use MAS provisioning profiles, App Store Connect upload, or App Review for this flow.
 
+If you are building from a Mac that is already registered in Apple Developer, that is fine, but the registration is not what makes the public DMG trusted. Registered devices are for development provisioning and MAS-style testing. Public direct distribution requires a Developer ID Application certificate and Apple notarization.
+
 ## What This Produces
 
 The signed release build creates:
@@ -47,11 +49,11 @@ npm run dist:mac:signed
 
 The `:mac:signed` scripts set `PRESENTON_REQUIRE_MAC_SIGNING=1`, so they fail before packaging if a Developer ID certificate or notarization credentials are missing.
 
-## Apple Developer Setup
+## Exact Setup For A Release Mac
 
-Run these steps on the Mac that will build the release.
+Run this once on the Mac that will build releases.
 
-### 1. Install Xcode Command Line Tools
+### 1. Install Apple Command Line Tools
 
 ```bash
 xcode-select --install
@@ -60,7 +62,7 @@ xcrun notarytool --version
 
 `notarytool` must be available. If it is missing, install or update Xcode.
 
-### 2. Install A Developer ID Application Certificate
+### 2. Install The Developer ID Certificate
 
 In Xcode:
 
@@ -69,6 +71,8 @@ In Xcode:
 3. Click **Manage Certificates**.
 4. Click **+**.
 5. Select **Developer ID Application**.
+
+Do not choose **Apple Development** for public distribution. Do not choose **Apple Distribution** unless you are building for the Mac App Store. For a downloadable DMG, the certificate must be **Developer ID Application**.
 
 Confirm the certificate is visible to `codesign`:
 
@@ -82,27 +86,34 @@ Expected shape:
 Developer ID Application: Your Company Name (TEAMID)
 ```
 
-If multiple Developer ID certificates are installed, set the exact identity before building:
+Most release Macs only have one Developer ID Application certificate, so you usually do not need to export a signing identity. If multiple Developer ID certificates are installed, set the exact identity before building:
 
 ```bash
 export PRESENTON_MAC_SIGN_IDENTITY="Developer ID Application: Your Company Name (TEAMID)"
 ```
 
-### 3. Configure Notarization Credentials
+### 3. Store Notarization Credentials Once
 
-Use one of the following credential methods.
-
-#### Recommended: Keychain Profile
-
-Create an app-specific password for the Apple ID, then store it once in the local Keychain:
+Create an app-specific password for the Apple ID, then store notarization credentials in the local Keychain:
 
 ```bash
 xcrun notarytool store-credentials "presenton-notary" \
   --apple-id "apple-id@example.com" \
   --team-id "TEAMID" \
   --password "app-specific-password"
+```
 
+After that, the only notarization environment variable needed for normal local release builds is:
+
+```bash
 export APPLE_KEYCHAIN_PROFILE="presenton-notary"
+```
+
+To avoid exporting it manually every shell session, add it to your shell profile:
+
+```bash
+echo 'export APPLE_KEYCHAIN_PROFILE="presenton-notary"' >> ~/.zshrc
+source ~/.zshrc
 ```
 
 If you store the profile in a non-default keychain, also set:
@@ -111,27 +122,25 @@ If you store the profile in a non-default keychain, also set:
 export APPLE_KEYCHAIN="/path/to/keychain"
 ```
 
-#### CI Alternative: App Store Connect API Key
-
-```bash
-export APPLE_API_KEY="/secure/path/AuthKey_XXXXXXXXXX.p8"
-export APPLE_API_KEY_ID="XXXXXXXXXX"
-export APPLE_API_ISSUER="00000000-0000-0000-0000-000000000000"
-```
-
-#### Apple ID Environment Variables
-
-```bash
-export APPLE_ID="apple-id@example.com"
-export APPLE_APP_SPECIFIC_PASSWORD="app-specific-password"
-export APPLE_TEAM_ID="TEAMID"
-```
-
 Do not commit notarization credentials, app-specific passwords, `.p8` keys, or real certificates to the repo.
 
 ## Build A Signed DMG
 
-From a clean checkout on macOS:
+After the one-time setup, a normal release build is:
+
+```bash
+cd electron
+npm run build:all:mac:signed
+```
+
+If `APPLE_KEYCHAIN_PROFILE` is not in your shell profile, run it inline:
+
+```bash
+cd electron
+APPLE_KEYCHAIN_PROFILE="presenton-notary" npm run build:all:mac:signed
+```
+
+For the very first build on a fresh checkout, run setup first:
 
 ```bash
 cd electron
@@ -147,6 +156,40 @@ npm run dist:mac:signed
 ```
 
 The signed DMG is written to `electron/dist/`.
+
+## What You Do Not Need
+
+For public direct distribution, you do not need:
+
+- A registered test device.
+- A `.provisionprofile` file.
+- `PRESENTON_MAS_DEV_IDENTITY`.
+- `PRESENTON_MAS_DISTRIBUTION_IDENTITY`.
+- `PRESENTON_APP_STORE_VERSION`.
+- App Store Connect upload.
+- App Review approval.
+
+Those are MAS or development-provisioning concerns. The public DMG path is Developer ID signing plus notarization.
+
+## Other Credential Options
+
+The local Keychain profile above is the recommended flow for a human-operated release Mac. CI can use App Store Connect API keys instead:
+
+```bash
+export APPLE_API_KEY="/secure/path/AuthKey_XXXXXXXXXX.p8"
+export APPLE_API_KEY_ID="XXXXXXXXXX"
+export APPLE_API_ISSUER="00000000-0000-0000-0000-000000000000"
+npm run build:all:mac:signed
+```
+
+You can also pass Apple ID credentials directly, but this is less convenient than a stored Keychain profile:
+
+```bash
+export APPLE_ID="apple-id@example.com"
+export APPLE_APP_SPECIFIC_PASSWORD="app-specific-password"
+export APPLE_TEAM_ID="TEAMID"
+npm run build:all:mac:signed
+```
 
 ## Verify The Release
 
