@@ -437,11 +437,8 @@ const config = {
   asar: true,
   asarUnpack: [
     "resources/**",
-    "node_modules/**/*.node",
-    "node_modules/sharp/**",
-    "node_modules/@img/**",
-    "node_modules/detect-libc/**",
-    "node_modules/semver/**",
+    // LiteParse runs from FastAPI via Electron-as-Node and needs real package dirs.
+    "node_modules/**",
   ],
   copyright: "Copyright © 2026 Presenton",
   directories: {
