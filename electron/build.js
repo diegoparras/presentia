@@ -664,7 +664,7 @@ const config = {
     uninstallDisplayName: "Presenton",
   },
   dmg: {
-    sign: false,
+    sign: true,
   },
   appx: {
     identityName: "PresentonAI.Presenton",
