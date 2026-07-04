@@ -46,6 +46,7 @@ const getTextProviderTab = (provider?: string): TextProviderTab => {
 
 const WEB_SEARCH_PROVIDER_OPTIONS = [
     WEB_SEARCH_PROVIDERS.auto,
+    WEB_SEARCH_PROVIDERS.searchgirl,
     WEB_SEARCH_PROVIDERS.searxng,
     WEB_SEARCH_PROVIDERS.tavily,
     WEB_SEARCH_PROVIDERS.exa,

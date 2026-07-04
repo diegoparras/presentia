@@ -157,6 +157,109 @@ def test_searxng_accepts_base_or_search_url(monkeypatch):
     assert web_search._get_searxng_search_url() == "http://127.0.0.1:8080/search"
 
 
+def test_searchgirl_accepts_base_or_api_search_url(monkeypatch):
+    monkeypatch.setenv("SEARCHGIRL_BASE_URL", "http://host.docker.internal:8089")
+    assert (
+        web_search._get_searchgirl_search_url()
+        == "http://host.docker.internal:8089/api/search"
+    )
+
+    monkeypatch.setenv(
+        "SEARCHGIRL_BASE_URL",
+        "http://host.docker.internal:8089/api/search?q=ignored",
+    )
+    assert (
+        web_search._get_searchgirl_search_url()
+        == "http://host.docker.internal:8089/api/search"
+    )
+
+
+def test_explicit_searchgirl_search_is_supported(monkeypatch):
+    monkeypatch.setenv("WEB_SEARCH_PROVIDER", WebSearchProvider.SEARCHGIRL.value)
+    assert web_search.resolve_external_web_search_provider() == WebSearchProvider.SEARCHGIRL
+    assert web_search.get_web_search_route() == ("external", WebSearchProvider.SEARCHGIRL)
+
+
+def test_searchgirl_maps_normalized_results(monkeypatch):
+    captured = {}
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self, content_type=None):
+            return {
+                "results": [
+                    {
+                        "rank": 1,
+                        "title": "Suite Escriba",
+                        "url": "https://getescriba.com",
+                        "snippet": "Ecosistema self-hosted.",
+                        "domain": "getescriba.com",
+                    },
+                    {"rank": 2, "title": "", "url": "https://skip.example.com"},
+                ]
+            }
+
+    class FakeSession:
+        def get(self, url, params=None, headers=None):
+            captured.update(url=url, params=params, headers=headers)
+            return FakeResponse()
+
+    monkeypatch.setenv("SEARCHGIRL_BASE_URL", "http://host.docker.internal:8089")
+    monkeypatch.setenv("SEARCHGIRL_API_TOKEN", "tok-123")
+
+    results = asyncio.run(
+        web_search._search_searchgirl(FakeSession(), "suite escriba", 5)
+    )
+
+    assert captured["url"] == "http://host.docker.internal:8089/api/search"
+    assert captured["params"] == {"q": "suite escriba"}
+    assert captured["headers"] == {"Authorization": "Bearer tok-123"}
+    # El resultado sin título se descarta
+    assert results == [
+        web_search.WebSearchResult(
+            title="Suite Escriba",
+            url="https://getescriba.com",
+            snippet="Ecosistema self-hosted.",
+        )
+    ]
+
+
+def test_searchgirl_token_is_optional(monkeypatch):
+    captured = {}
+
+    class FakeResponse:
+        status = 200
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def json(self, content_type=None):
+            return {"results": []}
+
+    class FakeSession:
+        def get(self, url, params=None, headers=None):
+            captured.update(headers=headers)
+            return FakeResponse()
+
+    monkeypatch.setenv("SEARCHGIRL_BASE_URL", "http://host.docker.internal:8089")
+    monkeypatch.delenv("SEARCHGIRL_API_TOKEN", raising=False)
+
+    results = asyncio.run(web_search._search_searchgirl(FakeSession(), "hola", 5))
+
+    assert results == []
+    assert captured["headers"] == {}
+
+
 def test_searxng_log_url_redacts_credentials():
     assert (
         web_search._redact_url_credentials("http://user:secret@127.0.0.1:8080/search")

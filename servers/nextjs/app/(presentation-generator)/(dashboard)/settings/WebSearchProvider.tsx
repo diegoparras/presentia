@@ -20,6 +20,7 @@ import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 import { useI18n } from "@/lib/i18n";
 
 const EXTERNAL_WEB_SEARCH_OPTIONS = [
+  "searchgirl",
   "exa",
   "tavily",
   "brave",

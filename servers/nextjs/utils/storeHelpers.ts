@@ -258,6 +258,11 @@ export const getLLMConfigValidationError = (
       return "Select a web search provider, or turn off web search.";
     }
     switch (llmConfig.WEB_SEARCH_PROVIDER) {
+      case "searchgirl":
+        if (!isProvided(llmConfig.SEARCHGIRL_BASE_URL)) {
+          return "Searchgirl base URL is required.";
+        }
+        break;
       case "searxng":
         if (!isProvided(llmConfig.SEARXNG_BASE_URL)) {
           return "SearXNG base URL is required.";

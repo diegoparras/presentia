@@ -47,6 +47,16 @@ export const WEB_SEARCH_PROVIDERS: Record<string, WebSearchProviderOption> = {
       "Use model-native web grounding when available. Otherwise web search stays off until you choose an external provider.",
     icon: "/providers/model-search.svg",
   },
+  searchgirl: {
+    value: "searchgirl",
+    label: "Searchgirl",
+    description: "Metabúsqueda privada de la Suite Escriba · by SearXNG.",
+    icon: "/providers/searchgirl.svg",
+    urlField: "SEARCHGIRL_BASE_URL",
+    urlLabel: "Searchgirl base URL",
+    apiKeyField: "SEARCHGIRL_API_TOKEN",
+    apiKeyLabel: "Token de API (opcional)",
+  },
   searxng: {
     value: "searxng",
     label: "SearXNG",

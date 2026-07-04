@@ -253,6 +253,14 @@ def set_searxng_base_url_env(value):
     os.environ["SEARXNG_BASE_URL"] = value
 
 
+def set_searchgirl_base_url_env(value):
+    os.environ["SEARCHGIRL_BASE_URL"] = value
+
+
+def set_searchgirl_api_token_env(value):
+    os.environ["SEARCHGIRL_API_TOKEN"] = value
+
+
 def set_tavily_api_key_env(value):
     os.environ["TAVILY_API_KEY"] = value
 

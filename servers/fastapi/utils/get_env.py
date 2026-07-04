@@ -295,6 +295,14 @@ def get_searxng_base_url_env():
     return os.getenv("SEARXNG_BASE_URL")
 
 
+def get_searchgirl_base_url_env():
+    return os.getenv("SEARCHGIRL_BASE_URL")
+
+
+def get_searchgirl_api_token_env():
+    return os.getenv("SEARCHGIRL_API_TOKEN")
+
+
 def get_tavily_api_key_env():
     return os.getenv("TAVILY_API_KEY")
 

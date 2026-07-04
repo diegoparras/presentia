@@ -14,6 +14,8 @@ from enums.web_search_provider import WebSearchProvider
 from utils.get_env import (
     get_brave_search_api_key_env,
     get_exa_api_key_env,
+    get_searchgirl_api_token_env,
+    get_searchgirl_base_url_env,
     get_searxng_base_url_env,
     get_serper_api_key_env,
     get_tavily_api_key_env,
@@ -120,7 +122,9 @@ async def search_web(query: str, max_results: int | None = None) -> list[WebSear
             timeout=aiohttp.ClientTimeout(total=15),
             headers={"User-Agent": "Presenton/1.0"},
         ) as session:
-            if provider == WebSearchProvider.SEARXNG:
+            if provider == WebSearchProvider.SEARCHGIRL:
+                results = await _search_searchgirl(session, query, limit)
+            elif provider == WebSearchProvider.SEARXNG:
                 results = await _search_searxng(session, query, limit)
             elif provider == WebSearchProvider.TAVILY:
                 results = await _search_tavily(session, query, limit)
@@ -231,6 +235,39 @@ async def _json_response(response: aiohttp.ClientResponse) -> dict[str, Any]:
         raise HTTPException(response.status, detail=f"Web search request failed: {detail}")
     payload = await response.json(content_type=None)
     return payload if isinstance(payload, dict) else {}
+
+
+def _get_searchgirl_search_url() -> str:
+    """URL del endpoint /api/search de Searchgirl (metabúsqueda de la Suite Escriba)."""
+    configured_url = _required(get_searchgirl_base_url_env(), "SEARCHGIRL_BASE_URL")
+    parsed = urlparse(configured_url)
+    path = parsed.path.rstrip("/")
+    if not path.endswith("/api/search"):
+        path = f"{path}/api/search"
+    return urlunparse(parsed._replace(path=path, params="", query="", fragment=""))
+
+
+async def _search_searchgirl(session: aiohttp.ClientSession, query: str, limit: int) -> list[WebSearchResult]:
+    search_url = _get_searchgirl_search_url()
+    LOGGER.info(
+        "Using Searchgirl instance: search_url=%s",
+        _redact_url_credentials(search_url),
+    )
+    headers = {}
+    api_token = (get_searchgirl_api_token_env() or "").strip()
+    if api_token:
+        headers["Authorization"] = f"Bearer {api_token}"
+    async with session.get(
+        search_url,
+        params={"q": query},
+        headers=headers,
+    ) as response:
+        payload = await _json_response(response)
+    return [
+        WebSearchResult(_clean_text(item.get("title")), str(item.get("url") or ""), _clean_text(item.get("snippet")))
+        for item in payload.get("results", [])[:limit]
+        if item.get("title") and item.get("url")
+    ]
 
 
 async def _search_searxng(session: aiohttp.ClientSession, query: str, limit: int) -> list[WebSearchResult]:

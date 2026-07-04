@@ -146,6 +146,8 @@ export const updateLLMConfig = (
     web_search_provider: "WEB_SEARCH_PROVIDER",
     web_search_max_results: "WEB_SEARCH_MAX_RESULTS",
     searxng_base_url: "SEARXNG_BASE_URL",
+    searchgirl_base_url: "SEARCHGIRL_BASE_URL",
+    searchgirl_api_token: "SEARCHGIRL_API_TOKEN",
     tavily_api_key: "TAVILY_API_KEY",
     exa_api_key: "EXA_API_KEY",
     brave_search_api_key: "BRAVE_SEARCH_API_KEY",

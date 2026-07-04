@@ -112,6 +112,8 @@ export interface LLMConfig {
   WEB_SEARCH_PROVIDER?: string;
   WEB_SEARCH_MAX_RESULTS?: string;
   SEARXNG_BASE_URL?: string;
+  SEARCHGIRL_BASE_URL?: string;
+  SEARCHGIRL_API_TOKEN?: string;
   TAVILY_API_KEY?: string;
   EXA_API_KEY?: string;
   BRAVE_SEARCH_API_KEY?: string;
