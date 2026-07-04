@@ -6,7 +6,7 @@ import type { ChartConfiguration, ChartOptions, Plugin } from "chart.js";
 
 type AnyRecord = Record<string, any>;
 
-const DEFAULT_COLORS = ["#8B5CF6", "#06B6D4", "#10B981", "#F59E0B", "#EF4444", "#EC4899", "#3B82F6", "#84CC16", "#F97316", "#6366F1"];
+const DEFAULT_COLORS = ["#b58a2a", "#06B6D4", "#10B981", "#F59E0B", "#EF4444", "#EC4899", "#3B82F6", "#84CC16", "#F97316", "#b58a2a"];
 const AXIS_COLOR = "var(--background-text,#7f8491)";
 const GRID_COLOR = "var(--background-text,#7f8491)";
 const FONT_FAMILY = "var(--body-font-family,var(--heading-font-family,Poppins))";

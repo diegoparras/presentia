@@ -5,6 +5,8 @@ import { LayoutDashboard, Star, Brain, Settings, Palette, HelpCircle, Coins, Fil
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import AboutPresentia from "@/components/AboutPresentia";
+import LanguageSelector from "@/components/LanguageSelector";
+import { useI18n } from "@/lib/i18n";
 
 
 
@@ -24,6 +26,7 @@ export const BelongingNavItems = [
 ]
 
 const DashboardSidebar = () => {
+    const { t } = useI18n();
 
 
     const pathname = usePathname();
@@ -60,7 +63,7 @@ const DashboardSidebar = () => {
                             title="Dashboard"
                         >
                             <LayoutDashboard className={["h-4 w-4", pathname === "/dashboard" ? "text-[#a87f16]" : "text-slate-600"].join(" ")} />
-                            <span className="text-[11px] text-slate-800">Dashboard</span>
+                            <span className="text-[11px] text-slate-800">{t("nav.dashboard")}</span>
                         </Link>
                         <Link
                             prefetch={false}
@@ -74,7 +77,7 @@ const DashboardSidebar = () => {
                         >
                             <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={`${pathname === "/templates" ? "#a87f16" : "#475569"}`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M4 14h6" /><path d="M4 2h10" /><rect x="4" y="18" width="16" height="4" rx="1" /><rect x="4" y="6" width="16" height="4" rx="1" /></svg>
-                                <span className="text-[11px] text-slate-800">Templates</span>
+                                <span className="text-[11px] text-slate-800">{t("nav.templates")}</span>
                             </div>
                         </Link>
                         <Link
@@ -89,7 +92,7 @@ const DashboardSidebar = () => {
                         >
                             <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
                                 <Palette className={`h-4 w-4 ${pathname === "/theme" ? "text-[#a87f16]" : "text-slate-600"}`} />
-                                <span className="text-[11px] text-slate-800">Themes</span>
+                                <span className="text-[11px] text-slate-800">{t("nav.themes")}</span>
                             </div>
                         </Link>
                         <Link
@@ -104,7 +107,7 @@ const DashboardSidebar = () => {
                         >
                             <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
                                 <FileText className={`h-4 w-4 ${pathname === "/markdown" ? "text-[#a87f16]" : "text-slate-600"}`} />
-                                <span className="text-[11px] text-slate-800">Markdown</span>
+                                <span className="text-[11px] text-slate-800">{t("nav.markdown")}</span>
                             </div>
                         </Link>
                         <Link
@@ -119,7 +122,7 @@ const DashboardSidebar = () => {
                         >
                             <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
                                 <Cpu className={`h-4 w-4 ${pathname === "/models" ? "text-[#a87f16]" : "text-slate-600"}`} />
-                                <span className="text-[11px] text-slate-800">Modelos</span>
+                                <span className="text-[11px] text-slate-800">{t("nav.models")}</span>
                             </div>
                         </Link>
                         <Link
@@ -134,7 +137,7 @@ const DashboardSidebar = () => {
                         >
                             <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
                                 <Coins className={`h-4 w-4 ${pathname === "/costs" ? "text-[#a87f16]" : "text-slate-600"}`} />
-                                <span className="text-[11px] text-slate-800">Costos</span>
+                                <span className="text-[11px] text-slate-800">{t("nav.costs")}</span>
                             </div>
                         </Link>
                     </div>
@@ -145,14 +148,14 @@ const DashboardSidebar = () => {
             >
                 <div className="mb-4">
 
-                    <Link href="https://docs.presenton.ai/help" target="_blank" className="flex flex-col tex-center items-center gap-2  transition-colors"><HelpCircle className="w-4 h-4" /><span className="text-[11px] text-slate-800">Help</span></Link>
+                    <Link href="https://docs.presenton.ai/help" target="_blank" className="flex flex-col tex-center items-center gap-2  transition-colors"><HelpCircle className="w-4 h-4" /><span className="text-[11px] text-slate-800">{t("nav.help")}</span></Link>
                 </div>
                 <div className="mb-4 flex justify-center">
                     <AboutPresentia />
                 </div>
                 <div className="mb-4">
 
-                    <Link href="https://discord.com/invite/9ZsKKxudNE" target="_blank" className="flex flex-col tex-center items-center gap-2  transition-colors"><img src="/discord.png" alt="Discord" className="w-5 h-5 rounded-full object-cover border border-[#EDEEEF]" /><span className="text-[11px] text-slate-800">Community</span></Link>
+                    <Link href="https://discord.com/invite/9ZsKKxudNE" target="_blank" className="flex flex-col tex-center items-center gap-2  transition-colors"><img src="/discord.png" alt="Discord" className="w-5 h-5 rounded-full object-cover border border-[#EDEEEF]" /><span className="text-[11px] text-slate-800">{t("nav.community")}</span></Link>
                 </div>
 
 

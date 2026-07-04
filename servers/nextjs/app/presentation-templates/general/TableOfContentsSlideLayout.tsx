@@ -81,7 +81,7 @@ const TableOfContentsSlideLayout: React.FC<TableOfContentsSlideLayoutProps> = ({
                     </h1>
                     {/* Decorative Wave */}
                     <div className="flex justify-center">
-                        <svg width="80" height="20" viewBox="0 0 80 20" className="text-purple-600" style={{ color: "var(--primary-color,#9333ea)" }}>
+                        <svg width="80" height="20" viewBox="0 0 80 20" className="text-purple-600" style={{ color: "var(--primary-color,#a87f16)" }}>
                             <path
                                 d="M0 10 Q20 0 40 10 T80 10"
                                 stroke="currentColor"
@@ -100,7 +100,7 @@ const TableOfContentsSlideLayout: React.FC<TableOfContentsSlideLayoutProps> = ({
                             <div key={section.number} className="flex items-center justify-between group">
                                 <div className="flex items-center space-x-4">
                                     {/* Number Box */}
-                                    <div style={{ background: "var(--primary-color,#9333ea)", color: "var(--primary-text,#ffffff)" }} className="w-12 h-12 sm:w-14 sm:h-14 bg-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg sm:text-xl group-hover:bg-purple-700 transition-colors">
+                                    <div style={{ background: "var(--primary-color,#a87f16)", color: "var(--primary-text,#ffffff)" }} className="w-12 h-12 sm:w-14 sm:h-14 bg-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg sm:text-xl group-hover:bg-purple-700 transition-colors">
                                         {section.number}
                                     </div>
                                     {/* Title */}
@@ -128,7 +128,7 @@ const TableOfContentsSlideLayout: React.FC<TableOfContentsSlideLayoutProps> = ({
                             <div key={section.number} className="flex items-center justify-between group">
                                 <div className="flex items-center space-x-4">
                                     {/* Number Box */}
-                                    <div style={{ background: "var(--primary-color,#9333ea)", color: "var(--primary-text,#ffffff)" }} className="w-12 h-12 sm:w-14 sm:h-14 bg-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg sm:text-xl group-hover:bg-purple-700 transition-colors">
+                                    <div style={{ background: "var(--primary-color,#a87f16)", color: "var(--primary-text,#ffffff)" }} className="w-12 h-12 sm:w-14 sm:h-14 bg-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-lg sm:text-xl group-hover:bg-purple-700 transition-colors">
                                         {section.number}
                                     </div>
                                     {/* Title */}

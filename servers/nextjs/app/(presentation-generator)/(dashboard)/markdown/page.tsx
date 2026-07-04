@@ -9,14 +9,15 @@
 import React, { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { getApiUrl } from "@/utils/api";
+import { useI18n } from "@/lib/i18n";
 
 const ACCENT = "#a87f16";
 
-const TEXT_MODES = [
-  { value: "preserve", label: "Preservar", hint: "tu texto va tal cual al deck" },
-  { value: "condense", label: "Condensar", hint: "resume el contenido" },
-  { value: "generate", label: "Generar", hint: "reescribe y expande" },
-];
+const TEXT_MODE_KEYS: Record<string, string> = {
+  preserve: "md.mode.preserve",
+  condense: "md.mode.condense",
+  generate: "md.mode.generate",
+};
 
 const IMAGE_SOURCES = [
   { value: "", label: "Proveedor configurado" },
@@ -34,6 +35,7 @@ const inputClass =
 const labelClass = "block text-[12px] font-medium text-[#3c3c44] mb-1.5";
 
 const MarkdownPage = () => {
+  const { t } = useI18n();
   const [markdown, setMarkdown] = useState("");
   const [textMode, setTextMode] = useState("preserve");
   const [template, setTemplate] = useState("general");
@@ -46,7 +48,7 @@ const MarkdownPage = () => {
 
   const generate = async () => {
     if (!markdown.trim()) {
-      setError("Pegá el markdown antes de generar.");
+      setError(t("md.error.empty"));
       return;
     }
     setError(null);
@@ -71,16 +73,16 @@ const MarkdownPage = () => {
       );
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
-        setError(payload?.detail || "La generación falló. Probá de nuevo.");
+        setError(payload?.detail || t("md.error.failed"));
         return;
       }
       if (payload?.edit_path) {
         window.location.href = payload.edit_path;
         return;
       }
-      setError("La generación terminó pero no devolvió un deck editable.");
+      setError(t("md.error.noDeck"));
     } catch {
-      setError("No se pudo contactar al servidor.");
+      setError(t("md.error.network"));
     } finally {
       setIsGenerating(false);
     }
@@ -89,13 +91,10 @@ const MarkdownPage = () => {
   return (
     <div className="pb-10 font-inter max-w-[880px]">
       <p className="text-sm text-[#70707b] max-w-[70ch] mb-6">
-        Pegá un markdown y se transforma en presentación: cada sección separada
-        con tres guiones (---) o cada encabezado # / ## es una tarjeta. En modo
-        Preservar, tu texto viaja tal cual al deck y la IA solo elige layouts y
-        genera las imágenes.
+        {t("md.intro")}
       </p>
 
-      <label className={labelClass} htmlFor="markdown-input">Markdown</label>
+      <label className={labelClass} htmlFor="markdown-input">{t("md.label")}</label>
       <textarea
         id="markdown-input"
         value={markdown}
@@ -108,7 +107,7 @@ const MarkdownPage = () => {
 
       <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div>
-          <label className={labelClass} htmlFor="text-mode">Modo de texto</label>
+          <label className={labelClass} htmlFor="text-mode">{t("md.textMode")}</label>
           <select
             id="text-mode"
             value={textMode}
@@ -116,15 +115,15 @@ const MarkdownPage = () => {
             className={inputClass}
             disabled={isGenerating}
           >
-            {TEXT_MODES.map((mode) => (
-              <option key={mode.value} value={mode.value}>
-                {mode.label} — {mode.hint}
+            {Object.entries(TEXT_MODE_KEYS).map(([value, key]) => (
+              <option key={value} value={value}>
+                {t(key)}
               </option>
             ))}
           </select>
         </div>
         <div>
-          <label className={labelClass} htmlFor="template">Template</label>
+          <label className={labelClass} htmlFor="template">{t("md.template")}</label>
           <input
             id="template"
             value={template}
@@ -134,7 +133,7 @@ const MarkdownPage = () => {
           />
         </div>
         <div>
-          <label className={labelClass} htmlFor="language">Idioma</label>
+          <label className={labelClass} htmlFor="language">{t("md.language")}</label>
           <input
             id="language"
             value={language}
@@ -145,7 +144,7 @@ const MarkdownPage = () => {
           />
         </div>
         <div>
-          <label className={labelClass} htmlFor="image-source">Imágenes</label>
+          <label className={labelClass} htmlFor="image-source">{t("md.images")}</label>
           <select
             id="image-source"
             value={imageSource}
@@ -161,18 +160,18 @@ const MarkdownPage = () => {
           </select>
         </div>
         <div>
-          <label className={labelClass} htmlFor="image-style">Estilo de imagen</label>
+          <label className={labelClass} htmlFor="image-style">{t("md.imageStyle")}</label>
           <input
             id="image-style"
             value={imageStyle}
             onChange={(event) => setImageStyle(event.target.value)}
-            placeholder="p. ej. fotorrealista, line art minimalista"
+            placeholder={t("md.imageStyle.ph")}
             className={inputClass}
             disabled={isGenerating}
           />
         </div>
         <div>
-          <label className={labelClass} htmlFor="export-as">Exportar como</label>
+          <label className={labelClass} htmlFor="export-as">{t("md.exportAs")}</label>
           <select
             id="export-as"
             value={exportAs}
@@ -200,12 +199,11 @@ const MarkdownPage = () => {
         style={{ backgroundColor: ACCENT }}
       >
         {isGenerating && <Loader2 className="h-4 w-4 animate-spin" />}
-        {isGenerating ? "Generando el deck…" : "Generar presentación"}
+        {isGenerating ? t("md.generating") : t("md.generate")}
       </button>
       {isGenerating && (
         <p className="mt-3 text-[12.5px] text-[#70707b]">
-          La generación puede tardar unos minutos: outline, layouts e imágenes
-          por tarjeta. Al terminar te lleva al editor.
+          {t("md.generating.hint")}
         </p>
       )}
     </div>

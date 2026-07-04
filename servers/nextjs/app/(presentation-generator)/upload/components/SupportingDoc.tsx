@@ -173,7 +173,7 @@ const SupportingDoc = ({
             </div>
 
             <label
-                className={`mt-1 block cursor-pointer rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${isDragging ? 'border-[#5146E5] bg-[#5146E5]/5' : 'border-gray-200 hover:border-[#5146E5]'}`}
+                className={`mt-1 block cursor-pointer rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${isDragging ? 'border-[#a87f16] bg-[#a87f16]/5' : 'border-gray-200 hover:border-[#a87f16]'}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
@@ -188,7 +188,7 @@ const SupportingDoc = ({
                 />
                 <div className="flex flex-col items-center gap-2">
                     <div className='w-[42px] h-[42px] flex justify-center items-center rounded-full bg-[#EBE9FE]' >
-                        <div className='w-[22px] h-[22px] rounded-full bg-[#7A5AF8] flex items-center justify-center text-white'>
+                        <div className='w-[22px] h-[22px] rounded-full bg-[#a87f16] flex items-center justify-center text-white'>
                             <Plus className='w-3 h-3' />
                         </div>
                     </div>

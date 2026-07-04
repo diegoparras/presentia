@@ -154,7 +154,7 @@ export const OverlayLoader = ({
         .overlay-loader-dots {
           width: 50px;
           aspect-ratio: 1;
-          --_c: no-repeat radial-gradient(farthest-side, #7a5af8 92%, #0000);
+          --_c: no-repeat radial-gradient(farthest-side, #a87f16 92%, #0000);
           background: var(--_c) top, var(--_c) left, var(--_c) right,
             var(--_c) bottom;
           background-size: 12px 12px;

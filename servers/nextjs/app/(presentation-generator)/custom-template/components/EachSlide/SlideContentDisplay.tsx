@@ -30,12 +30,12 @@ export const SlideContentDisplay: React.FC<SlideContentDisplayProps> = ({
       <div className="relative flex-1">
         {/* Preview Mode Banner */}
         {previewData && (
-          <div className="mb-4 flex items-center justify-between bg-[#EDE9FE] border border-[#C4B5FD] rounded-xl px-4 py-3">
+          <div className="mb-4 flex items-center justify-between bg-[#f6efe0] border border-[#e3d1a0] rounded-xl px-4 py-3">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-[#7A5AF8] flex items-center justify-center">
+              <div className="w-6 h-6 rounded-full bg-[#a87f16] flex items-center justify-center">
                 <span className="text-white text-xs">✨</span>
               </div>
-              <span className="text-sm font-medium text-[#5B21B6]">
+              <span className="text-sm font-medium text-[#8a6812]">
                 Showing AI-generated preview
               </span>
             </div>
@@ -44,7 +44,7 @@ export const SlideContentDisplay: React.FC<SlideContentDisplayProps> = ({
                 variant="ghost"
                 size="sm"
                 onClick={onClearPreview}
-                className="h-8 text-[#7A5AF8] hover:text-[#5B21B6] hover:bg-[#DDD6FE]"
+                className="h-8 text-[#a87f16] hover:text-[#8a6812] hover:bg-[#efe4c6]"
               >
                 <X className="w-4 h-4 mr-1.5" />
                 Clear

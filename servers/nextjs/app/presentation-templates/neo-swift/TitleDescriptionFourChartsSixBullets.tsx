@@ -39,7 +39,7 @@ const getGridLayout = (count: number): { cols: number; rows: number; className: 
     }
 };
 
-const DEFAULT_CHART_COLORS = ['#8B5CF6', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#EC4899'];
+const DEFAULT_CHART_COLORS = ['#b58a2a', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#EC4899'];
 const ChartTypeEnum = z.enum([
     'bar-vertical',
     'bar-horizontal',

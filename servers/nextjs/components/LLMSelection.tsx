@@ -382,7 +382,7 @@ export default function LLMProviderSelection({
           onClick={handleSaveConfig}
           disabled={buttonState.isDisabled}
           style={{
-            background: "linear-gradient(270deg, #D5CAFC 2.4%, #E3D2EB 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+            background: "linear-gradient(270deg, #EFE3C2 2.4%, #F2E8D2 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
             color: "#101323",
           }}
           className={`w-full font-semibold py-3 px-4 rounded-lg transition-all duration-500 ${buttonState.isDisabled

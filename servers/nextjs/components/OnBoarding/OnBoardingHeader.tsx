@@ -1,7 +1,15 @@
+'use client';
+
 import React from 'react'
 import { MixpanelEvent, trackEvent } from '@/utils/mixpanel'
+import { useI18n } from '@/lib/i18n'
 
-const STEPS = ["Text Provider", "Image Provider", "Web Search", "Finish Setup"];
+const STEP_KEYS = [
+    "onboarding.step.text",
+    "onboarding.step.image",
+    "onboarding.step.search",
+    "onboarding.step.finish",
+];
 
 const OnBoardingHeader = ({
     currentStep,
@@ -14,6 +22,7 @@ const OnBoardingHeader = ({
     setStep: (step: number) => void,
     setProviderStep: (step: number) => void,
 }) => {
+    const { t } = useI18n();
     const activeStep = currentStep === 3 ? 4 : providerStep;
 
     const goToStep = (target: number) => {
@@ -30,10 +39,11 @@ const OnBoardingHeader = ({
     return (
         <div className='sticky top-8 z-20 flex items-center font-syne justify-end mt-7 mb-[52px]'>
             <div className='flex items-center gap-1'>
-                {STEPS.map((label, index) => {
+                {STEP_KEYS.map((key, index) => {
+                    const label = t(key);
                     const number = index + 1;
                     return (
-                        <React.Fragment key={label}>
+                        <React.Fragment key={key}>
                             {index > 0 && <div className='w-4 h-px bg-[#ECECEF]' />}
                             <button
                                 type="button"

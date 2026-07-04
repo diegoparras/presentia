@@ -9,6 +9,7 @@
 import React, { useEffect, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { getApiUrl } from "@/utils/api";
+import { useI18n } from "@/lib/i18n";
 
 const ACCENT = "#a87f16";
 
@@ -55,6 +56,7 @@ async function fetchJson<T>(path: string): Promise<T | null> {
 }
 
 const CostsPage = () => {
+  const { t } = useI18n();
   const [presentations, setPresentations] = useState<PresentationUsage[]>([]);
   const [providers, setProviders] = useState<ProviderUsage[]>([]);
   const [details, setDetails] = useState<Record<string, UsageDetail>>({});
@@ -93,32 +95,30 @@ const CostsPage = () => {
   return (
     <div className="pb-10 font-inter">
       <p className="text-sm text-[#70707b] max-w-[70ch] mb-6">
-        Tokens y costo estimado de cada llamada al modelo, atribuidos por
-        presentación, etapa y slide. Los modelos sin precio en el catálogo
-        muestran solo tokens; los proveedores locales cuestan cero.
+        {t("costs.intro")}
       </p>
 
       <div className="rounded-xl border border-[#E1E1E5] bg-white overflow-hidden">
         <table className="w-full border-collapse">
           <thead className="border-b border-[#E1E1E5] bg-[#FAFAFB]">
             <tr>
-              <th className={headerCell}>Presentación</th>
-              <th className={headerCell}>Llamadas</th>
-              <th className={headerCell}>Tokens entrada</th>
-              <th className={headerCell}>Tokens salida</th>
-              <th className={headerCell}>Costo estimado</th>
+              <th className={headerCell}>{t("costs.presentation")}</th>
+              <th className={headerCell}>{t("costs.calls")}</th>
+              <th className={headerCell}>{t("costs.tokensIn")}</th>
+              <th className={headerCell}>{t("costs.tokensOut")}</th>
+              <th className={headerCell}>{t("costs.cost")}</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td className={cell} colSpan={5}>Cargando…</td>
+                <td className={cell} colSpan={5}>{t("costs.loading")}</td>
               </tr>
             )}
             {!loading && presentations.length === 0 && (
               <tr>
                 <td className={cell} colSpan={5}>
-                  Todavía no hay métricas. Generá una presentación y volvé a esta vista.
+                  {t("costs.empty")}
                 </td>
               </tr>
             )}
@@ -149,27 +149,27 @@ const CostsPage = () => {
                   <tr className="border-b border-[#EDEEEF] bg-[#FAFAFB]">
                     <td colSpan={5} className="px-6 py-4">
                       {!details[p.presentation_id] ? (
-                        <span className="text-[13px] text-[#70707b]">Cargando desglose…</span>
+                        <span className="text-[13px] text-[#70707b]">{t("costs.loading")}</span>
                       ) : (
                         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                           <UsageBreakdown
-                            title="Por etapa"
+                            title={t("costs.byStage")}
                             rows={details[p.presentation_id].by_stage.map((r) => ({
                               label: r.stage || "other",
                               ...r,
                             }))}
                           />
                           <UsageBreakdown
-                            title="Por slide"
+                            title={t("costs.bySlide")}
                             rows={details[p.presentation_id].by_slide.map((r) => ({
-                              label: `Slide ${(r.slide_index ?? 0) + 1}`,
+                              label: t("costs.slide", { n: (r.slide_index ?? 0) + 1 }),
                               ...r,
                             }))}
                           />
                           <UsageBreakdown
-                            title="Por modelo"
+                            title={t("costs.byModel")}
                             rows={details[p.presentation_id].by_model.map((r) => ({
-                              label: r.model || "desconocido",
+                              label: r.model || t("costs.unknown"),
                               ...r,
                             }))}
                           />
@@ -185,24 +185,24 @@ const CostsPage = () => {
       </div>
 
       <h3 className="mt-10 mb-3 text-[15px] font-semibold text-[#16161a]">
-        Comparativa por proveedor
+        {t("costs.providerComparison")}
       </h3>
       <div className="rounded-xl border border-[#E1E1E5] bg-white overflow-hidden">
         <table className="w-full border-collapse">
           <thead className="border-b border-[#E1E1E5] bg-[#FAFAFB]">
             <tr>
-              <th className={headerCell}>Proveedor</th>
-              <th className={headerCell}>Modelo</th>
-              <th className={headerCell}>Llamadas</th>
-              <th className={headerCell}>Tokens entrada</th>
-              <th className={headerCell}>Tokens salida</th>
-              <th className={headerCell}>Costo estimado</th>
+              <th className={headerCell}>{t("costs.provider")}</th>
+              <th className={headerCell}>{t("costs.model")}</th>
+              <th className={headerCell}>{t("costs.calls")}</th>
+              <th className={headerCell}>{t("costs.tokensIn")}</th>
+              <th className={headerCell}>{t("costs.tokensOut")}</th>
+              <th className={headerCell}>{t("costs.cost")}</th>
             </tr>
           </thead>
           <tbody>
             {providers.length === 0 && (
               <tr>
-                <td className={cell} colSpan={6}>Sin datos todavía.</td>
+                <td className={cell} colSpan={6}>{t("costs.noData")}</td>
               </tr>
             )}
             {providers.map((row, index) => (
@@ -230,13 +230,15 @@ const UsageBreakdown = ({
 }: {
   title: string;
   rows: (Totals & { label: string })[];
-}) => (
+}) => {
+  const { t } = useI18n();
+  return (
   <div>
     <h4 className="mb-2 text-[12px] font-semibold uppercase tracking-[0.07em] text-[#70707b]">
       {title}
     </h4>
     <ul className="space-y-1">
-      {rows.length === 0 && <li className="text-[13px] text-[#70707b]">Sin datos.</li>}
+      {rows.length === 0 && <li className="text-[13px] text-[#70707b]">{t("costs.noData")}</li>}
       {rows.map((row, index) => (
         <li key={index} className="flex justify-between gap-4 text-[13px] tabular-nums">
           <span className="text-[#16161a]">{row.label}</span>
@@ -250,6 +252,7 @@ const UsageBreakdown = ({
       ))}
     </ul>
   </div>
-);
+  );
+};
 
 export default CostsPage;

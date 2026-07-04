@@ -9,12 +9,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { PRESENTIA } from "@/lib/presentia";
+import { useI18n } from "@/lib/i18n";
 
 /**
  * Modal "Acerca de" del contrato de diseño de la Suite Escriba: nombre,
  * tagline, versión real, rol en la suite y la aclaración de que es un fork.
  */
 const AboutPresentia = ({ trigger }: { trigger?: React.ReactNode }) => {
+  const { t } = useI18n();
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -26,7 +28,7 @@ const AboutPresentia = ({ trigger }: { trigger?: React.ReactNode }) => {
             title={`Acerca de ${PRESENTIA.name}`}
           >
             <Info className="h-4 w-4 text-slate-600" />
-            <span className="text-[11px] text-slate-800">Acerca de</span>
+            <span className="text-[11px] text-slate-800">{t("nav.about")}</span>
           </button>
         )}
       </DialogTrigger>
@@ -35,19 +37,16 @@ const AboutPresentia = ({ trigger }: { trigger?: React.ReactNode }) => {
           <DialogTitle className="text-lg font-semibold text-[#16161a]">
             {PRESENTIA.name}
           </DialogTitle>
-          <p className="mt-0.5 text-sm text-[#70707b]">{PRESENTIA.tagline}</p>
+          <p className="mt-0.5 text-sm text-[#70707b]">{t("about.tagline")}</p>
         </div>
         <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2 text-sm">
-          <dt className="text-[#70707b]">Versión</dt>
+          <dt className="text-[#70707b]">{t("about.version")}</dt>
           <dd className="font-mono text-[13px]">{PRESENTIA.version}</dd>
-          <dt className="text-[#70707b]">Rol en la suite</dt>
-          <dd>{PRESENTIA.suiteRole}</dd>
-          <dt className="text-[#70707b]">Origen</dt>
-          <dd>
-            Fork de {PRESENTIA.upstreamName} {PRESENTIA.upstreamVersion} (
-            {PRESENTIA.license})
-          </dd>
-          <dt className="text-[#70707b]">Upstream</dt>
+          <dt className="text-[#70707b]">{t("about.role")}</dt>
+          <dd>{t("about.role.value")}</dd>
+          <dt className="text-[#70707b]">{t("about.origin")}</dt>
+          <dd>{t("about.origin.value", { version: PRESENTIA.upstreamVersion })}</dd>
+          <dt className="text-[#70707b]">{t("about.upstream")}</dt>
           <dd>
             <a
               href={PRESENTIA.upstreamUrl}

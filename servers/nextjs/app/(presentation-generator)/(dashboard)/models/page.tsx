@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { getApiUrl } from "@/utils/api";
+import { useI18n } from "@/lib/i18n";
 
 const ACCENT = "#a87f16";
 
@@ -42,10 +43,10 @@ type Recommendations = {
   image: { current: string | null; models: ImageModel[] };
 };
 
-const BADGES: Record<string, { label: string; solid: boolean }> = {
-  quality: { label: "Mejor calidad", solid: true },
-  value: { label: "Mejor precio-calidad", solid: false },
-  budget: { label: "Más económico", solid: false },
+const BADGES: Record<string, { key: string; solid: boolean }> = {
+  quality: { key: "badge.quality", solid: true },
+  value: { key: "badge.value", solid: false },
+  budget: { key: "badge.budget", solid: false },
 };
 
 const PROVIDER_MODEL_FIELD: Record<string, string | null> = {
@@ -69,8 +70,10 @@ const QualityDots = ({ quality }: { quality: number }) => (
 );
 
 const Badge = ({ badge }: { badge: string | null }) => {
+  const { t } = useI18n();
   if (!badge || !BADGES[badge]) return null;
-  const { label, solid } = BADGES[badge];
+  const { key, solid } = BADGES[badge];
+  const label = t(key);
   return (
     <span
       className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
@@ -86,6 +89,7 @@ const Badge = ({ badge }: { badge: string | null }) => {
 };
 
 const ModelsPage = () => {
+  const { t } = useI18n();
   const [data, setData] = useState<Recommendations | null>(null);
   const [applying, setApplying] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +101,7 @@ const ModelsPage = () => {
       });
       if (response.ok) setData(await response.json());
     } catch {
-      setError("No se pudieron cargar los modelos.");
+      setError(t("models.error.load"));
     }
   }, []);
 
@@ -116,12 +120,12 @@ const ModelsPage = () => {
         body: JSON.stringify(patch),
       });
       if (!response.ok) {
-        setError("No se pudo aplicar la selección.");
+        setError(t("models.error.apply"));
         return;
       }
       await load();
     } catch {
-      setError("No se pudo contactar al servidor.");
+      setError(t("md.error.network"));
     } finally {
       setApplying(null);
     }
@@ -156,15 +160,12 @@ const ModelsPage = () => {
       : { borderColor: "#E1E1E5" };
 
   const price = (value: number | null, suffix: string) =>
-    value === null ? "precio no catalogado" : value === 0 ? "Gratis" : `US$ ${value} ${suffix}`;
+    value === null ? t("models.noPrice") : value === 0 ? t("models.free") : `US$ ${value} ${suffix}`;
 
   return (
     <div className="pb-10 font-inter max-w-[1040px]">
       <p className="text-sm text-[#70707b] max-w-[72ch] mb-6">
-        Según las API keys que cargaste en Settings, estos son los modelos
-        disponibles. Elegí con un click: el cambio aplica a las próximas
-        generaciones. Los modelos atenuados necesitan una credencial que
-        todavía no configuraste.
+        {t("models.intro")}
       </p>
 
       {error && (
@@ -172,16 +173,16 @@ const ModelsPage = () => {
       )}
       {!data && !error && (
         <p className="text-sm text-[#70707b]">
-          <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Cargando modelos…
+          <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />{t("models.loading")}
         </p>
       )}
 
       {data && (
         <>
           <h3 className="mb-3 text-[15px] font-semibold text-[#16161a]">
-            Modelo de texto
+            {t("models.text")}
             <span className="ml-2 text-[12.5px] font-normal text-[#70707b]">
-              genera outlines y slides
+              {t("models.text.hint")}
             </span>
           </h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -203,7 +204,7 @@ const ModelsPage = () => {
                     </span>
                     {current ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-semibold" style={{ color: ACCENT }}>
-                        <Check className="h-3.5 w-3.5" /> En uso
+                        <Check className="h-3.5 w-3.5" /> {t("models.inUse")}
                       </span>
                     ) : (
                       <Badge badge={model.badge} />
@@ -214,17 +215,17 @@ const ModelsPage = () => {
                     <QualityDots quality={model.quality} />
                     <span className="text-[12px] tabular-nums text-[#3c3c44]">
                       {model.input_price === 0 && model.output_price === 0
-                        ? "Gratis (local)"
+                        ? t("models.freeLocal")
                         : model.input_price === null
-                          ? "precio no catalogado"
-                          : `US$ ${model.input_price} / ${model.output_price} por 1M`}
+                          ? t("models.noPrice")
+                          : `US$ ${model.input_price} / ${model.output_price} ${t("models.perMillion")}`}
                     </span>
                   </div>
                   {!model.available && (
                     <p className="mt-2 text-[11.5px]" style={{ color: ACCENT }}>
-                      Falta {model.requirement} —{" "}
+                      {t("models.missing", { requirement: model.requirement })} —{" "}
                       <Link href="/settings" className="underline" onClick={(e) => e.stopPropagation()}>
-                        configurar
+                        {t("models.configure")}
                       </Link>
                     </p>
                   )}
@@ -237,9 +238,9 @@ const ModelsPage = () => {
           </div>
 
           <h3 className="mt-10 mb-3 text-[15px] font-semibold text-[#16161a]">
-            Modelo de imágenes
+            {t("models.image")}
             <span className="ml-2 text-[12.5px] font-normal text-[#70707b]">
-              genera o busca las imágenes de cada slide
+              {t("models.image.hint")}
             </span>
           </h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -261,7 +262,7 @@ const ModelsPage = () => {
                     </span>
                     {current ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-semibold" style={{ color: ACCENT }}>
-                        <Check className="h-3.5 w-3.5" /> En uso
+                        <Check className="h-3.5 w-3.5" /> {t("models.inUse")}
                       </span>
                     ) : (
                       <Badge badge={model.badge} />
@@ -271,14 +272,14 @@ const ModelsPage = () => {
                   <div className="mt-3 flex items-center justify-between">
                     <QualityDots quality={model.quality} />
                     <span className="text-[12px] tabular-nums text-[#3c3c44]">
-                      {price(model.price_per_image, "por imagen")}
+                      {price(model.price_per_image, t("models.perImage"))}
                     </span>
                   </div>
                   {!model.available && (
                     <p className="mt-2 text-[11.5px]" style={{ color: ACCENT }}>
-                      Falta {model.requirement} —{" "}
+                      {t("models.missing", { requirement: model.requirement })} —{" "}
                       <Link href="/settings" className="underline" onClick={(e) => e.stopPropagation()}>
-                        configurar
+                        {t("models.configure")}
                       </Link>
                     </p>
                   )}
@@ -291,10 +292,7 @@ const ModelsPage = () => {
           </div>
 
           <p className="mt-8 text-[12px] text-[#70707b] max-w-[72ch]">
-            Los precios son por millón de tokens (entrada / salida) o por imagen
-            generada, según el catálogo versionado del fork; los precios de
-            imagen son aproximados. El panel Costos registra el gasto real de
-            cada deck.
+            {t("models.footnote")}
           </p>
         </>
       )}

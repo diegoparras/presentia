@@ -27,7 +27,7 @@ import React from "react";
 
 // Default color palettes for beautiful charts (fallback)
 const DEFAULT_CHART_COLORS = [
-  "#8B5CF6",
+  "#b58a2a",
   "#06B6D4",
   "#10B981",
   "#F59E0B",

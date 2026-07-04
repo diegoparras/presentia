@@ -199,7 +199,7 @@ export function ConfigurationInitializer({ children }: { children: React.ReactNo
                 alt="PresentOn"
                 className="mx-auto mb-4 h-12 opacity-90"
               />
-              <div className="mx-auto h-1 w-16 rounded-full bg-[#7C51F8]" />
+              <div className="mx-auto h-1 w-16 rounded-full bg-[#a87f16]" />
             </div>
 
             {/* Loading Text */}
