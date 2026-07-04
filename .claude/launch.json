@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "nextjs-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "servers/nextjs", "--", "-p", "3210"],
+      "port": 3210,
+      "autoPort": false
+    }
+  ]
+}
