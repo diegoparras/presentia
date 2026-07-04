@@ -30,9 +30,9 @@ const unbounded = Unbounded({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://presenton.ai"),
-  title: "Presenton - Open Source AI presentation generator",
+  title: "Presentia — Generador de presentaciones · Suite Escriba",
   description:
-    "Open-source AI presentation generator with custom layouts, multi-model support (OpenAI, Gemini, Ollama), and PDF/PPTX export. A free Gamma alternative.",
+    "Presentia: generación de presentaciones self-hosted para el ecosistema Escriba. Fork de Presenton (Apache 2.0) con ingesta vía Escriba, anonimización opcional y charts desde datos reales.",
   keywords: [
     "AI presentation generator",
     "data storytelling",
