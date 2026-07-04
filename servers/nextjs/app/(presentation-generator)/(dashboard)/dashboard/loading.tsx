@@ -1,4 +1,7 @@
+"use client";
+
 import React from "react";
+import { useI18n } from "@/lib/i18n";
 
 const DeckShimmerCard = () => (
   <div className="flex min-h-[216px] flex-col overflow-hidden rounded-[12px] border border-[#EDEEEF] bg-[#F8FBFB] shadow-none animate-pulse">
@@ -36,16 +39,17 @@ const ActionShimmer = () => (
 );
 
 const Loading = () => {
+  const { t } = useI18n();
   return (
     <div className="min-h-screen w-full px-3 pb-10 sm:px-6">
       <div className="sticky top-0 right-0 z-50 py-[28px] backdrop-blur mb-2">
         <h3 className="text-[28px] tracking-[-0.84px] font-syne font-normal text-[#101828]">
-          Slide Presentation
+          {t("dash.title")}
         </h3>
       </div>
       <section className="relative z-10 overflow-visible">
         <h2 className="pb-3.5 font-syne text-base font-medium text-[#333333]">
-          Actions
+          {t("dash.actions")}
         </h2>
         <div className="animate-pulse">
           <ActionShimmer />
@@ -54,7 +58,7 @@ const Loading = () => {
       <section className="relative z-10 mt-12">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-syne text-base font-medium text-[#333333]">
-            Decks
+            {t("dash.decks")}
           </h2>
           <div className="h-8 w-8 rounded-full bg-gray-100 animate-pulse" />
         </div>

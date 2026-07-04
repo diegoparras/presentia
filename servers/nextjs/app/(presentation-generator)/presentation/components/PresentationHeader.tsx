@@ -568,7 +568,7 @@ const PresentationHeader = ({
                 className="flex  items-center gap-[7px] px-[18px] py-[11px] rounded-[53px] text-sm font-semibold text-[#101323]"
                 style={{
                   background:
-                    "linear-gradient(270deg, #EFE3C2 2.4%, #F2E8D2 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+                    "linear-gradient(270deg, #F5D9C2 2.4%, #F7E4D3 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
                 }}
                 disabled={isExporting || isStreaming === true}
               >

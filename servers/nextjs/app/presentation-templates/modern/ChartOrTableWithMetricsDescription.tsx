@@ -116,7 +116,7 @@ const defaultColors = [
   "#10b981",
   "#ef4444",
   "#a21caf",
-  "#b58a2a",
+  "#cf6a2e",
   "#f43f5e",
   "#fbbf24",
   "#14b8a6",

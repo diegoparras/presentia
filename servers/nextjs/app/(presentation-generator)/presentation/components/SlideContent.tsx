@@ -181,7 +181,7 @@ const SlideContent = ({
                   className="generating-slides-background absolute"
                 />
                 <span className="relative z-10 flex items-center  gap-2">
-                  <Sparkles className="h-4 w-4 text-[#8a6812]" />
+                  <Sparkles className="h-4 w-4 text-[#a34618]" />
                   Updating slides...
                 </span>
               </span>
@@ -292,7 +292,7 @@ const SlideContent = ({
                     <button
                       disabled={isUpdating}
                       type="submit"
-                      className={`ml-auto flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#8a6812] to-[#a87f16] px-4 py-2 text-sm font-medium text-white transition-opacity ${
+                      className={`ml-auto flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#a34618] to-[#c2571f] px-4 py-2 text-sm font-medium text-white transition-opacity ${
                         isUpdating
                           ? "cursor-not-allowed opacity-70"
                           : "hover:opacity-90"
@@ -315,7 +315,7 @@ const SlideContent = ({
                       type="button"
                       style={{
                         background:
-                          "linear-gradient(270deg, #EFE3C2 2.4%, #F2E8D2 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+                          "linear-gradient(270deg, #F5D9C2 2.4%, #F7E4D3 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
                       }}
                       className={`flex px-4 py-2.5 items-center justify-center rounded-full border font-syne ${
                         slide?.speaker_note

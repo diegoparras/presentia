@@ -25,6 +25,7 @@ import { setPptGenUploadState } from "@/store/slices/presentationGenUpload";
 import { LanguageType, PresentationConfig, ToneType, VerbosityType } from "../../upload/type";
 import { PresentationGenerationApi } from "../../services/api/presentation-generation";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
 
 const DEFAULT_OUTLINE_CONFIG: PresentationConfig = {
   slides: null,
@@ -72,6 +73,7 @@ const getOutlinesFromResponse = (outline: any): { content: string }[] => {
 };
 
 const OutlinePage: React.FC = () => {
+  const { t } = useI18n();
   const dispatch = useDispatch();
   const { presentation_id, outlines } = useSelector(
     (state: RootState) => state.presentationGeneration
@@ -115,7 +117,7 @@ const OutlinePage: React.FC = () => {
   const outlineStreamFinished =
     activeTab === TABS.OUTLINE &&
     !outlineControlsBusy &&
-    (outlines.length > 0 || streamState.statusMessage === "Outline ready");
+    (outlines.length > 0 || streamState.statusMessage === t("up.outline.status.ready"));
 
   useEffect(() => {
     if (savedConfig) {
@@ -141,7 +143,7 @@ const OutlinePage: React.FC = () => {
   const handleTabChange = (tab: string) => {
     if (tab === TABS.OUTLINE) {
       if (!hasSelectedTemplate) {
-        toast.error("Please select a template first");
+        toast.error(t("up.outline.selectTemplateFirst"));
         return;
       }
 
@@ -178,7 +180,7 @@ const OutlinePage: React.FC = () => {
     }
 
     if (!hasSelectedTemplate) {
-      toast.error("Please select a template first");
+      toast.error(t("up.outline.selectTemplateFirst"));
       return;
     }
 
@@ -187,17 +189,17 @@ const OutlinePage: React.FC = () => {
     }
 
     if (!draftConfig.language) {
-      toast.error("Please select language");
+      toast.error(t("up.outline.selectLanguage"));
       return;
     }
 
     if (documentPaths.length > 0 && draftConfig.language === LanguageType.Auto) {
-      toast.error("Please choose a language before regenerating from documents");
+      toast.error(t("up.outline.langBeforeRegen"));
       return;
     }
 
     if (!draftConfig.prompt.trim() && documentPaths.length === 0) {
-      toast.error("No Prompt or Document Provided");
+      toast.error(t("up.outline.noPromptOrDoc"));
       return;
     }
 
@@ -223,8 +225,8 @@ const OutlinePage: React.FC = () => {
       setActiveTab(TABS.OUTLINE);
     } catch (error: any) {
       console.error("Error regenerating outline", error);
-      toast.error("Outline Error", {
-        description: error.message || "Failed to regenerate outline.",
+      toast.error(t("up.outline.error.title"), {
+        description: error.message || t("up.outline.error.regenFailed"),
       });
     } finally {
       setIsRegeneratingOutline(false);
@@ -299,20 +301,20 @@ const OutlinePage: React.FC = () => {
                   <TabsList className="h-auto w-fit rounded-full border border-[#EDEEEF] bg-white p-1.5 shadow-sm">
                     <TabsTrigger
                       value={TABS.LAYOUTS}
-                      className="relative rounded-full px-5 py-2 text-xs font-medium text-[#2D2D2D] shadow-none data-[state=active]:bg-[#F7F0DE] data-[state=active]:text-[#7E3AF2] data-[state=active]:shadow-none"
+                      className="relative rounded-full px-5 py-2 text-xs font-medium text-[#2D2D2D] shadow-none data-[state=active]:bg-[#FAEEE3] data-[state=active]:text-[#7E3AF2] data-[state=active]:shadow-none"
                     >
-                      Select Template
+                      {t("up.outline.tab.template")}
                     </TabsTrigger>
                     <Separator orientation="vertical" className="mx-1 h-6" />
                     <TabsTrigger
                       value={TABS.OUTLINE}
                       disabled={!isOutlineReady}
                       className={cn(
-                        "rounded-full px-5 py-2 text-xs font-medium text-[#2D2D2D] shadow-none data-[state=active]:bg-[#F7F0DE] data-[state=active]:text-[#7E3AF2] data-[state=active]:shadow-none",
+                        "rounded-full px-5 py-2 text-xs font-medium text-[#2D2D2D] shadow-none data-[state=active]:bg-[#FAEEE3] data-[state=active]:text-[#7E3AF2] data-[state=active]:shadow-none",
                         !isOutlineReady && "cursor-not-allowed opacity-50"
                       )}
                     >
-                      Outline & Content
+                      {t("up.outline.tab.outline")}
                     </TabsTrigger>
                   </TabsList>
                 </div>

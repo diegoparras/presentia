@@ -12,7 +12,7 @@ import Link from "next/link";
 import { getApiUrl } from "@/utils/api";
 import { useI18n } from "@/lib/i18n";
 
-const ACCENT = "#a87f16";
+const ACCENT = "#c2571f";
 
 type TextModel = {
   id: string;
@@ -150,7 +150,7 @@ const ModelsPage = () => {
   const cardClass = (available: boolean, current: boolean) =>
     [
       "relative rounded-xl border bg-white p-4 text-left transition w-full",
-      current ? "" : "hover:border-[#cfa53a]",
+      current ? "" : "hover:border-[#dd7a42]",
       available ? "cursor-pointer" : "opacity-55 cursor-default",
     ].join(" ");
 

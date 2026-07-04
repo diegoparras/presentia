@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { LLMConfig } from "@/types/llm_config";
 import { WEB_SEARCH_PROVIDERS } from "@/utils/providerConstants";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
+import { useI18n } from "@/lib/i18n";
 
 const EXTERNAL_WEB_SEARCH_OPTIONS = [
   "exa",
@@ -37,6 +38,7 @@ const WebSearchProvider = ({
   llmConfig: LLMConfig;
   setLlmConfig: React.Dispatch<React.SetStateAction<LLMConfig>>;
 }) => {
+  const { t } = useI18n();
   const [showApiKey, setShowApiKey] = useState(false);
   const [openProviderSelect, setOpenProviderSelect] = useState(false);
   const isWebSearchEnabled = !!llmConfig.WEB_GROUNDING;
@@ -78,20 +80,20 @@ const WebSearchProvider = ({
         </div>
         <div className="flex flex-col items-start justify-between gap-8 lg:flex-row lg:gap-10">
           <div className="max-w-[300px] shrink-0 pb-2 lg:pb-[20px]">
-            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-[4px] bg-[#F7F0DE]">
-              <Search className="h-7 w-7 text-[#a87f16]" />
+            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-[4px] bg-[#FAEEE3]">
+              <Search className="h-7 w-7 text-[#c2571f]" />
             </div>
             <h3 className="py-2.5 text-xl font-normal text-[#191919]">
-              Web Search Settings
+              {t("set.web.title")}
             </h3>
             <p className="text-sm text-gray-500">
-              Choose a provider to enable web search, or leave it disabled.
+              {t("set.web.desc")}
             </p>
           </div>
           {isWebSearchEnabled && <div className="w-full max-w-[720px] space-y-4">
                 <div className="ml-auto w-[222px]">
                   <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Provider
+                    {t("set.web.provider")}
                   </label>
                   <div className="w-full">
                     <Popover open={openProviderSelect} onOpenChange={setOpenProviderSelect}>
@@ -105,16 +107,16 @@ const WebSearchProvider = ({
                           <span className="truncate text-sm font-medium text-gray-900">
                             {selected
                               ? WEB_SEARCH_PROVIDERS[selected]?.label || selected
-                              : "Select web search provider"}
+                              : t("set.web.selectPh")}
                           </span>
                           <ChevronUp className="h-4 w-4 text-gray-500" />
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="p-0" align="start" style={{ width: "320px" }}>
                         <Command>
-                          <CommandInput placeholder="Search provider..." />
+                          <CommandInput placeholder={t("set.ph.searchProvider")} />
                           <CommandList>
-                            <CommandEmpty>No provider found.</CommandEmpty>
+                            <CommandEmpty>{t("set.noProviderFound")}</CommandEmpty>
                             <CommandGroup>
                               {WEB_SEARCH_PROVIDER_OPTIONS.map((option) => (
                                 <CommandItem
@@ -156,9 +158,8 @@ const WebSearchProvider = ({
                 </div>
 
                 {selected === "auto" && (
-                  <div className="rounded-lg border border-[#D9D6FE] bg-[#F7F0DE] p-3 text-xs text-[#a87f16]">
-                    Model-native web grounding is preferred when available.
-                    Otherwise, external search fallback is used.
+                  <div className="rounded-lg border border-[#D9D6FE] bg-[#FAEEE3] p-3 text-xs text-[#c2571f]">
+                    {t("set.web.autoNote")}
                   </div>
                 )}
 
@@ -217,7 +218,7 @@ const WebSearchProvider = ({
                 {selected && selected !== "auto" && (
                   <div>
                     <label className="mb-2 block text-sm font-medium text-[#4C5554]">
-                      Maximum results
+                      {t("set.web.maxResults")}
                     </label>
                     <input
                       type="number"

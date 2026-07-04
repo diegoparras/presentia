@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../ui/collapsible';
@@ -26,6 +28,7 @@ import OpenAICompatibleImageFields from '@/components/OpenAICompatibleImageField
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import Image from 'next/image';
 import OllamaConfig from '../OllamaConfig';
+import { useI18n } from "@/lib/i18n";
 
 const MANUAL_MODEL_PROVIDERS = new Set(["vertex", "azure", "bedrock"]);
 const LOCAL_PROVIDERS = ["ollama", "lmstudio"];
@@ -59,6 +62,7 @@ const PresentonMode = ({
     setProviderStep: (step: number) => void,
 }) => {
     const pathname = usePathname();
+    const { t } = useI18n();
     const userConfigState = useSelector((state: RootState) => state.userConfig);
     const [openProviderSelect, setOpenProviderSelect] = useState(false);
     const [textProviderTab, setTextProviderTab] = useState<TextProviderTab>("chatgpt");
@@ -194,30 +198,34 @@ const PresentonMode = ({
     const currentFireworksUrl = (llmConfig.FIREWORKS_BASE_URL || '').trim();
     const currentTogetherUrl = (llmConfig.TOGETHER_BASE_URL || '').trim();
     const currentOllamaUrl = llmConfig.OLLAMA_URL || '';
+    // Nombres de marca: no se traducen; solo el patrón de la etiqueta.
     const providerApiKeyLabel =
         llmConfig.LLM === 'custom'
-            ? 'Custom LLM API Key'
-            : llmConfig.LLM === 'deepseek'
-                ? 'DeepSeek API Key'
-            : llmConfig.LLM === 'vertex'
-                ? 'Vertex API Key'
-                : llmConfig.LLM === 'azure'
-                    ? 'Azure OpenAI API Key'
-                    : llmConfig.LLM === 'bedrock'
-                        ? 'Bedrock API Key (optional)'
-                    : llmConfig.LLM === 'openrouter'
-                        ? 'OpenRouter API Key'
-                        : llmConfig.LLM === 'fireworks'
-                            ? 'Fireworks API Key'
-                            : llmConfig.LLM === 'together'
-                                ? 'Together API Key'
-                        : llmConfig.LLM === 'cerebras'
-                            ? 'Cerebras API Key'
-                            : llmConfig.LLM === 'litellm'
-                                ? 'LiteLLM API key (optional)'
-                                : llmConfig.LLM === 'lmstudio'
-                                    ? 'LM Studio API key (optional)'
-                                : `${llmConfig.LLM} API Key`;
+            ? t("ob.apiKey.custom")
+            : llmConfig.LLM === 'bedrock'
+                ? t("ob.apiKey.optional", { provider: 'Bedrock' })
+                : llmConfig.LLM === 'litellm'
+                    ? t("ob.apiKey.optional", { provider: 'LiteLLM' })
+                    : llmConfig.LLM === 'lmstudio'
+                        ? t("ob.apiKey.optional", { provider: 'LM Studio' })
+                        : t("ob.apiKey.generic", {
+                            provider:
+                                llmConfig.LLM === 'deepseek'
+                                    ? 'DeepSeek'
+                                    : llmConfig.LLM === 'vertex'
+                                        ? 'Vertex'
+                                        : llmConfig.LLM === 'azure'
+                                            ? 'Azure OpenAI'
+                                            : llmConfig.LLM === 'openrouter'
+                                                ? 'OpenRouter'
+                                                : llmConfig.LLM === 'fireworks'
+                                                    ? 'Fireworks'
+                                                    : llmConfig.LLM === 'together'
+                                                        ? 'Together'
+                                                        : llmConfig.LLM === 'cerebras'
+                                                            ? 'Cerebras'
+                                                            : llmConfig.LLM || '',
+                        });
 
     useEffect(() => {
         if (currentDeepseekBaseUrl) setDeepseekAdvancedOpen(true);
@@ -408,20 +416,20 @@ const PresentonMode = ({
             } else {
                 const message = await getApiErrorMessage(
                     response,
-                    `The server could not list ${LLM_PROVIDERS[llmConfig.LLM!]?.label} models. Check your API key or endpoint and try again.`
+                    t("ob.models.listProviderError", { provider: LLM_PROVIDERS[llmConfig.LLM!]?.label || "" })
                 );
                 console.error('Failed to fetch models');
                 setAvailableModels([]);
                 setModelsChecked(true);
-                notify.error("Could not load models", message);
+                notify.error(t("ob.notify.loadModelsError"), message);
             }
         } catch (error) {
             console.error('Error fetching models:', error);
             notify.error(
-                llmConfig.LLM === "ollama" ? "Could not connect to Ollama" : "Could not load models",
+                llmConfig.LLM === "ollama" ? t("ob.notify.ollamaConnectError") : t("ob.notify.loadModelsError"),
                 error instanceof Error
                     ? error.message
-                    : "The server could not list models. Check your API key or endpoint and try again."
+                    : t("ob.models.listGenericError")
             );
             setAvailableModels([]);
             setModelsChecked(true);
@@ -438,7 +446,7 @@ const PresentonMode = ({
             return (
                 <div className="w-full ">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                        DALL·E 3 Image Quality
+                        {t("ob.image.dalleQuality")}
                     </label>
                     <div className="">
                         <Select value={llmConfig.DALL_E_3_QUALITY || 'standard'} onValueChange={(value) => {
@@ -452,7 +460,7 @@ const PresentonMode = ({
                             }));
                         }}>
                             <SelectTrigger className="w-full h-12 px-4 py-4 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors hover:border-gray-400 justify-between">
-                                <SelectValue placeholder="Select a quality" />
+                                <SelectValue placeholder={t("ob.image.selectQuality")} />
                             </SelectTrigger>
                             <SelectContent>
                                 {DALLE_3_QUALITY_OPTIONS.map((option) => (
@@ -470,7 +478,7 @@ const PresentonMode = ({
             return (
                 <div className="w-full">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                        GPT Image 1.5 Quality
+                        {t("ob.image.gptQuality")}
                     </label>
                     <div className="">
                         <Select
@@ -489,7 +497,7 @@ const PresentonMode = ({
                             <SelectTrigger
 
                                 className="w-full h-12 px-4 py-4 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors hover:border-gray-400 justify-between">
-                                <SelectValue placeholder="Select a quality" />
+                                <SelectValue placeholder={t("ob.image.selectQuality")} />
                             </SelectTrigger>
                             <SelectContent>
                                 {GPT_IMAGE_1_5_QUALITY_OPTIONS.map((option) => (
@@ -515,18 +523,18 @@ const PresentonMode = ({
             <div className="col-span-full rounded-[10px] border border-[#EDEEEF] bg-[#FBFBFD] p-4 shadow-[0_12px_28px_rgba(16,19,35,0.04)]">
                 <div className="mb-4 flex items-start justify-between gap-3">
                     <div>
-                        <p className="text-sm font-semibold text-[#191919]">{provider.label} setup</p>
+                        <p className="text-sm font-semibold text-[#191919]">{t("ob.providerSetup", { provider: provider.label })}</p>
                         <p className="mt-1 text-xs leading-5 text-gray-500">
-                            Configure the selected image provider before continuing.
+                            {t("ob.image.configureBefore")}
                         </p>
                     </div>
                     {provider.getApiKeyUrl && (
                         <a
                             href={provider.getApiKeyUrl}
                             target="_blank"
-                            className="flex shrink-0 items-center gap-1 rounded-full border border-[#EDEEEF] bg-white px-3 py-1.5 text-xs font-medium text-[#666666] transition-colors hover:border-[#D9D6FE] hover:text-[#a87f16]"
+                            className="flex shrink-0 items-center gap-1 rounded-full border border-[#EDEEEF] bg-white px-3 py-1.5 text-xs font-medium text-[#666666] transition-colors hover:border-[#D9D6FE] hover:text-[#c2571f]"
                         >
-                            Get API Key <ArrowUpRight className="h-3.5 w-3.5" />
+                            {t("ob.getApiKey")} <ArrowUpRight className="h-3.5 w-3.5" />
                         </a>
                     )}
                 </div>
@@ -561,12 +569,12 @@ const PresentonMode = ({
                         <>
                             <div>
                                 <label className="mb-2 block text-sm font-medium text-gray-700">
-                                    ComfyUI Server URL
+                                    {t("ob.comfyui.url")}
                                 </label>
                                 <input
                                     type="text"
                                     placeholder="http://192.168.1.7:8188"
-                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none transition-colors focus:border-[#a87f16] focus:ring-2 focus:ring-[#a87f16]/20"
+                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
                                     value={llmConfig.COMFYUI_URL || ""}
                                     onChange={(e) => {
                                         setLlmConfig(prev => ({
@@ -578,11 +586,11 @@ const PresentonMode = ({
                             </div>
                             <div>
                                 <label className="mb-2 block text-sm font-medium text-gray-700">
-                                    Workflow JSON
+                                    {t("ob.comfyui.workflow")}
                                 </label>
                                 <textarea
-                                    placeholder='Paste your ComfyUI workflow JSON here (export via "Export (API)" in ComfyUI)'
-                                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-mono text-xs outline-none transition-colors focus:border-[#a87f16] focus:ring-2 focus:ring-[#a87f16]/20"
+                                    placeholder={t("ob.comfyui.workflowPh")}
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-mono text-xs outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
                                     rows={3}
                                     value={llmConfig.COMFYUI_WORKFLOW || ""}
                                     onChange={(e) => {
@@ -598,12 +606,12 @@ const PresentonMode = ({
                         <>
                             <div>
                                 <label className="mb-2 block text-sm font-medium text-gray-700">
-                                    Open WebUI URL
+                                    {t("ob.openwebui.url")}
                                 </label>
                                 <input
                                     type="text"
                                     placeholder="http://localhost:3000/api/v1"
-                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none transition-colors focus:border-[#a87f16] focus:ring-2 focus:ring-[#a87f16]/20"
+                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
                                     value={llmConfig.OPEN_WEBUI_IMAGE_URL || ""}
                                     onChange={(e) => {
                                         setLlmConfig(prev => ({
@@ -615,13 +623,13 @@ const PresentonMode = ({
                             </div>
                             <div>
                                 <label className="mb-2 block text-sm font-medium text-gray-700">
-                                    API Key (optional)
+                                    {t("ob.apiKeyOptionalShort")}
                                 </label>
                                 <div className="relative">
                                     <input
                                         type={showApiKey ? "text" : "password"}
-                                        placeholder="API key"
-                                        className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-12 outline-none transition-colors focus:border-[#a87f16] focus:ring-2 focus:ring-[#a87f16]/20"
+                                        placeholder={t("ob.apiKeyPh")}
+                                        className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-12 outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
                                         value={llmConfig.OPEN_WEBUI_IMAGE_API_KEY || ""}
                                         onChange={(e) => {
                                             setLlmConfig(prev => ({
@@ -648,8 +656,8 @@ const PresentonMode = ({
                             <div className="relative">
                                 <input
                                     type={showApiKey ? "text" : "password"}
-                                    placeholder={`Enter your ${provider.apiKeyFieldLabel}`}
-                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-12 outline-none transition-colors focus:border-[#a87f16] focus:ring-2 focus:ring-[#a87f16]/20"
+                                    placeholder={t("ob.enterField", { label: provider.apiKeyFieldLabel || "" })}
+                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-12 outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
                                     value={getFieldValue(provider.apiKeyField)}
                                     onChange={(e) => {
                                         setLlmConfig((prev) => ({
@@ -701,7 +709,7 @@ const PresentonMode = ({
                         provider: "codex",
                         validation_error: "Please sign in to ChatGPT to continue.",
                     });
-                    notify.error("Sign in required", "Please sign in to ChatGPT to continue.");
+                    notify.error(t("ob.notify.signInRequired"), t("ob.notify.signInChatGpt"));
                     return;
                 }
             }
@@ -713,7 +721,7 @@ const PresentonMode = ({
                     web_search_provider: llmConfig.WEB_SEARCH_PROVIDER || "auto",
                     validation_error: validationError,
                 });
-                notify.warning("Cannot save yet", validationError);
+                notify.warning(t("ob.notify.cannotSaveYet"), validationError);
                 return;
             }
             setSavingConfig(true);
@@ -724,7 +732,10 @@ const PresentonMode = ({
                 !(await isOllamaModelAvailable(llmConfig.OLLAMA_MODEL, currentOllamaUrl))
             ) {
                 throw new Error(
-                    `The selected model "${llmConfig.OLLAMA_MODEL}" is not available at ${currentOllamaUrl || "the default Ollama URL"}. Check models and select an available model.`
+                    t("ob.ollama.modelUnavailable", {
+                        model: llmConfig.OLLAMA_MODEL,
+                        url: currentOllamaUrl || t("ob.ollama.defaultUrl"),
+                    })
                 );
             }
             await handleSaveLLMConfig(llmConfig);
@@ -763,7 +774,7 @@ const PresentonMode = ({
                 web_search_provider: llmConfig.WEB_GROUNDING ? (llmConfig.WEB_SEARCH_PROVIDER || "auto") : "disabled",
             });
 
-            notify.success("Configuration saved", "Your configuration was saved successfully.");
+            notify.success(t("ob.notify.configSaved"), t("ob.notify.configSavedDesc"));
             trackEvent(MixpanelEvent.Onboarding_Step_Continued, {
                 from_step: "web_search",
                 to_step: "finish",
@@ -774,7 +785,7 @@ const PresentonMode = ({
             setStep(3)
             // router.push("/upload");
         } catch (error) {
-            notify.error("Could not save configuration", error instanceof Error ? error.message : "Failed to save configuration");
+            notify.error(t("ob.notify.configSaveError"), error instanceof Error ? error.message : t("ob.notify.configSaveErrorDesc"));
 
         }
         finally {
@@ -786,7 +797,7 @@ const PresentonMode = ({
         if (llmConfig.LLM === 'codex') {
             const isAuthenticated = await checkCurrentAuthStatus();
             if (!isAuthenticated) {
-                notify.error("Sign in required", "Please sign in to ChatGPT to continue.");
+                notify.error(t("ob.notify.signInRequired"), t("ob.notify.signInChatGpt"));
                 return false;
             }
         }
@@ -801,7 +812,7 @@ const PresentonMode = ({
                 provider: llmConfig.LLM || "",
                 validation_error: validationError,
             });
-            notify.warning("Cannot continue yet", validationError);
+            notify.warning(t("ob.notify.cannotContinueYet"), validationError);
             return false;
         }
         return true;
@@ -830,7 +841,7 @@ const PresentonMode = ({
                     image_provider: llmConfig.IMAGE_PROVIDER || "",
                     validation_error: validationError,
                 });
-                notify.warning("Cannot continue yet", validationError);
+                notify.warning(t("ob.notify.cannotContinueYet"), validationError);
                 return;
             }
             trackEvent(MixpanelEvent.Onboarding_Step_Continued, {
@@ -867,7 +878,7 @@ const PresentonMode = ({
         return (
             <div className="col-span-full rounded-[10px] border border-[#EDEEEF] bg-[#FBFBFD] p-4 shadow-[0_12px_28px_rgba(16,19,35,0.04)]">
                 <div className="mb-4">
-                    <p className="text-sm font-semibold text-[#191919]">{selectedWebProvider.label} setup</p>
+                    <p className="text-sm font-semibold text-[#191919]">{t("ob.providerSetup", { provider: selectedWebProvider.label })}</p>
                     <p className="mt-1 text-xs leading-5 text-gray-500">
                         {selectedWebProvider.description}
                     </p>
@@ -875,8 +886,8 @@ const PresentonMode = ({
 
                 <div className="space-y-4">
                     {selectedWebProvider.value === "auto" && (
-                        <div className="rounded-lg border border-[#D9D6FE] bg-[#F7F0DE] p-3 text-xs leading-5 text-[#a87f16]">
-                            Presentia will use model-native web grounding when available. If the selected text model does not support it, web search stays off until you choose an external provider.
+                        <div className="rounded-lg border border-[#D9D6FE] bg-[#FAEEE3] p-3 text-xs leading-5 text-[#c2571f]">
+                            {t("ob.web.autoNote")}
                         </div>
                     )}
 
@@ -889,7 +900,7 @@ const PresentonMode = ({
                                 type="url"
                                 value={getFieldValue(selectedWebProvider.urlField)}
                                 onChange={(event) => setLlmConfig(prev => ({ ...prev, [selectedWebProvider.urlField!]: event.target.value }))}
-                                className="h-12 w-full rounded-lg border border-gray-300 px-4 outline-none transition-colors focus:border-[#a87f16] focus:ring-2 focus:ring-[#a87f16]/20"
+                                className="h-12 w-full rounded-lg border border-gray-300 px-4 outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
                                 placeholder="https://search.example.com"
                             />
                         </div>
@@ -905,8 +916,8 @@ const PresentonMode = ({
                                     type={showApiKey ? "text" : "password"}
                                     value={getFieldValue(selectedWebProvider.apiKeyField)}
                                     onChange={(event) => setLlmConfig(prev => ({ ...prev, [selectedWebProvider.apiKeyField!]: event.target.value }))}
-                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 pr-12 outline-none transition-colors focus:border-[#a87f16] focus:ring-2 focus:ring-[#a87f16]/20"
-                                    placeholder={`Enter your ${selectedWebProvider.apiKeyLabel}`}
+                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 pr-12 outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
+                                    placeholder={t("ob.enterField", { label: selectedWebProvider.apiKeyLabel || "" })}
                                 />
                                 <button
                                     type="button"
@@ -922,7 +933,7 @@ const PresentonMode = ({
                     {selectedWebProvider.value !== "auto" && (
                         <div>
                             <label className="mb-2 block text-sm font-medium text-gray-700">
-                                Maximum results
+                                {t("ob.web.maxResults")}
                             </label>
                             <input
                                 type="number"
@@ -930,7 +941,7 @@ const PresentonMode = ({
                                 max={10}
                                 value={llmConfig.WEB_SEARCH_MAX_RESULTS || "5"}
                                 onChange={(event) => setLlmConfig(prev => ({ ...prev, WEB_SEARCH_MAX_RESULTS: event.target.value }))}
-                                className="h-12 w-full rounded-lg border border-gray-300 px-4 outline-none transition-colors focus:border-[#a87f16] focus:ring-2 focus:ring-[#a87f16]/20"
+                                className="h-12 w-full rounded-lg border border-gray-300 px-4 outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
                             />
                         </div>
                     )}
@@ -1019,23 +1030,23 @@ const PresentonMode = ({
 
     return (
         <div className='w-full max-w-[660px] font-syne pb-10'>
-            <p className='px-2.5 py-0.5 w-fit text-[#a87f16] rounded-[50px]  border border-[#EDEEEF] text-[10px] font-medium mb-5 font-syne'>PRESENTON</p>
+            <p className='px-2.5 py-0.5 w-fit text-[#c2571f] rounded-[50px]  border border-[#EDEEEF] text-[10px] font-medium mb-5 font-syne'>PRESENTIA</p>
             <div className=''>
 
                 <h2 className='mb-4 text-black text-[26px] font-normal font-unbounded '>
-                    {providerStep === 1 ? "Choose your text provider" : providerStep === 2 ? "Choose your image provider" : "Configure web search"}
+                    {providerStep === 1 ? t("ob.step1.title") : providerStep === 2 ? t("ob.step2.title") : t("ob.step3.title")}
                 </h2>
                 <p className='text-[#000000CC] text-xl font-normal font-syne'>
                     {providerStep === 1
-                        ? "Start with ChatGPT, run a local model, or connect another AI provider."
+                        ? t("ob.step1.subtitle")
                         : providerStep === 2
-                            ? "Choose how Presentia creates visuals, or continue without image generation."
-                            : "Add current web context to presentations, or continue with web search disabled."}
+                            ? t("ob.step2.subtitle")
+                            : t("ob.step3.subtitle")}
                 </p>
             </div>
             <div className='flex items-center gap-2 bg-[#F0F3F9B2] rounded-[8px]  px-6 py-2.5 my-[54px]'>
                 <Info className='w-4 h-4 fill-[#003399] stroke-white' />
-                <p className='text-sm text-[#5F6062] font-medium'>Runs locally on your device. Your API keys and generation setup stay on your machine.</p>
+                <p className='text-sm text-[#5F6062] font-medium'>{t("ob.localNote")}</p>
             </div>
 
             {providerStep === 1 && <>
@@ -1053,9 +1064,9 @@ const PresentonMode = ({
                     </div>
                     <div className='w-full'>
 
-                        <h3 className="text-xl font-normal text-[#191919] pb-1.5">Text Generation Settings</h3>
+                        <h3 className="text-xl font-normal text-[#191919] pb-1.5">{t("ob.text.title")}</h3>
                         <p className=" text-sm  text-gray-500">
-                            Choosing where text content comes from
+                            {t("ob.text.desc")}
                         </p>
                     </div>
                 </div>
@@ -1071,19 +1082,19 @@ const PresentonMode = ({
                         </TabsTrigger>
                         <TabsTrigger value="local" className="h-12 gap-2 rounded-[8px] border border-transparent px-4 text-sm font-semibold text-[#5F6062] transition-all hover:text-[#191919] data-[state=active]:border-[#D9D6FE] data-[state=active]:bg-white data-[state=active]:text-[#191919] data-[state=active]:shadow-[0_8px_24px_rgba(16,19,35,0.08)]">
                             <Laptop className="h-4 w-4" />
-                            Local
+                            {t("ob.tab.local")}
                         </TabsTrigger>
                         <TabsTrigger value="other" className="h-12 gap-2 rounded-[8px] border border-transparent px-4 text-sm font-semibold text-[#5F6062] transition-all hover:text-[#191919] data-[state=active]:border-[#D9D6FE] data-[state=active]:bg-white data-[state=active]:text-[#191919] data-[state=active]:shadow-[0_8px_24px_rgba(16,19,35,0.08)]">
                             <Blocks className="h-4 w-4" />
-                            AI Providers
+                            {t("ob.tab.providers")}
                         </TabsTrigger>
                     </TabsList>
                     <p className="mt-3 text-xs leading-relaxed text-gray-500">
                         {textProviderTab === "chatgpt"
-                            ? "Connect your ChatGPT account and choose a supported model."
+                            ? t("ob.tab.chatgptHint")
                             : textProviderTab === "local"
-                                ? "Run models on your machine with Ollama or LM Studio."
-                                : "Connect hosted AI providers using an API key or custom endpoint."}
+                                ? t("ob.tab.localHint")
+                                : t("ob.tab.otherHint")}
                     </p>
                     <TabsContent value="chatgpt" className="mt-6">
                         <CodexConfig
@@ -1099,7 +1110,7 @@ const PresentonMode = ({
                         />
                         {chatGptAuthenticated && (llmConfig.LLM === "codex" || llmConfig.LLM === "chatgpt") && (
                             <div className="mt-5">
-                                <label className="mb-2 block text-sm font-medium text-gray-700">ChatGPT model</label>
+                                <label className="mb-2 block text-sm font-medium text-gray-700">{t("ob.chatgptModel")}</label>
                                 <Select
                                     value={llmConfig.CODEX_MODEL || ""}
                                     onValueChange={(value) => {
@@ -1112,7 +1123,7 @@ const PresentonMode = ({
                                     }}
                                 >
                                     <SelectTrigger className="h-12 w-full rounded-lg border-gray-300">
-                                        <SelectValue placeholder="Select a model" />
+                                        <SelectValue placeholder={t("ob.selectModel")} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {CODEX_MODELS.map((model) => (
@@ -1134,7 +1145,7 @@ const PresentonMode = ({
                                         onClick={() => handleProviderChange(value)}
                                         className={cn(
                                             "flex items-center gap-3 rounded-xl border p-4 text-left transition-colors hover:bg-[#F7F6F9]",
-                                            llmConfig.LLM === value ? "border-[#a87f16] bg-[#F7F0DE]" : "border-[#EDEEEF]"
+                                            llmConfig.LLM === value ? "border-[#c2571f] bg-[#FAEEE3]" : "border-[#EDEEEF]"
                                         )}
                                     >
                                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white border border-[#EDEEEF]">
@@ -1154,7 +1165,7 @@ const PresentonMode = ({
                     <div className="flex w-full flex-col justify-start">
 
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Select Text Provider
+                            {t("ob.selectTextProvider")}
                         </label>
                         <Popover
                             open={openProviderSelect}
@@ -1172,7 +1183,7 @@ const PresentonMode = ({
                                             {llmConfig.LLM && OTHER_PROVIDER_VALUES.has(llmConfig.LLM)
                                                 ? LLM_PROVIDERS[llmConfig.LLM]
                                                     ?.label || llmConfig.LLM
-                                                : "Select text provider"}
+                                                : t("ob.selectTextProvider")}
                                         </span>
                                     </div>
                                     <ChevronUp className="w-4 h-4 text-gray-500" />
@@ -1184,9 +1195,9 @@ const PresentonMode = ({
 
                             >
                                 <Command>
-                                    <CommandInput placeholder="Search provider..." />
+                                    <CommandInput placeholder={t("ob.searchProvider")} />
                                     <CommandList className='hide-scrollbar'>
-                                        <CommandEmpty>No provider found.</CommandEmpty>
+                                        <CommandEmpty>{t("ob.noProviderFound")}</CommandEmpty>
                                         <CommandGroup >
                                             {OTHER_PROVIDERS.map(
                                                 (provider, index) => (
@@ -1263,7 +1274,7 @@ const PresentonMode = ({
                                         <label className="block text-sm font-medium capitalize text-gray-700 ">
                                             {providerApiKeyLabel}
                                         </label>
-                                        {llmConfig.LLM && LLM_PROVIDERS[llmConfig.LLM!]?.getApiKeyUrl && <a href={LLM_PROVIDERS[llmConfig.LLM!]?.getApiKeyUrl || ""} target='_blank' className='text-[#666666] text-xs font-normal flex items-center gap-1'>Get API Key <ArrowUpRight className='w-3.5 h-3.5' /></a>}
+                                        {llmConfig.LLM && LLM_PROVIDERS[llmConfig.LLM!]?.getApiKeyUrl && <a href={LLM_PROVIDERS[llmConfig.LLM!]?.getApiKeyUrl || ""} target='_blank' className='text-[#666666] text-xs font-normal flex items-center gap-1'>{t("ob.getApiKey")} <ArrowUpRight className='w-3.5 h-3.5' /></a>}
                                     </div>
 
                                     <div className="relative">
@@ -1275,7 +1286,7 @@ const PresentonMode = ({
                                                 [currentApiKeyField]: e.target.value
                                             }))}
                                             className="w-full px-2 py-3 outline-none border  border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                                            placeholder={`Enter your ${providerApiKeyLabel}`}
+                                            placeholder={t("ob.enterField", { label: providerApiKeyLabel })}
                                         />
                                         <button
                                             type="button"
@@ -1296,7 +1307,7 @@ const PresentonMode = ({
                                         CUSTOM_LLM_URL: e.target.value
                                     }))}
                                     className="w-full mt-2 px-2 py-3 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                                    placeholder="OpenAI-compatible URL"
+                                    placeholder={t("ob.customUrlPh")}
                                 />
                             )}
                             {llmConfig.LLM === 'deepseek' && (
@@ -1310,7 +1321,7 @@ const PresentonMode = ({
                                             type="button"
                                             className="flex w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-gray-200 bg-[#F9F9FA] px-3 py-2.5 text-left text-sm font-medium text-gray-800 transition-colors hover:bg-gray-100"
                                         >
-                                            <span>Advanced settings</span>
+                                            <span>{t("ob.advancedSettings")}</span>
                                             <ChevronDown
                                                 className={cn(
                                                     "h-4 w-4 shrink-0 text-gray-600 transition-transform duration-200",
@@ -1323,7 +1334,7 @@ const PresentonMode = ({
                                     <CollapsibleContent className="space-y-3 overflow-hidden">
                                         <div className="space-y-1.5 border-t border-gray-100 pt-3">
                                             <label className="block text-sm font-medium text-gray-700">
-                                                DeepSeek base URL (optional)
+                                                {t("ob.baseUrlOptional", { provider: "DeepSeek" })}
                                             </label>
                                             <input
                                                 type="text"
@@ -1342,7 +1353,7 @@ const PresentonMode = ({
                             {llmConfig.LLM === 'litellm' && (
                                 <>
                                     <label className="mt-3 block text-sm font-medium text-gray-700 mb-2">
-                                        LiteLLM base URL
+                                        {t("ob.baseUrl", { provider: "LiteLLM" })}
                                     </label>
                                     <input
                                         type="text"
@@ -1352,17 +1363,17 @@ const PresentonMode = ({
                                             LITELLM_BASE_URL: e.target.value
                                         }))}
                                         className="w-full px-2 py-3 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
-                                        placeholder="e.g. http://host.docker.internal:4000/v1"
+                                        placeholder={t("ob.litellmUrlPh")}
                                     />
                                     <p className="mt-1.5 text-xs text-gray-500">
-                                        OpenAI-compatible root (usually ends with /v1); /v1 is added if omitted. API key above is optional for local proxies with no auth.
+                                        {t("ob.litellmHint")}
                                     </p>
                                 </>
                             )}
                             {llmConfig.LLM === 'lmstudio' && (
                                 <>
                                     <label className="mt-3 block text-sm font-medium text-gray-700 mb-2">
-                                        LM Studio base URL
+                                        {t("ob.baseUrl", { provider: "LM Studio" })}
                                     </label>
                                     <input
                                         type="text"
@@ -1375,14 +1386,14 @@ const PresentonMode = ({
                                         placeholder="http://localhost:1234/v1"
                                     />
                                     <p className="mt-1.5 text-xs text-gray-500">
-                                        Defaults to localhost:1234/v1, and /v1 is added automatically when omitted.
+                                        {t("ob.lmstudioHint")}
                                     </p>
                                 </>
                             )}
                             {llmConfig.LLM === 'fireworks' && (
                                 <>
                                     <label className="mt-3 block text-sm font-medium text-gray-700 mb-2">
-                                        Fireworks base URL (optional)
+                                        {t("ob.baseUrlOptional", { provider: "Fireworks" })}
                                     </label>
                                     <input
                                         type="text"
@@ -1399,7 +1410,7 @@ const PresentonMode = ({
                             {llmConfig.LLM === 'together' && (
                                 <>
                                     <label className="mt-3 block text-sm font-medium text-gray-700 mb-2">
-                                        Together base URL (optional)
+                                        {t("ob.baseUrlOptional", { provider: "Together" })}
                                     </label>
                                     <input
                                         type="text"
@@ -1451,10 +1462,10 @@ const PresentonMode = ({
                                 {modelsLoading ? (
                                     <span className="flex items-center justify-center gap-2">
                                         <Loader2 className="w-4 h-4 animate-spin" />
-                                        Checking for models...
+                                        {t("ob.checkingModels")}
                                     </span>
                                 ) : (
-                                    "Validate & Load Models"
+                                    t("ob.validateLoadModels")
                                 )}
                             </button>
                         )}
@@ -1470,7 +1481,7 @@ const PresentonMode = ({
                         <div className="w-full">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    {`Select ${LLM_PROVIDERS[llmConfig.LLM!]?.label} Model`}
+                                    {t("ob.selectProviderModel", { provider: LLM_PROVIDERS[llmConfig.LLM!]?.label || "" })}
                                 </label>
                                 <div className="w-full">
                                     <Popover
@@ -1494,7 +1505,7 @@ const PresentonMode = ({
                                                         currentModel
                                                             ? availableModels.find(model => model === currentModel) || currentModel
                                                             :
-                                                            "Select a model"
+                                                            t("ob.selectModel")
                                                     }
                                                 </span>
 
@@ -1507,9 +1518,9 @@ const PresentonMode = ({
                                             style={{ width: "var(--radix-popover-trigger-width)" }}
                                         >
                                             <Command>
-                                                <CommandInput placeholder="Search models..." />
+                                                <CommandInput placeholder={t("ob.searchModels")} />
                                                 <CommandList>
-                                                    <CommandEmpty>No model found.</CommandEmpty>
+                                                    <CommandEmpty>{t("ob.noModelFound")}</CommandEmpty>
                                                     <CommandGroup>
                                                         {availableModels.map((model, index) => (
                                                             <CommandItem
@@ -1564,7 +1575,7 @@ const PresentonMode = ({
             {providerStep === 2 && <>
             {/* Image Provider */}
             <div className={`p-3 border border-[#EDEEEF] rounded-[11px] relative mt-5 bg-white ${llmConfig.DISABLE_IMAGE_GENERATION ? "bg-[#F9FAFB]" : ""}`}>
-                <ToolTip content="Enable/Disable Image Generation" className='flex justify-end items-center absolute top-3 right-3'>
+                <ToolTip content={t("ob.image.toggleTip")} className='flex justify-end items-center absolute top-3 right-3'>
                     <div className='flex justify-end items-center'>
                         <Switch
                             checked={!llmConfig.DISABLE_IMAGE_GENERATION}
@@ -1585,15 +1596,15 @@ const PresentonMode = ({
                 </ToolTip>
                 <div className={` flex items-center gap-6 ${llmConfig.DISABLE_IMAGE_GENERATION ? "" : "mb-[42px]"}`}>
                     <div className='w-[74px] h-[74px] px-[13.5px] py-[14.2px] rounded-[4px] flex items-center justify-center'
-                        style={{ backgroundColor: '#F7F0DE' }}
+                        style={{ backgroundColor: '#FAEEE3' }}
                     >
                         <img src="/image-markup.svg" className='w-full h-full object-cover' alt='image-markup' />
                     </div>
                     <div>
 
-                        <h3 className="text-xl font-normal text-[#191919] ">Image Generation Settings</h3>
+                        <h3 className="text-xl font-normal text-[#191919] ">{t("ob.image.title")}</h3>
                         <p className=" text-sm  text-gray-500">
-                            Choosing where images come from
+                            {t("ob.image.desc")}
                         </p>
                     </div>
                 </div>
@@ -1602,7 +1613,7 @@ const PresentonMode = ({
                         {/* Image Provider Selection */}
                         <div className="w-full">
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Select Image Provider
+                                {t("ob.selectImageProvider")}
                             </label>
                             <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-3">
                                 {imageProviderRows.map((row, rowIndex) => (
@@ -1621,7 +1632,7 @@ const PresentonMode = ({
                                                 className={cn(
                                                     "group flex min-h-24 flex-col items-center justify-center gap-2 rounded-[10px] border p-3 text-center transition-all hover:border-[#D9D6FE] hover:bg-[#F7F6F9]",
                                                     llmConfig.IMAGE_PROVIDER === provider.value
-                                                        ? "border-[#a87f16] bg-[#F7F0DE] shadow-[0_10px_24px_rgba(122,90,248,0.12)]"
+                                                        ? "border-[#c2571f] bg-[#FAEEE3] shadow-[0_10px_24px_rgba(122,90,248,0.12)]"
                                                         : "border-[#EDEEEF] bg-white"
                                                 )}
                                             >
@@ -1652,7 +1663,7 @@ const PresentonMode = ({
 
             {providerStep === 3 && (
                 <div className={`relative rounded-[11px] border border-[#EDEEEF] p-3 ${llmConfig.WEB_GROUNDING ? "bg-white" : "bg-[#F9FAFB]"}`}>
-                    <ToolTip content="Enable/Disable Web Search" className='absolute right-3 top-3 flex items-center justify-end'>
+                    <ToolTip content={t("ob.web.toggleTip")} className='absolute right-3 top-3 flex items-center justify-end'>
                         <div className='flex items-center justify-end'>
                             <Switch
                                 checked={!!llmConfig.WEB_GROUNDING}
@@ -1671,17 +1682,17 @@ const PresentonMode = ({
                         </div>
                     </ToolTip>
                     <div className="mb-[42px] flex items-center gap-6">
-                        <div className='flex h-[74px] w-[74px] items-center justify-center rounded-[4px] bg-[#F7F0DE]'>
-                            <Search className="h-9 w-9 text-[#a87f16]" />
+                        <div className='flex h-[74px] w-[74px] items-center justify-center rounded-[4px] bg-[#FAEEE3]'>
+                            <Search className="h-9 w-9 text-[#c2571f]" />
                         </div>
                         <div>
-                            <h3 className="text-xl font-normal text-[#191919]">Web Search Settings</h3>
-                            <p className="text-sm text-gray-500">Bring current information into generated presentations</p>
+                            <h3 className="text-xl font-normal text-[#191919]">{t("ob.web.title")}</h3>
+                            <p className="text-sm text-gray-500">{t("ob.web.desc")}</p>
                         </div>
                     </div>
                     {llmConfig.WEB_GROUNDING && <div className="space-y-4">
                             <div>
-                                <label className="mb-2 block text-sm font-medium text-gray-700">Select Web Search Provider</label>
+                                <label className="mb-2 block text-sm font-medium text-gray-700">{t("ob.selectWebProvider")}</label>
                                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                                     {webSearchProviderRows.map((row, rowIndex) => (
                                         <React.Fragment key={`web-search-provider-row-${rowIndex}`}>
@@ -1703,7 +1714,7 @@ const PresentonMode = ({
                                                     className={cn(
                                                         "group flex min-h-32 flex-col items-center justify-center gap-2 rounded-[10px] border p-3 text-center transition-all hover:border-[#D9D6FE] hover:bg-[#F7F6F9]",
                                                         selectedWebProvider?.value === provider.value
-                                                            ? "border-[#a87f16] bg-[#F7F0DE] shadow-[0_10px_24px_rgba(122,90,248,0.12)]"
+                                                            ? "border-[#c2571f] bg-[#FAEEE3] shadow-[0_10px_24px_rgba(122,90,248,0.12)]"
                                                             : "border-[#EDEEEF] bg-white"
                                                     )}
                                                 >
@@ -1742,12 +1753,12 @@ const PresentonMode = ({
 
                     disabled={savingConfig}
                     onClick={handleContinue}
-                    className='border font-syne border-[#EDEEEF] bg-[#a87f16]  rounded-[58px] px-5 py-2.5 text-white text-xs  font-semibold'>
+                    className='border font-syne border-[#EDEEEF] bg-[#c2571f]  rounded-[58px] px-5 py-2.5 text-white text-xs  font-semibold'>
                     {providerStep === 1
-                        ? "Continue to image provider"
+                        ? t("ob.continueToImage")
                         : providerStep === 2
-                            ? llmConfig.DISABLE_IMAGE_GENERATION ? "Disable image generation & Continue" : "Continue to web search"
-                            : llmConfig.WEB_GROUNDING ? "Save & Finish" : "Disable web search & Finish"}
+                            ? llmConfig.DISABLE_IMAGE_GENERATION ? t("ob.disableImageContinue") : t("ob.continueToWeb")
+                            : llmConfig.WEB_GROUNDING ? t("ob.saveFinish") : t("ob.disableWebFinish")}
                 </button>
             </div>
         </div>

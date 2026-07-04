@@ -15,6 +15,7 @@ import {
   LayoutsBadge,
   InbuiltTemplatePreview,
 } from "../../components/TemplatePreviewComponents";
+import { useI18n } from "@/lib/i18n";
 
 const BuiltInTemplateCard = memo(function BuiltInTemplateCard({
   template,
@@ -25,6 +26,7 @@ const BuiltInTemplateCard = memo(function BuiltInTemplateCard({
   isSelected: boolean;
   onSelect: (template: TemplateLayoutsWithSettings) => void;
 }) {
+  const { t } = useI18n();
   const handleClick = useCallback(() => onSelect(template), [onSelect, template]);
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -42,21 +44,21 @@ const BuiltInTemplateCard = memo(function BuiltInTemplateCard({
       role="button"
       tabIndex={0}
       aria-pressed={isSelected}
-      aria-label={`Select ${template.name} template`}
+      aria-label={t("up.templates.selectAria", { name: template.name })}
       className={cn(
         "cursor-pointer relative transition-all duration-200 group overflow-hidden rounded-[22px] bg-white border outline-none",
-        "hover:-translate-y-1 hover:border-[#a87f16] hover:ring-2 hover:ring-[#a87f16]/20 hover:shadow-[0_18px_40px_rgba(34,31,54,0.12)]",
-        "focus-visible:-translate-y-1 focus-visible:border-[#a87f16] focus-visible:ring-2 focus-visible:ring-[#a87f16]/30 focus-visible:shadow-[0_18px_40px_rgba(34,31,54,0.12)]",
+        "hover:-translate-y-1 hover:border-[#c2571f] hover:ring-2 hover:ring-[#c2571f]/20 hover:shadow-[0_18px_40px_rgba(34,31,54,0.12)]",
+        "focus-visible:-translate-y-1 focus-visible:border-[#c2571f] focus-visible:ring-2 focus-visible:ring-[#c2571f]/30 focus-visible:shadow-[0_18px_40px_rgba(34,31,54,0.12)]",
         isSelected
-          ? " border-[#a87f16] ring-2 ring-[#a87f16]/25 shadow-[0_14px_34px_rgba(34,31,54,0.12)]"
+          ? " border-[#c2571f] ring-2 ring-[#c2571f]/25 shadow-[0_14px_34px_rgba(34,31,54,0.12)]"
           : " border-[#E8E9EC]"
       )}
       onClick={handleClick}
       onKeyDown={handleKeyDown}
     >
-      <div className="pointer-events-none absolute inset-0 z-30 rounded-[22px] bg-[#a87f16]/[0.04] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 z-30 rounded-[22px] bg-[#c2571f]/[0.04] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100" />
       {isSelected && (
-        <span className="absolute right-4 top-3.5 z-50 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#a87f16] text-white shadow-sm">
+        <span className="absolute right-4 top-3.5 z-50 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#c2571f] text-white shadow-sm">
           <CheckCircle2 className="h-4 w-4" />
         </span>
       )}
@@ -87,6 +89,7 @@ const TemplateSelection: React.FC<TemplateSelectionProps> = memo(function Templa
   selectedTemplate,
   onSelectTemplate,
 }) {
+  const { t } = useI18n();
   useEffect(() => {
     const existingScript = document.querySelector(
       'script[src*="tailwindcss.com"]'
@@ -126,7 +129,7 @@ const TemplateSelection: React.FC<TemplateSelectionProps> = memo(function Templa
       return (
         <div className="flex items-center justify-center py-12 font-syne">
           <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-          <span className="ml-3 text-gray-600">Loading custom templates...</span>
+          <span className="ml-3 text-gray-600">{t("up.templates.loadingCustom")}</span>
         </div>
       );
     }
@@ -168,12 +171,12 @@ const TemplateSelection: React.FC<TemplateSelectionProps> = memo(function Templa
     <div className="space-y-[30px] mb-4">
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-semibold text-gray-900 font-syne">Custom</h3>
+          <h3 className="text-base font-semibold text-gray-900 font-syne">{t("up.templates.custom")}</h3>
         </div>
         {customTemplateCards}
       </div>
       <div>
-        <h3 className="text-base font-semibold text-gray-900 mb-3 font-syne">In Built</h3>
+        <h3 className="text-base font-semibold text-gray-900 mb-3 font-syne">{t("up.templates.builtIn")}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {builtInTemplateCards}
         </div>

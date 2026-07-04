@@ -16,6 +16,7 @@ import { useFontLoader } from "@/app/(presentation-generator)/hooks/useFontLoad"
 import SlideScale from "@/app/(presentation-generator)/components/PresentationRender";
 import MarkdownRenderer from "@/components/MarkDownRender";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
+import { useI18n } from "@/lib/i18n";
 
 export const PresentationCard = ({
   id,
@@ -28,6 +29,7 @@ export const PresentationCard = ({
   presentation: any;
   onDeleted?: (presentationId: string) => void;
 }) => {
+  const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
@@ -96,13 +98,13 @@ export const PresentationCard = ({
         presentation_id: id,
         slide_count: presentation?.slides?.length || 0,
       });
-      notify.success("Presentation deleted", "The presentation was removed from your dashboard.");
+      notify.success(t("dash.toast.deleted.title"), t("dash.toast.deleted.desc"));
       setShowDeleteDialog(false);
       if (onDeleted) {
         onDeleted(id);
       }
     } else {
-      notify.error("Could not delete presentation", response?.message || "Something went wrong while deleting the presentation.");
+      notify.error(t("dash.toast.deleteError.title"), response?.message || t("dash.toast.deleteError.desc"));
     }
     setIsDeleting(false);
   };
@@ -151,7 +153,7 @@ export const PresentationCard = ({
                     setShowDeleteDialog(true);
                   }}
                 >
-                  <p>Delete</p>
+                  <p>{t("dash.delete")}</p>
                   <Trash className="w- h-4 text-red-500" />
                 </button>
               </PopoverContent>
@@ -183,12 +185,12 @@ export const PresentationCard = ({
                 <AlertTriangle className="h-6 w-6 text-red-500" />
               </div>
               <h3 className="mb-2 text-lg font-semibold text-[#191919]">
-                Delete Presentation?
+                {t("dash.deleteDialog.title")}
               </h3>
               <p className="text-sm leading-relaxed text-gray-500">
-                You are about to delete{" "}
-                <span className="font-medium text-gray-700">&quot;{title}&quot;</span>.
-                This action cannot be undone.
+                {t("dash.deleteDialog.body1")}{" "}
+                <span className="font-medium text-gray-700">&quot;{title}&quot;</span>.{" "}
+                {t("dash.deleteDialog.body2")}
               </p>
             </div>
             <div className="flex border-t border-gray-100">
@@ -197,7 +199,7 @@ export const PresentationCard = ({
                 disabled={isDeleting}
                 className="flex-1 px-4 py-3.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Cancel
+                {t("dash.cancel")}
               </button>
               <button
                 onClick={() => void handleDelete()}
@@ -207,10 +209,10 @@ export const PresentationCard = ({
                 {isDeleting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Deleting...
+                    {t("dash.deleting")}
                   </>
                 ) : (
-                  "Delete"
+                  t("dash.delete")
                 )}
               </button>
             </div>

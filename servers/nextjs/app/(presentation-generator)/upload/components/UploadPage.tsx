@@ -30,6 +30,7 @@ import { RootState } from "@/store/store";
 import { ImagesApi } from "../../services/api/images";
 import CurrentConfig from "./CurrentConfig";
 import { LLMConfig } from "@/types/llm_config";
+import { useI18n } from "@/lib/i18n";
 
 const STOCK_IMAGE_PROVIDERS = new Set(["pexels", "pixabay"]);
 const FILE_TYPE_WORD = new Set([".doc", ".docx", ".docm", ".odt", ".rtf"]);
@@ -114,6 +115,7 @@ const getSelectedImageQuality = (config?: LLMConfig): string => {
 };
 
 const UploadPage = () => {
+  const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useDispatch();
@@ -218,9 +220,9 @@ const UploadPage = () => {
       return true;
     } catch (error: any) {
       notify.error(
-        "Image provider unavailable",
+        t("up.err.imageProvider.title"),
         error?.message ||
-        `Unable to reach ${selectedProvider} right now. Please check your API key/settings and try again.`
+        t("up.err.imageProvider.desc", { provider: selectedProvider })
       );
       return false;
     }
@@ -233,19 +235,19 @@ const UploadPage = () => {
   const validateConfiguration = (): boolean => {
     if (!config.language) {
       trackUploadValidationFailure("language_missing");
-      notify.warning("Language required", "Please select a language.");
+      notify.warning(t("up.warn.languageRequired.title"), t("up.warn.languageRequired.desc"));
       return false;
     }
 
     if (files.length > 0 && config.language === LanguageType.Auto) {
       trackUploadValidationFailure("language_auto_with_documents");
-      notify.warning("Language required", "Please choose a language before processing uploaded documents.");
+      notify.warning(t("up.warn.languageRequired.title"), t("up.warn.languageAutoDocs.desc"));
       return false;
     }
 
     if (!config.prompt.trim() && files.length === 0) {
       trackUploadValidationFailure("prompt_or_document_missing");
-      notify.warning("Input required", "Provide a prompt or upload at least one document.");
+      notify.warning(t("up.warn.inputRequired.title"), t("up.warn.inputRequired.desc"));
       return false;
     }
     return true;
@@ -284,10 +286,10 @@ const UploadPage = () => {
   const handleDocumentProcessing = async () => {
     setLoadingState({
       isLoading: true,
-      message: "Processing documents...",
+      message: t("up.loading.processingDocs"),
       showProgress: true,
       duration: 90,
-      extra_info: files.length > 0 ? "It might take a few minutes for large documents." : "",
+      extra_info: files.length > 0 ? t("up.loading.largeDocsHint") : "",
     });
 
     let documents = [];
@@ -331,7 +333,7 @@ const UploadPage = () => {
   const handleDirectPresentationGeneration = async () => {
     setLoadingState({
       isLoading: true,
-      message: "Preparing outline generation...",
+      message: t("up.loading.preparingOutline"),
       showProgress: true,
       duration: 30,
     });
@@ -379,8 +381,8 @@ const UploadPage = () => {
       showProgress: false,
     });
     notify.error(
-      "Generation failed",
-      error.message || "Something went wrong while starting your presentation."
+      t("up.err.generationFailed.title"),
+      error.message || t("up.err.generationFailed.desc")
     );
   };
 
@@ -413,7 +415,7 @@ const UploadPage = () => {
           </div>
         </div>
         <div className="p-4 ">
-          <h3 className="text-sm font-medium text-[#333333] mb-2">Attachments (optional)</h3>
+          <h3 className="text-sm font-medium text-[#333333] mb-2">{t("up.attachments.title")}</h3>
           <SupportingDoc
             files={[...files]}
             onFilesChange={setFiles}
@@ -424,11 +426,11 @@ const UploadPage = () => {
           <Button
             onClick={handleGeneratePresentation}
             style={{
-              background: "linear-gradient(270deg, #EFE3C2 2.4%, #F2E8D2 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)"
+              background: "linear-gradient(270deg, #F5D9C2 2.4%, #F7E4D3 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)"
             }}
             className="w-fit mr-0 ml-auto rounded-[28px] flex items-center justify-center py-5 px-4  text-[#101323] font-syne font-semibold text-xs  "
           >
-            <span>Get Started</span>
+            <span>{t("up.getStarted")}</span>
             <ChevronRight className="!w-5 !h-5 " />
           </Button>
         </div>

@@ -1,9 +1,13 @@
+"use client";
+
 import { useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { arrayMove } from "@dnd-kit/sortable";
 import { setOutlines } from "@/store/slices/presentationGeneration";
+import { useI18n } from "@/lib/i18n";
 
 export const useOutlineManagement = (outlines: { content: string }[] | null) => {
+  const { t } = useI18n();
   const dispatch = useDispatch();
 
   const handleDragEnd = useCallback((event: any) => {
@@ -26,9 +30,9 @@ export const useOutlineManagement = (outlines: { content: string }[] | null) => 
   const handleAddSlide = useCallback(() => {
     if (!outlines) return;
 
-    const updatedOutlines = [...outlines, { content: "Outline title" }];
+    const updatedOutlines = [...outlines, { content: t("up.outline.newSlideContent") }];
     dispatch(setOutlines(updatedOutlines));
-  }, [outlines, dispatch]);
+  }, [outlines, dispatch, t]);
 
   return { handleDragEnd, handleAddSlide };
 }; 

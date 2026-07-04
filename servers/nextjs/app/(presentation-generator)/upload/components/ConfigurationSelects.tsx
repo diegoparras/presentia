@@ -1,5 +1,8 @@
+"use client";
+
 import { LanguageType, PresentationConfig } from "../type";
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 import { Check, ChevronUp, Languages } from "lucide-react";
 import {
   Command,
@@ -67,6 +70,7 @@ const SlideCountSelect: React.FC<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }> = ({ value, onValueChange, open, onOpenChange }) => {
+  const { t } = useI18n();
   const [customInput, setCustomInput] = useState(
     value && !SLIDE_OPTIONS.includes(value as SlideOption) ? value : ""
   );
@@ -101,7 +105,9 @@ const SlideCountSelect: React.FC<{
     }
   };
 
-  const displayLabel = value ? `${value} slides` : "Auto slides";
+  const displayLabel = value
+    ? t("up.slides.count", { n: value })
+    : t("up.slides.auto");
 
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
@@ -111,7 +117,7 @@ const SlideCountSelect: React.FC<{
           name="slides"
           data-testid="slides-select"
           aria-expanded={open}
-          className=" overflow-hidden font-syne font-medium  bg-white text-[#191919]  focus-visible:ring-[#a87f16]/30 flex justify-between items-center gap-2 h-[34px] rounded-full px-3.5 ring-1 ring-inset ring-slate-200 shadow-sm"
+          className=" overflow-hidden font-syne font-medium  bg-white text-[#191919]  focus-visible:ring-[#c2571f]/30 flex justify-between items-center gap-2 h-[34px] rounded-full px-3.5 ring-1 ring-inset ring-slate-200 shadow-sm"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -172,7 +178,7 @@ const SlideCountSelect: React.FC<{
               placeholder="--"
               className="h-8 w-16 px-2 text-sm"
             />
-            <span className="text-sm font-medium">slides</span>
+            <span className="text-sm font-medium">{t("up.slides.word")}</span>
           </div>
         </div>
         <Command>
@@ -203,7 +209,7 @@ const SlideCountSelect: React.FC<{
                       value === option ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  {option} slides
+                  {t("up.slides.count", { n: option })}
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -222,7 +228,9 @@ const LanguageSelect: React.FC<{
   onValueChange: (value: string) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}> = ({ value, onValueChange, open, onOpenChange }) => (
+}> = ({ value, onValueChange, open, onOpenChange }) => {
+  const { t } = useI18n();
+  return (
   <Popover open={open} onOpenChange={onOpenChange}>
     <PopoverTrigger asChild>
       <button
@@ -235,7 +243,7 @@ const LanguageSelect: React.FC<{
         <Languages className="w-3.5 h-3.5" />
         <span className="w-[40px] text-left">
           <span className="text-xs font-medium truncate block">
-            {value || "Select language"}
+            {value || t("up.language.select")}
           </span>
         </span>
         <ChevronUp className="ml-2 h-4 w-4 shrink-0" />
@@ -244,11 +252,11 @@ const LanguageSelect: React.FC<{
     <PopoverContent className="w-[300px] p-0" align="end">
       <Command>
         <CommandInput
-          placeholder="Search language..."
+          placeholder={t("up.language.search")}
           className="font-instrument_sans"
         />
         <CommandList>
-          <CommandEmpty>No language found.</CommandEmpty>
+          <CommandEmpty>{t("up.language.notFound")}</CommandEmpty>
           <CommandGroup>
             {Object.values(LanguageType).map((language) => (
               <CommandItem
@@ -275,7 +283,8 @@ const LanguageSelect: React.FC<{
       </Command>
     </PopoverContent>
   </Popover>
-);
+  );
+};
 
 export function ConfigurationSelects({
   config,

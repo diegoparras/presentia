@@ -3,6 +3,7 @@
 import React, { ChangeEvent, useEffect, useMemo, useState } from 'react'
 import { File, Paperclip, Plus, X } from 'lucide-react'
 import { notify } from '@/components/ui/sonner'
+import { useI18n } from '@/lib/i18n'
 
 interface SupportingDocProps {
     files: File[]
@@ -65,6 +66,7 @@ const SupportingDoc = ({
     accept = ACCEPT_DEFAULT,
     multiple = true,
 }: SupportingDocProps) => {
+    const { t } = useI18n()
     const [isDragging, setIsDragging] = useState(false)
     const [previewUrls, setPreviewUrls] = useState<(string | null)[]>([])
 
@@ -88,7 +90,7 @@ const SupportingDoc = ({
     const handleValidate = (filesToReview: File[]) => {
         const disallowed = filesToReview.filter((file) => !isAllowedFile(file))
         if (disallowed.length > 0) {
-            notify.error('Some files are not supported', 'Supported: Word, PowerPoint, spreadsheets, PDF/TXT, and image files.')
+            notify.error(t('up.files.unsupported.title'), t('up.files.supportedList'))
         }
     }
 
@@ -97,7 +99,7 @@ const SupportingDoc = ({
             return candidateFiles
         }
 
-        notify.warning('Maximum file limit reached', `You can upload up to ${MAX_SUPPORTED_FILES} documents only.`)
+        notify.warning(t('up.files.limit.title'), t('up.files.limit.desc', { max: MAX_SUPPORTED_FILES }))
 
         return candidateFiles.slice(0, MAX_SUPPORTED_FILES)
     }
@@ -112,7 +114,7 @@ const SupportingDoc = ({
         onFilesChange(allowedFiles)
         handleValidate(nextFiles)
         if (allowedFiles.length > files.length) {
-            notify.success('Files selected', `${allowedFiles.length - files.length} file(s) have been added.`)
+            notify.success(t('up.files.added.title'), t('up.files.added.desc', { count: allowedFiles.length - files.length }))
         }
         e.currentTarget.value = ''
     }
@@ -130,7 +132,7 @@ const SupportingDoc = ({
         onFilesChange(allowedFiles)
         handleValidate(nextFiles)
         if (allowedFiles.length > files.length) {
-            notify.success('Files selected', `${allowedFiles.length - files.length} file(s) have been added.`)
+            notify.success(t('up.files.added.title'), t('up.files.added.desc', { count: allowedFiles.length - files.length }))
         }
     }
 
@@ -158,7 +160,11 @@ const SupportingDoc = ({
         <div className="space-y-2" data-testid="attachments-uploader">
             <div className="flex items-center justify-between">
                 <p className="text-sm text-gray-600 font-syne">
-                    {hasFiles ? `${filteredFiles.length} attachment${filteredFiles.length > 1 ? 's' : ''}` : ''}
+                    {hasFiles
+                        ? filteredFiles.length > 1
+                            ? t('up.files.count.many', { count: filteredFiles.length })
+                            : t('up.files.count.one')
+                        : ''}
                 </p>
                 {hasFiles && <button
                     type="button"
@@ -168,12 +174,12 @@ const SupportingDoc = ({
                     data-testid="attachments-clear-button"
                     aria-disabled={!hasFiles}
                 >
-                    Clear all
+                    {t('up.files.clearAll')}
                 </button>}
             </div>
 
             <label
-                className={`mt-1 block cursor-pointer rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${isDragging ? 'border-[#a87f16] bg-[#a87f16]/5' : 'border-gray-200 hover:border-[#a87f16]'}`}
+                className={`mt-1 block cursor-pointer rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors ${isDragging ? 'border-[#c2571f] bg-[#c2571f]/5' : 'border-gray-200 hover:border-[#c2571f]'}`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
@@ -188,17 +194,17 @@ const SupportingDoc = ({
                 />
                 <div className="flex flex-col items-center gap-2">
                     <div className='w-[42px] h-[42px] flex justify-center items-center rounded-full bg-[#EBE9FE]' >
-                        <div className='w-[22px] h-[22px] rounded-full bg-[#a87f16] flex items-center justify-center text-white'>
+                        <div className='w-[22px] h-[22px] rounded-full bg-[#c2571f] flex items-center justify-center text-white'>
                             <Plus className='w-3 h-3' />
                         </div>
                     </div>
-                    <p className='text-[#808080] text-sm  font-normal'>(Office docs, spreadsheets, images, PDF/TXT)</p>
+                    <p className='text-[#808080] text-sm  font-normal'>{t('up.files.dropHint')}</p>
                 </div>
             </label>
 
             {hasFiles && (
                 <div className="mt-2">
-                    <ul data-testid="file-list" className="grid grid-cols-1 gap-2 sm:grid-cols-2" aria-label="Attached files">
+                    <ul data-testid="file-list" className="grid grid-cols-1 gap-2 sm:grid-cols-2" aria-label={t('up.files.listAria')}>
                         {filteredFiles.map((file, idx) => (
                             <li
                                 key={`${file.name}-${idx}`}
@@ -206,7 +212,7 @@ const SupportingDoc = ({
                                 data-testid="attached-file-item"
                             >
                                 {previewUrls[idx] ? (
-                                    <img src={previewUrls[idx] as string} alt="Preview" className="h-10 w-10 flex-none rounded object-cover" />
+                                    <img src={previewUrls[idx] as string} alt={t('up.files.previewAlt')} className="h-10 w-10 flex-none rounded object-cover" />
                                 ) : (
                                     <div className="flex h-10 w-10 flex-none items-center justify-center rounded bg-gray-100 text-gray-600">
                                         <File className="h-5 w-5" />
@@ -224,7 +230,7 @@ const SupportingDoc = ({
                                     type="button"
                                     onClick={() => handleRemoveFileAt(idx)}
                                     className="ml-2 inline-flex h-8 w-8 items-center justify-center rounded text-red-600 hover:bg-red-50 hover:text-red-700"
-                                    aria-label={`Remove ${file.name}`}
+                                    aria-label={t('up.files.removeAria', { name: file.name })}
                                     data-testid="remove-file-button"
                                 >
                                     <X className="h-5 w-5" />
@@ -234,7 +240,7 @@ const SupportingDoc = ({
                     </ul>
                     {filteredFiles.length !== files.length && (
                         <p className="mt-2 text-xs text-amber-600 font-syne">
-                            Some files were skipped. Supported: Word, PowerPoint, spreadsheets, PDF/TXT, and image files.
+                            {t('up.files.skipped')}
                         </p>
                     )}
                 </div>

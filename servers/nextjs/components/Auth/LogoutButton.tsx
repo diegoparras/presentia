@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LogOut } from "lucide-react";
 
 import { getApiUrl } from "@/utils/api";
+import { useI18n } from "@/lib/i18n";
 
 type LogoutButtonProps = {
   label?: string;
@@ -12,11 +13,13 @@ type LogoutButtonProps = {
 };
 
 export default function LogoutButton({
-  label = "Logout",
+  label,
   className = "",
   iconOnly = false,
 }: LogoutButtonProps) {
+  const { t } = useI18n();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const resolvedLabel = label ?? t("auth.logout");
 
   const handleLogout = async () => {
     if (isSubmitting) {
@@ -43,11 +46,13 @@ export default function LogoutButton({
       onClick={handleLogout}
       disabled={isSubmitting}
       className={className}
-      aria-label={label}
-      title={label}
+      aria-label={resolvedLabel}
+      title={resolvedLabel}
     >
       <LogOut className="h-4 w-4" />
-      {!iconOnly ? <span>{isSubmitting ? "Signing out..." : label}</span> : null}
+      {!iconOnly ? (
+        <span>{isSubmitting ? t("auth.signingOut") : resolvedLabel}</span>
+      ) : null}
     </button>
   );
 }

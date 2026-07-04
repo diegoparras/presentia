@@ -1,9 +1,13 @@
+'use client';
+
 import { RootState } from '@/store/store';
 import { IMAGE_PROVIDERS, LLM_PROVIDERS, WEB_SEARCH_PROVIDERS } from '@/utils/providerConstants';
 import React from 'react'
 import { useSelector } from 'react-redux';
+import { useI18n } from '@/lib/i18n';
 
 const CurrentConfig = ({ webSearchEnabled }: { webSearchEnabled: boolean }) => {
+    const { t } = useI18n();
     const userConfigState = useSelector((state: RootState) => state.userConfig);
     const llmConfig = userConfigState.llm_config;
     const textProviderKey = llmConfig.LLM || "openai";
@@ -48,17 +52,20 @@ const CurrentConfig = ({ webSearchEnabled }: { webSearchEnabled: boolean }) => {
         : textProviderLabel;
 
     const imageSummary = llmConfig.DISABLE_IMAGE_GENERATION
-        ? "Image generation disabled"
+        ? t("up.config.imageDisabled")
         : llmConfig.IMAGE_PROVIDER
             ? IMAGE_PROVIDERS[llmConfig.IMAGE_PROVIDER]?.label || llmConfig.IMAGE_PROVIDER
-            : "No image provider";
+            : t("up.config.noImageProvider");
     const webSearchProviderKey = (llmConfig.WEB_SEARCH_PROVIDER || "auto").toLowerCase();
     const webSearchProvider =
         WEB_SEARCH_PROVIDERS[webSearchProviderKey]?.label || webSearchProviderKey;
-    const webSearchSummary = `Web: ${webSearchProvider} (${webSearchEnabled ? "On" : "Off"})`;
+    const webSearchSummary = t("up.config.web", {
+        provider: webSearchProvider,
+        state: webSearchEnabled ? t("up.config.on") : t("up.config.off"),
+    });
 
     return (
-        <p className="text-[10px] px-2.5 py-0.5 rounded-[50px] text-[#a87f16] border border-[#EDEEEF]  font-medium ">
+        <p className="text-[10px] px-2.5 py-0.5 rounded-[50px] text-[#c2571f] border border-[#EDEEEF]  font-medium ">
             {textSummary} · {imageSummary} · {webSearchSummary}
         </p>
 

@@ -1,7 +1,10 @@
+"use client";
+
 import React from "react";
 import { PresentationCard } from "./PresentationCard";
 import { PresentationResponse } from "@/app/(presentation-generator)/services/api/dashboard";
 import { EmptyState } from "./EmptyState";
+import { useI18n } from "@/lib/i18n";
 
 interface PresentationGridProps {
   presentations: PresentationResponse[];
@@ -16,6 +19,7 @@ export const PresentationGrid = ({
   error = null,
   onPresentationDeleted,
 }: PresentationGridProps) => {
+  const { t } = useI18n();
   const ShimmerCard = () => (
     <div className="flex min-h-[216px] flex-col overflow-hidden rounded-[12px] border border-[#EDEEEF] bg-[#F8FBFB] shadow-none animate-pulse">
       <div className="relative flex-1 overflow-hidden p-4">
@@ -57,7 +61,7 @@ export const PresentationGrid = ({
             onClick={() => window.location.reload()}
             className="text-primary hover:text-primary/80 underline"
           >
-            Try again
+            {t("dash.tryAgain")}
           </button>
         </div>
       </div>

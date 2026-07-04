@@ -140,7 +140,7 @@ const LayoutPreview = () => {
                             aria-label="Create new template"
                             style={{
                                 borderRadius: "48px",
-                                background: "linear-gradient(270deg, #EFE3C2 2.4%, #F2E8D2 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+                                background: "linear-gradient(270deg, #F5D9C2 2.4%, #F7E4D3 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
                             }}
                         >
                             <span className="hidden md:inline">New Template</span>
@@ -157,8 +157,8 @@ const LayoutPreview = () => {
                     <button className='px-5  py-2 text-xs font-medium text-[#3A3A3A] rounded-[70px]'
                         onClick={() => { trackEvent(MixpanelEvent.Templates_Tab_Switched, { tab: 'custom' }); setTab('custom'); }}
                         style={{
-                            background: tab === 'custom' ? '#F7F0DE' : 'transparent',
-                            color: tab === 'custom' ? '#a87f16' : '#3A3A3A'
+                            background: tab === 'custom' ? '#FAEEE3' : 'transparent',
+                            color: tab === 'custom' ? '#c2571f' : '#3A3A3A'
                         }}
                     >Custom</button>
                     <svg xmlns="http://www.w3.org/2000/svg" className='mx-1' width="2" height="17" viewBox="0 0 2 17" fill="none">
@@ -167,8 +167,8 @@ const LayoutPreview = () => {
                     <button className='px-5  py-2 text-xs font-medium text-[#3A3A3A] rounded-[70px]'
                         onClick={() => { trackEvent(MixpanelEvent.Templates_Tab_Switched, { tab: 'default' }); setTab('default'); }}
                         style={{
-                            background: tab === 'default' ? '#F7F0DE' : 'transparent',
-                            color: tab === 'default' ? '#a87f16' : '#3A3A3A'
+                            background: tab === 'default' ? '#FAEEE3' : 'transparent',
+                            color: tab === 'default' ? '#c2571f' : '#3A3A3A'
                         }}
                     >Built-in</button>
                 </div>

@@ -62,7 +62,7 @@ const DashboardSidebar = () => {
                             aria-label="Dashboard"
                             title="Dashboard"
                         >
-                            <LayoutDashboard className={["h-4 w-4", pathname === "/dashboard" ? "text-[#a87f16]" : "text-slate-600"].join(" ")} />
+                            <LayoutDashboard className={["h-4 w-4", pathname === "/dashboard" ? "text-[#c2571f]" : "text-slate-600"].join(" ")} />
                             <span className="text-[11px] text-slate-800">{t("nav.dashboard")}</span>
                         </Link>
                         <Link
@@ -76,7 +76,7 @@ const DashboardSidebar = () => {
                             title="Templates"
                         >
                             <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={`${pathname === "/templates" ? "#a87f16" : "#475569"}`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M4 14h6" /><path d="M4 2h10" /><rect x="4" y="18" width="16" height="4" rx="1" /><rect x="4" y="6" width="16" height="4" rx="1" /></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={`${pathname === "/templates" ? "#c2571f" : "#475569"}`} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M4 14h6" /><path d="M4 2h10" /><rect x="4" y="18" width="16" height="4" rx="1" /><rect x="4" y="6" width="16" height="4" rx="1" /></svg>
                                 <span className="text-[11px] text-slate-800">{t("nav.templates")}</span>
                             </div>
                         </Link>
@@ -91,7 +91,7 @@ const DashboardSidebar = () => {
                             title="Theme"
                         >
                             <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
-                                <Palette className={`h-4 w-4 ${pathname === "/theme" ? "text-[#a87f16]" : "text-slate-600"}`} />
+                                <Palette className={`h-4 w-4 ${pathname === "/theme" ? "text-[#c2571f]" : "text-slate-600"}`} />
                                 <span className="text-[11px] text-slate-800">{t("nav.themes")}</span>
                             </div>
                         </Link>
@@ -106,7 +106,7 @@ const DashboardSidebar = () => {
                             title="Markdown"
                         >
                             <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
-                                <FileText className={`h-4 w-4 ${pathname === "/markdown" ? "text-[#a87f16]" : "text-slate-600"}`} />
+                                <FileText className={`h-4 w-4 ${pathname === "/markdown" ? "text-[#c2571f]" : "text-slate-600"}`} />
                                 <span className="text-[11px] text-slate-800">{t("nav.markdown")}</span>
                             </div>
                         </Link>
@@ -121,7 +121,7 @@ const DashboardSidebar = () => {
                             title="Modelos"
                         >
                             <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
-                                <Cpu className={`h-4 w-4 ${pathname === "/models" ? "text-[#a87f16]" : "text-slate-600"}`} />
+                                <Cpu className={`h-4 w-4 ${pathname === "/models" ? "text-[#c2571f]" : "text-slate-600"}`} />
                                 <span className="text-[11px] text-slate-800">{t("nav.models")}</span>
                             </div>
                         </Link>
@@ -136,7 +136,7 @@ const DashboardSidebar = () => {
                             title="Costos"
                         >
                             <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
-                                <Coins className={`h-4 w-4 ${pathname === "/costs" ? "text-[#a87f16]" : "text-slate-600"}`} />
+                                <Coins className={`h-4 w-4 ${pathname === "/costs" ? "text-[#c2571f]" : "text-slate-600"}`} />
                                 <span className="text-[11px] text-slate-800">{t("nav.costs")}</span>
                             </div>
                         </Link>
@@ -177,7 +177,7 @@ const DashboardSidebar = () => {
                                 <img src={imageProviderIcon} alt="image provider" className="w-5 h-5 rounded-full object-cover border border-[#EDEEEF]" />
                                 <img src={textProviderIcon} alt="text provider" className="w-5 h-5 rounded-full object-cover border border-[#EDEEEF]" />
                             </div> */}
-                            <Settings className={`h-4 w-4 ${isActive ? "text-[#a87f16]" : "text-slate-600"}`} />
+                            <Settings className={`h-4 w-4 ${isActive ? "text-[#c2571f]" : "text-slate-600"}`} />
                             <span className="text-[11px] text-slate-800">{itemLabel}</span>
                         </Link>
                     );

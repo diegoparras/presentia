@@ -57,8 +57,8 @@ const Schema = z.object({
 
 
 const CHART_COLORS = [
-  '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#b58a2a',
-  '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#b58a2a'
+  '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#cf6a2e',
+  '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#cf6a2e'
 ];
 type SlideData = z.infer<typeof Schema>
 type ChartDatum = z.infer<typeof ChartDatumSchema>

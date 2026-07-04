@@ -16,12 +16,12 @@ const DEFAULT_COLORS = [
   "#ef4444",
   "#10b981",
   "#f59e0b",
-  "#b58a2a",
+  "#cf6a2e",
   "#06b6d4",
   "#84cc16",
   "#f97316",
   "#ec4899",
-  "#b58a2a",
+  "#cf6a2e",
 ];
 
 const resolveCssValue = (element: HTMLElement, value: string, fallback: string) => {

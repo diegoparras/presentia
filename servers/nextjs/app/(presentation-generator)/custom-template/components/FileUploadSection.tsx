@@ -77,7 +77,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
                   />
                   <div className='absolute inset-0 flex flex-col items-center justify-center'>
                     <div className='w-[42px] h-[42px] flex justify-center items-center rounded-full bg-[#EBE9FE]' >
-                      <div className='w-[22px] h-[22px] rounded-full bg-[#a87f16] flex items-center justify-center text-white'>
+                      <div className='w-[22px] h-[22px] rounded-full bg-[#c2571f] flex items-center justify-center text-white'>
                         <Plus className='w-3 h-3' />
                       </div>
                     </div>
@@ -161,7 +161,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
                       <button className="px-4 py-2.5 text-xs font-semibold text-[#101323] font-syne tracking-[-0.12px] flex gap-1"
                         style={{
                           borderRadius: '48px',
-                          background: 'linear-gradient(270deg, #EFE3C2 2.4%, #F2E8D2 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)',
+                          background: 'linear-gradient(270deg, #F5D9C2 2.4%, #F7E4D3 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)',
                           cursor: 'pointer',
                         }}
                         onClick={handleCheckFonts}

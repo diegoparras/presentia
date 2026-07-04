@@ -12,8 +12,8 @@ export const FontCard: React.FC<FontCardProps> = ({ font, isSelected, onSelect }
   <div
     className={`relative p-3 rounded-xl cursor-pointer transition-all duration-200 group
       ${isSelected
-        ? 'bg-gradient-to-br from-[#F8F7FF] to-[#F0EFFF] border border-[#a87f16] shadow-sm'
-        : 'bg-white border border-[#EDEEEF] hover:border-[#e3d1a0] hover:bg-[#FAFAFF]'
+        ? 'bg-gradient-to-br from-[#F8F7FF] to-[#F0EFFF] border border-[#c2571f] shadow-sm'
+        : 'bg-white border border-[#EDEEEF] hover:border-[#ecc4a8] hover:bg-[#FAFAFF]'
       }`}
     onClick={() => onSelect(font.name)}
   >
@@ -21,7 +21,7 @@ export const FontCard: React.FC<FontCardProps> = ({ font, isSelected, onSelect }
     <div className="flex items-center justify-between gap-2">
       <div className="flex-1 min-w-0">
         <p
-          className={`text-sm font-medium truncate ${isSelected ? 'text-[#a87f16]' : 'text-[#151515]'}`}
+          className={`text-sm font-medium truncate ${isSelected ? 'text-[#c2571f]' : 'text-[#151515]'}`}
           style={{ fontFamily: `"${font.name}"` }}
         >
           {font.displayName}
@@ -34,7 +34,7 @@ export const FontCard: React.FC<FontCardProps> = ({ font, isSelected, onSelect }
         </p>
       </div>
       <div
-        className={`text-xl font-semibold ${isSelected ? 'text-[#a87f16]' : 'text-[#333] group-hover:text-[#a87f16]'} transition-colors`}
+        className={`text-xl font-semibold ${isSelected ? 'text-[#c2571f]' : 'text-[#333] group-hover:text-[#c2571f]'} transition-colors`}
         style={{ fontFamily: `"${font.name}"` }}
       >
         Aa

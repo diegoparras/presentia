@@ -170,12 +170,12 @@ const ChartWithBulletsSlideLayout: React.FC<ChartWithBulletsSlideLayoutProps> = 
                                 key={index}
                                 className="rounded-2xl p-6 text-white"
                                 style={{
-                                    backgroundColor: 'var(--primary-color,#a87f16)'
+                                    backgroundColor: 'var(--primary-color,#c2571f)'
                                 }}
                             >
                                 {/* Icon and Title */}
                                 <div className="flex items-center space-x-3 mb-3">
-                                    <div style={{ background: "var(--primary-color,#a87f16)" }} className="w-8 h-8 rounded-lg flex items-center justify-center">
+                                    <div style={{ background: "var(--primary-color,#c2571f)" }} className="w-8 h-8 rounded-lg flex items-center justify-center">
                                         <RemoteSvgIcon
                                             url={bullet.icon.__icon_url__}
                                             strokeColor={"currentColor"}

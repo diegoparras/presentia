@@ -89,9 +89,9 @@ export const TemplateCreationProgress: React.FC<TemplateCreationProgressProps> =
                                     className={`
                     w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-200
                     ${status === 'completed'
-                                            ? 'bg-[#a87f16] border-[#a87f16] text-white'
+                                            ? 'bg-[#c2571f] border-[#c2571f] text-white'
                                             : status === 'current'
-                                                ? 'bg-white border-[#a87f16] text-[#a87f16]'
+                                                ? 'bg-white border-[#c2571f] text-[#c2571f]'
                                                 : 'bg-white border-[#E5E7EB] text-[#9CA3AF]'
                                         }
                   `}
@@ -124,7 +124,7 @@ export const TemplateCreationProgress: React.FC<TemplateCreationProgressProps> =
                                 <div className="flex-1 h-px mx-3 -mt-5">
                                     <div
                                         className={`h-full transition-colors duration-200 ${getStepStatus(index + 1) !== 'pending'
-                                            ? 'bg-[#a87f16]'
+                                            ? 'bg-[#c2571f]'
                                             : 'bg-[#E5E7EB]'
                                             }`}
                                     />
@@ -149,7 +149,7 @@ export const TemplateCreationProgress: React.FC<TemplateCreationProgressProps> =
 
                     <div className="w-full h-2 bg-[#E5E7EB] rounded-full overflow-hidden">
                         <div
-                            className="h-full bg-[#a87f16] rounded-full transition-all duration-300"
+                            className="h-full bg-[#c2571f] rounded-full transition-all duration-300"
                             style={{ width: `${progressPercentage}%` }}
                         />
                     </div>

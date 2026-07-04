@@ -1,3 +1,5 @@
+'use client';
+
 import ToolTip from '@/components/ToolTip';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -6,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Pencil, SlidersHorizontal, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { PresentationConfig, ToneType, VerbosityType } from '../type';
+import { useI18n } from '@/lib/i18n';
 
 interface ConfigurationSelectsProps {
     config: PresentationConfig;
@@ -13,9 +16,10 @@ interface ConfigurationSelectsProps {
 }
 
 const toggleClassName =
-    'h-[22px] w-[36px] border-0 bg-[#D8D8DD] data-[state=checked]:bg-[#a87f16] ';
+    'h-[22px] w-[36px] border-0 bg-[#D8D8DD] data-[state=checked]:bg-[#c2571f] ';
 
 const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) => {
+    const { t } = useI18n();
     const [openAdvanced, setOpenAdvanced] = useState(false);
 
     const [advancedDraft, setAdvancedDraft] = useState({
@@ -79,10 +83,10 @@ const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) 
     return (
         <>
             <div className="ml-auto">
-                <ToolTip content="Advanced settings">
+                <ToolTip content={t("up.advanced.title")}>
                     <button
-                        aria-label="Advanced settings"
-                        title="Advanced settings"
+                        aria-label={t("up.advanced.title")}
+                        title={t("up.advanced.title")}
                         type="button"
                         onClick={handleOpenAdvanced}
                         className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E4E5E8] bg-white text-[#1C1C27] shadow-sm transition hover:bg-[#F7F7FA] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5141E5]/25"
@@ -102,14 +106,14 @@ const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) 
                     <div
                         role="dialog"
                         aria-modal="true"
-                        aria-label="Advanced settings"
+                        aria-label={t("up.advanced.title")}
                         className="relative mx-auto mt-[108px] w-[calc(100vw-2rem)] max-w-[640px] overflow-visible"
                         onClick={(event) => event.stopPropagation()}
                     >
                         <button
                             type="button"
                             onClick={handleCloseAdvanced}
-                            aria-label="Close advanced settings"
+                            aria-label={t("up.advanced.close")}
                             className="absolute -top-[62px] right-2 flex h-[50px] w-[50px] items-center justify-center rounded-full border border-[#E7E7EC] bg-white text-[#2C2B35] shadow-sm transition hover:bg-[#F8F8FB]"
                         >
                             <X className="h-3.5 w-3.5" />
@@ -119,9 +123,9 @@ const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) 
                             <div className="flex items-start justify-between gap-4 bg-[#F8F8FA] px-6 py-[22px] ">
                                 <div>
                                     <h2 className="font-syne text-lg font-semibold leading-none text-[#191919]">
-                                        Advanced Settings
+                                        {t("up.advanced.heading")}
                                     </h2>
-                                    <p className="mt-1 text-sm text-[#808080]">Adjust Presentation Behavior</p>
+                                    <p className="mt-1 text-sm text-[#808080]">{t("up.advanced.subtitle")}</p>
                                 </div>
 
                                 <Button
@@ -129,11 +133,11 @@ const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) 
                                     onClick={handleSaveAdvanced}
                                     style={{
                                         background:
-                                            'linear-gradient(270deg, #EFE3C2 2.4%, #F2E8D2 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)',
+                                            'linear-gradient(270deg, #F5D9C2 2.4%, #F7E4D3 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)',
                                     }}
                                     className=" rounded-full px-[28px]  py-[10px] font-syne text-xs font-semibold text-[#1E1D2B] shadow-none hover:opacity-95"
                                 >
-                                    Save
+                                    {t("up.advanced.save")}
                                 </Button>
                             </div>
 
@@ -145,7 +149,7 @@ const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) 
                                             htmlFor="advanced-instructions"
                                             className="block font-syne text-sm font-semibold leading-none text-[#1F1D2A]"
                                         >
-                                            Write instructions
+                                            {t("up.advanced.instructions")}
                                         </label>
                                         <Textarea
                                             id="advanced-instructions"
@@ -155,7 +159,7 @@ const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) 
                                             onChange={(event) =>
                                                 setAdvancedDraft((prev) => ({ ...prev, instructions: event.target.value }))
                                             }
-                                            placeholder="Guide the AI: define audience, tone, key points, or constraints."
+                                            placeholder={t("up.advanced.instructions.ph")}
                                             className="mt-1 min-h-[64px] resize-none border-0 bg-transparent p-0 text-sm leading-[1.3] text-[#242430] shadow-none placeholder:text-[#7C7B87] focus-visible:ring-0 focus-visible:ring-offset-0"
                                         />
                                     </div>
@@ -164,7 +168,7 @@ const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) 
 
                             <div className="space-y-4 px-6 pb-5 pt-3.5 ">
                                 <div className="flex items-center justify-between gap-3">
-                                    <label className="font-syne text-sm font-semibold leading-none text-[#1F1D2A]">Tone</label>
+                                    <label className="font-syne text-sm font-semibold leading-none text-[#1F1D2A]">{t("up.advanced.tone")}</label>
                                     <Select
                                         value={advancedDraft.tone}
                                         onValueChange={(value) =>
@@ -173,12 +177,12 @@ const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) 
 
                                     >
                                         <SelectTrigger className="p-2.5 w-[120px] rounded-xl border-[#DBDBE1] bg-white font-syne text-sm font-medium capitalize text-[#2C2B37] shadow-none focus:ring-0 focus-visible:ring-0">
-                                            <SelectValue placeholder="Select tone" />
+                                            <SelectValue placeholder={t("up.advanced.tone.ph")} />
                                         </SelectTrigger>
                                         <SelectContent className="z-[120] font-syne">
                                             {Object.values(ToneType).map((tone) => (
-                                                <SelectItem key={tone} value={tone} className="text-sm font-medium capitalize">
-                                                    {tone}
+                                                <SelectItem key={tone} value={tone} className="text-sm font-medium">
+                                                    {t(`up.tone.${tone}`)}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -186,7 +190,7 @@ const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) 
                                 </div>
 
                                 <div className="flex items-center justify-between gap-3">
-                                    <label className="font-syne text-sm font-semibold leading-none text-[#1F1D2A]">Verbosity</label>
+                                    <label className="font-syne text-sm font-semibold leading-none text-[#1F1D2A]">{t("up.advanced.verbosity")}</label>
                                     <Select
                                         value={advancedDraft.verbosity}
                                         onValueChange={(value) =>
@@ -194,12 +198,12 @@ const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) 
                                         }
                                     >
                                         <SelectTrigger className="p-2.5 w-[120px] rounded-xl border-[#DBDBE1] bg-white font-syne text-sm font-medium capitalize text-[#2C2B37] shadow-none focus:ring-0 focus-visible:ring-0">
-                                            <SelectValue placeholder="Select verbosity" />
+                                            <SelectValue placeholder={t("up.advanced.verbosity.ph")} />
                                         </SelectTrigger>
                                         <SelectContent className="z-[120] font-syne">
                                             {Object.values(VerbosityType).map((verbosity) => (
-                                                <SelectItem key={verbosity} value={verbosity} className="text-sm font-medium capitalize">
-                                                    {verbosity}
+                                                <SelectItem key={verbosity} value={verbosity} className="text-sm font-medium">
+                                                    {t(`up.verbosity.${verbosity}`)}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
@@ -208,7 +212,7 @@ const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) 
 
                                 <div className="flex items-center justify-between gap-3">
                                     <label className="font-syne text-sm font-semibold leading-none text-[#1F1D2A]">
-                                        Include Table of Content
+                                        {t("up.advanced.toc")}
                                     </label>
                                     <Switch
                                         checked={advancedDraft.includeTableOfContents}
@@ -220,7 +224,7 @@ const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) 
                                 </div>
 
                                 <div className="flex items-center justify-between gap-3">
-                                    <label className="font-syne text-sm font-semibold leading-none text-[#1F1D2A]">Title Slide</label>
+                                    <label className="font-syne text-sm font-semibold leading-none text-[#1F1D2A]">{t("up.advanced.titleSlide")}</label>
                                     <Switch
                                         checked={advancedDraft.includeTitleSlide}
                                         onCheckedChange={(checked) =>

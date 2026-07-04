@@ -11,7 +11,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { getApiUrl } from "@/utils/api";
 import { useI18n } from "@/lib/i18n";
 
-const ACCENT = "#a87f16";
+const ACCENT = "#c2571f";
 
 type Totals = {
   calls: number;

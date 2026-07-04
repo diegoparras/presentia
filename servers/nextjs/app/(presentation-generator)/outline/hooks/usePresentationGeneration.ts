@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { usePathname, useRouter } from "next/navigation";
@@ -8,6 +10,7 @@ import { LoadingState, TABS } from "../types/index";
 import { TemplateLayoutsWithSettings } from "@/app/presentation-templates/utils";
 import { getCustomTemplateDetails } from "@/app/hooks/useCustomTemplates";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
+import { useI18n } from "@/lib/i18n";
 
 const DEFAULT_LOADING_STATE: LoadingState = {
   message: "",
@@ -22,6 +25,7 @@ export const usePresentationGeneration = (
   selectedTemplate: TemplateLayoutsWithSettings | string | null,
   setActiveTab: (tab: string) => void
 ) => {
+  const { t } = useI18n();
   const dispatch = useDispatch();
   const router = useRouter();
   const pathname = usePathname();
@@ -32,22 +36,22 @@ export const usePresentationGeneration = (
   const validateInputs = useCallback(() => {
     if (!outlines || outlines.length === 0) {
       notify.warning(
-        "Outlines not ready",
-        "Please wait for your outlines to finish generating before continuing."
+        t("up.gen.outlinesNotReady.title"),
+        t("up.gen.outlinesNotReady.desc")
       );
       return false;
     }
 
     if (!selectedTemplate) {
       notify.warning(
-        "Layout not selected",
-        "Choose a layout group before generating your presentation."
+        t("up.gen.layoutNotSelected.title"),
+        t("up.gen.layoutNotSelected.desc")
       );
       return false;
     }
 
     return true;
-  }, [outlines, selectedTemplate]);
+  }, [outlines, selectedTemplate, t]);
 
   const clearTheme = () => {
     const element = document.getElementById("presentation-page");
@@ -103,7 +107,7 @@ export const usePresentationGeneration = (
     });
 
     setLoadingState({
-      message: "Generating presentation data...",
+      message: t("up.gen.generatingData"),
       isLoading: true,
       showProgress: true,
       duration: 30,
@@ -115,7 +119,7 @@ export const usePresentationGeneration = (
       // Check if it's a custom template (string = presentationId)
       if (typeof selectedTemplate === "string") {
         setLoadingState({
-          message: "Loading custom template...",
+          message: t("up.gen.loadingTemplate"),
           isLoading: true,
           showProgress: true,
           duration: 30,
@@ -130,12 +134,12 @@ export const usePresentationGeneration = (
           !customTemplateDetail ||
           customTemplateDetail.layouts.length === 0
         ) {
-          notify.error("Template error", "Failed to load custom template layouts.");
+          notify.error(t("up.gen.templateError.title"), t("up.gen.templateError.desc"));
           return;
         }
 
         setLoadingState({
-          message: "Generating presentation data...",
+          message: t("up.gen.generatingData"),
           isLoading: true,
           showProgress: true,
           duration: 30,
@@ -189,8 +193,8 @@ export const usePresentationGeneration = (
     } catch (error: any) {
       console.error("Error In Presentation Generation(prepare).", error);
       notify.error(
-        "Generation error",
-        error.message || "Error in presentation generation."
+        t("up.gen.error.title"),
+        error.message || t("up.gen.error.desc")
       );
     } finally {
       setLoadingState(DEFAULT_LOADING_STATE);
@@ -203,6 +207,7 @@ export const usePresentationGeneration = (
     router,
     selectedTemplate,
     pathname,
+    t,
   ]);
 
   return { loadingState, handleSubmit };

@@ -9,6 +9,7 @@ import {
     LayoutsBadge,
     CustomTemplatePreview,
 } from "../../components/TemplatePreviewComponents";
+import { useI18n } from "@/lib/i18n";
 
 export const CustomTemplateCard = memo(function CustomTemplateCard({
     template,
@@ -19,6 +20,7 @@ export const CustomTemplateCard = memo(function CustomTemplateCard({
     onSelectTemplate: (template: string) => void;
     selectedTemplate: string | null;
 }) {
+    const { t } = useI18n();
     const { previewLayouts, loading } = useCustomTemplatePreview(template.id);
     const isSelected = selectedTemplate === template.id;
     const handleSelect = useCallback(() => onSelectTemplate(template.id), [onSelectTemplate, template.id]);
@@ -38,21 +40,21 @@ export const CustomTemplateCard = memo(function CustomTemplateCard({
             role="button"
             tabIndex={0}
             aria-pressed={isSelected}
-            aria-label={`Select ${template.name} template`}
+            aria-label={t("up.templates.selectAria", { name: template.name })}
             className={cn(
                 "font-syne cursor-pointer flex flex-col justify-between relative transition-all duration-200 group overflow-hidden rounded-[22px] bg-white border outline-none",
-                "hover:-translate-y-1 hover:border-[#a87f16] hover:ring-2 hover:ring-[#a87f16]/20 hover:shadow-[0_18px_40px_rgba(34,31,54,0.12)]",
-                "focus-visible:-translate-y-1 focus-visible:border-[#a87f16] focus-visible:ring-2 focus-visible:ring-[#a87f16]/30 focus-visible:shadow-[0_18px_40px_rgba(34,31,54,0.12)]",
+                "hover:-translate-y-1 hover:border-[#c2571f] hover:ring-2 hover:ring-[#c2571f]/20 hover:shadow-[0_18px_40px_rgba(34,31,54,0.12)]",
+                "focus-visible:-translate-y-1 focus-visible:border-[#c2571f] focus-visible:ring-2 focus-visible:ring-[#c2571f]/30 focus-visible:shadow-[0_18px_40px_rgba(34,31,54,0.12)]",
                 isSelected
-                    ? " border-[#a87f16] ring-2 ring-[#a87f16]/25 shadow-[0_14px_34px_rgba(34,31,54,0.12)]"
+                    ? " border-[#c2571f] ring-2 ring-[#c2571f]/25 shadow-[0_14px_34px_rgba(34,31,54,0.12)]"
                     : " border-[#E8E9EC]"
             )}
             onClick={handleSelect}
             onKeyDown={handleKeyDown}
         >
-            <div className="pointer-events-none absolute inset-0 z-30 rounded-[22px] bg-[#a87f16]/[0.04] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100" />
+            <div className="pointer-events-none absolute inset-0 z-30 rounded-[22px] bg-[#c2571f]/[0.04] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100" />
             {isSelected && (
-                <span className="absolute right-4 top-3.5 z-50 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#a87f16] text-white shadow-sm">
+                <span className="absolute right-4 top-3.5 z-50 inline-flex h-7 w-7 items-center justify-center rounded-full bg-[#c2571f] text-white shadow-sm">
                     <CheckCircle2 className="h-4 w-4" />
                 </span>
             )}

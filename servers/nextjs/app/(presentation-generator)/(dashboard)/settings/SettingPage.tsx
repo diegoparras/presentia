@@ -25,10 +25,11 @@ import {
 import { ImagesApi } from "@/app/(presentation-generator)/services/api/images";
 import { getApiUrl } from "@/utils/api";
 import LogoutButton from "@/components/Auth/LogoutButton";
+import { useI18n } from "@/lib/i18n";
 
 const STOCK_IMAGE_PROVIDERS = new Set(["pexels", "pixabay"]);
 
-// Button state interface
+// Button state interface (text guarda la clave i18n, se traduce al renderizar)
 interface ButtonState {
   isLoading: boolean;
   isDisabled: boolean;
@@ -39,6 +40,7 @@ interface ButtonState {
 }
 
 const SettingsPage = () => {
+  const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const [selectedProvider, setSelectedProvider] = useState<SettingsSection>("text-provider");
@@ -50,7 +52,7 @@ const SettingsPage = () => {
   const [buttonState, setButtonState] = useState<ButtonState>({
     isLoading: false,
     isDisabled: false,
-    text: "Save Configuration",
+    text: "set.saveConfig",
     showProgress: false,
   });
 
@@ -102,9 +104,8 @@ const SettingsPage = () => {
       return true;
     } catch (error: any) {
       notify.error(
-        "Cannot save settings",
-        error?.message ||
-        `Unable to reach ${provider} with the provided API key. Please verify your settings and try again.`
+        t("set.toast.cannotSave"),
+        error?.message || t("set.toast.stockUnreachable", { provider })
       );
       return false;
     }
@@ -132,7 +133,7 @@ const SettingsPage = () => {
     if (llmConfig.LLM === 'codex') {
       const isAuthenticated = await checkCurrentAuthStatus();
       if (!isAuthenticated) {
-        notify.error("Sign in required", "Please sign in to ChatGPT to continue.");
+        notify.error(t("set.toast.signInRequired"), t("set.toast.signInChatgpt"));
         return;
       }
     }
@@ -141,7 +142,7 @@ const SettingsPage = () => {
     });
     const validationError = getLLMConfigValidationError(llmConfig);
     if (validationError) {
-      notify.warning("Cannot save settings", validationError);
+      notify.warning(t("set.toast.cannotSave"), validationError);
       if (
         selectedProvider === "image-provider" &&
         ((llmConfig.LLM === "openai" && !String(llmConfig.OPENAI_MODEL || "").trim()) ||
@@ -162,7 +163,7 @@ const SettingsPage = () => {
         ...prev,
         isLoading: true,
         isDisabled: true,
-        text: "Saving Configuration...",
+        text: "set.savingConfig",
       }));
       trackEvent(MixpanelEvent.Settings_SaveConfiguration_API_Call);
       if (
@@ -174,31 +175,31 @@ const SettingsPage = () => {
         ))
       ) {
         throw new Error(
-          `The selected model "${llmConfig.OLLAMA_MODEL}" is not available at ${llmConfig.OLLAMA_URL}. Check models and select an available model.`
+          t("set.toast.ollamaModelUnavailable", {
+            model: llmConfig.OLLAMA_MODEL,
+            url: llmConfig.OLLAMA_URL ?? "",
+          })
         );
       }
       await handleSaveLLMConfig(llmConfig);
-      notify.success(
-        "Settings saved",
-        "Your configuration was saved successfully."
-      );
+      notify.success(t("set.toast.saved"), t("set.toast.savedDesc"));
       setButtonState((prev) => ({
         ...prev,
         isLoading: false,
         isDisabled: false,
-        text: "Save Configuration",
+        text: "set.saveConfig",
       }));
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
-          : "Something went wrong while saving.";
-      notify.error("Could not save settings", message);
+          : t("set.toast.saveFailedDesc");
+      notify.error(t("set.toast.saveFailed"), message);
       setButtonState((prev) => ({
         ...prev,
         isLoading: false,
         isDisabled: false,
-        text: "Save Configuration",
+        text: "set.saveConfig",
       }));
     }
   };
@@ -255,15 +256,19 @@ const SettingsPage = () => {
     : textProviderLabel;
 
   const imageSummary = llmConfig.DISABLE_IMAGE_GENERATION
-    ? "Image generation disabled"
+    ? t("set.summary.imageDisabled")
     : llmConfig.IMAGE_PROVIDER
       ? IMAGE_PROVIDERS[llmConfig.IMAGE_PROVIDER]?.label ||
       llmConfig.IMAGE_PROVIDER
-      : "No image provider";
+      : t("set.summary.noImageProvider");
   const webSearchProviderKey = (llmConfig.WEB_SEARCH_PROVIDER || "").toLowerCase();
   const webSearchSummary = llmConfig.WEB_GROUNDING
-    ? `Web: ${WEB_SEARCH_PROVIDERS[webSearchProviderKey]?.label || "No provider"}`
-    : "Web search disabled";
+    ? t("set.summary.web", {
+      provider:
+        WEB_SEARCH_PROVIDERS[webSearchProviderKey]?.label ||
+        t("set.summary.noProvider"),
+    })
+    : t("set.summary.webDisabled");
 
 
   useEffect(() => {
@@ -353,9 +358,9 @@ const SettingsPage = () => {
           <div className="sticky top-0 right-0 z-50 py-[28px]   backdrop-blur mb-4 ">
             <div className="flex  gap-3 items-center ">
               <h3 className=" text-[28px] tracking-[-0.84px] font-unbounded font-normal text-black flex items-center gap-2">
-                Settings
+                {t("set.title")}
               </h3>
-              <p className="text-[10px] px-2.5 py-0.5 rounded-[50px] text-[#a87f16] border border-[#EDEEEF]  font-medium ">
+              <p className="text-[10px] px-2.5 py-0.5 rounded-[50px] text-[#c2571f] border border-[#EDEEEF]  font-medium ">
                 {textSummary} · {imageSummary} · {webSearchSummary}
               </p>
             </div>
@@ -371,14 +376,14 @@ const SettingsPage = () => {
           {selectedProvider === "session" && (
             <div className="w-full max-w-lg space-y-5 rounded-[20px] border border-[#EDEEEF] bg-white p-7">
               <div>
-                <h4 className="font-unbounded text-lg font-normal text-black">Sign out</h4>
+                <h4 className="font-unbounded text-lg font-normal text-black">{t("set.session.title")}</h4>
                 <p className="mt-2 font-syne text-sm leading-relaxed text-[#494A4D]">
-                  End your session on this deployment. You will need to sign in again to use the app and access the API.
+                  {t("set.session.desc")}
                 </p>
               </div>
               <LogoutButton
-                label="Sign out"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-[58px] border border-[#EDEEEF] bg-[#a87f16] px-5 py-3 font-syne text-xs font-semibold text-white transition hover:bg-[#6d46e6] disabled:cursor-not-allowed disabled:opacity-60"
+                label={t("set.session.button")}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[58px] border border-[#EDEEEF] bg-[#c2571f] px-5 py-3 font-syne text-xs font-semibold text-white transition hover:bg-[#6d46e6] disabled:cursor-not-allowed disabled:opacity-60"
               />
             </div>
           )}
@@ -394,7 +399,7 @@ const SettingsPage = () => {
             disabled={buttonState.isDisabled}
             style={{
               background:
-                "linear-gradient(270deg, #EFE3C2 2.4%, #F2E8D2 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+                "linear-gradient(270deg, #F5D9C2 2.4%, #F7E4D3 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
               color: "#101323",
             }}
             className={`w-full font-syne font-semibold flex items-center justify-center gap-2 py-3 px-5 rounded-[58px] transition-all duration-500 ${buttonState.isDisabled
@@ -405,10 +410,10 @@ const SettingsPage = () => {
             {buttonState.isLoading ? (
               <div className="flex items-center justify-center gap-2">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {buttonState.text}
+                {t(buttonState.text)}
               </div>
             ) : (
-              buttonState.text
+              t(buttonState.text)
             )}
             <ChevronRight className="w-4 h-4" />
           </button>

@@ -1,3 +1,5 @@
+"use client";
+
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Trash } from "lucide-react";
@@ -18,6 +20,7 @@ import {
   type ChangeEvent,
 } from "react";
 import { marked } from "marked";
+import { useI18n } from "@/lib/i18n";
 
 interface OutlineItemProps {
   sortableId: string;
@@ -38,6 +41,7 @@ export function OutlineItem({
   isActiveStreaming = false,
   isStableStreaming = false,
 }: OutlineItemProps) {
+  const { t } = useI18n();
   const { outlines } = useSelector(
     (state: RootState) => state.presentationGeneration
   );
@@ -256,7 +260,7 @@ export function OutlineItem({
           className="flex flex-col basis-full gap-2"
         >
           <p className="text-black w-fit text-[10px] font-medium  bg-white border border-[#EDEEEF] rounded-[80px] px-2.5">
-            Slide {index}
+            {t("up.outline.slide", { n: index })}
           </p>
           {/* Editable Markdown Content */}
           {isStreaming ? (
@@ -283,14 +287,14 @@ export function OutlineItem({
                   value={slideOutline.content || ""}
                   onChange={handleTextareaChange}
                   onBlur={() => setIsEditing(false)}
-                  placeholder="Enter markdown content here..."
-                  className="min-h-[140px] resize-none overflow-hidden rounded-[8px] border-[#D8D8DF] bg-[#FBFBFC] px-3 py-3 font-mono text-[13px] leading-6 text-[#191919] shadow-none focus-visible:border-[#a87f16] focus-visible:ring-2 focus-visible:ring-[#a87f16]/20"
+                  placeholder={t("up.outline.markdownPh")}
+                  className="min-h-[140px] resize-none overflow-hidden rounded-[8px] border-[#D8D8DF] bg-[#FBFBFC] px-3 py-3 font-mono text-[13px] leading-6 text-[#191919] shadow-none focus-visible:border-[#c2571f] focus-visible:ring-2 focus-visible:ring-[#c2571f]/20"
                 />
               ) : (
                 <div
                   role="button"
                   tabIndex={0}
-                  aria-label={`Edit slide ${index} markdown`}
+                  aria-label={t("up.outline.editSlideAria", { n: index })}
                   onClick={() => setIsEditing(true)}
                   onFocus={() => setIsEditing(true)}
                   onKeyDown={(event) => {
@@ -299,7 +303,7 @@ export function OutlineItem({
                       setIsEditing(true);
                     }
                   }}
-                  className="block min-h-[60px] w-full rounded-[8px] px-0 py-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a87f16]/25"
+                  className="block min-h-[60px] w-full rounded-[8px] px-0 py-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c2571f]/25"
                 >
                   {previewHtml ? (
                     <div
@@ -308,7 +312,7 @@ export function OutlineItem({
                     />
                   ) : (
                     <p className="text-sm text-[#6B6B73]">
-                      Empty outline
+                      {t("up.outline.emptyOutline")}
                     </p>
                   )}
                 </div>
@@ -318,7 +322,7 @@ export function OutlineItem({
         </div>
 
         <div className="hidden group-hover:flex absolute -top-3 -right-3 gap-1 sm:gap-2 items-center">
-          <ToolTip content="Delete Slide">
+          <ToolTip content={t("up.outline.deleteSlide")}>
             <button
               onClick={handleSlideDelete}
               className="p-1.5 sm:p-2 bg-white shadow-md  rounded-full transition-colors"

@@ -1,6 +1,10 @@
+"use client";
+
 import React from 'react';
+import { useI18n } from "@/lib/i18n";
 
 export const EmptyState = () => {
+    const { t } = useI18n();
     return (
         <div className="flex flex-col items-center justify-center min-h-[70vh] bg-white/50 rounded-lg">
             <div className="mb-4">
@@ -12,11 +16,11 @@ export const EmptyState = () => {
                 </svg>
             </div>
             <h3 className="text-[#101828] text-lg font-roboto font-medium mb-1">
-                You don't have any presentations yet.
+                {t("dash.empty.title")}
             </h3>
             <p className="text-[#667085] text-base font-roboto">
-                Start creating the first one.
+                {t("dash.empty.subtitle")}
             </p>
         </div>
     );
-}; 
+};

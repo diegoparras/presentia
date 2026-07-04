@@ -17,12 +17,12 @@ const CHART_COLORS = [
     "#ef4444",
     "#10b981",
     "#f59e0b",
-    "#b58a2a",
+    "#cf6a2e",
     "#06b6d4",
     "#84cc16",
     "#f97316",
     "#ec4899",
-    "#b58a2a",
+    "#cf6a2e",
 ];
 
 const resolveCssValue = (element: HTMLElement, value: string, fallback: string) => {
@@ -152,7 +152,7 @@ export const GeneralChart: React.FC<{
         if (!canvas) return;
 
         const textColor = chartTextColor(canvas);
-        const gridColor = chartTextColor(canvas, "#a87f16");
+        const gridColor = chartTextColor(canvas, "#c2571f");
         const fontFamily = chartFont(canvas);
         const colors = data.map((_, index) => chartColor(canvas, index));
         const labels = data.map((item, index) => item.name ?? `P${index + 1}`);

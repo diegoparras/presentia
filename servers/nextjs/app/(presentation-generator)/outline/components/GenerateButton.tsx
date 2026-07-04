@@ -1,8 +1,11 @@
+"use client";
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { LoadingState } from "../types/index";
 import { TemplateLayoutsWithSettings } from "@/app/presentation-templates/utils";
 import { ChevronRight } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface GenerateButtonProps {
   loadingState: LoadingState;
@@ -17,6 +20,7 @@ const GenerateButton: React.FC<GenerateButtonProps> = ({
   selectedTemplate,
   onSubmit,
 }) => {
+  const { t } = useI18n();
   const isDisabled =
     loadingState.isLoading ||
     streamState.isLoading ||
@@ -25,9 +29,9 @@ const GenerateButton: React.FC<GenerateButtonProps> = ({
 
   const getButtonText = () => {
     if (loadingState.isLoading) return loadingState.message;
-    if (streamState.isLoading || streamState.isStreaming) return "Loading...";
-    if (!selectedTemplate) return "Select a Template";
-    return "Generate Presentation";
+    if (streamState.isLoading || streamState.isStreaming) return t("up.generate.loading");
+    if (!selectedTemplate) return t("up.generate.selectTemplate");
+    return t("up.generate.cta");
   };
 
   return (
@@ -38,7 +42,7 @@ const GenerateButton: React.FC<GenerateButtonProps> = ({
       }}
       className=" w-full flex items-center gap-0.5 rounded-[58px] text-sm py-3 px-5 font-instrument_sans font-semibold  text-[#101323] disabled:opacity-50 disabled:cursor-not-allowed font-syne"
       style={{
-        background: "linear-gradient(270deg, #EFE3C2 2.4%, #F2E8D2 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+        background: "linear-gradient(270deg, #F5D9C2 2.4%, #F7E4D3 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
       }}
     >
 

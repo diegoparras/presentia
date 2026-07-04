@@ -28,8 +28,8 @@ export const SlidePreviewSection: React.FC<SlidePreviewSectionProps> = ({
                 <div className="px-6 py-5 border-b border-[#F3F4F6] bg-gradient-to-r from-[#FAFAFA] to-white">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#EBE9FE] to-[#efe4c6] flex items-center justify-center shadow-sm">
-                                <Images className="w-6 h-6 text-[#a87f16]" />
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#EBE9FE] to-[#f5dcc8] flex items-center justify-center shadow-sm">
+                                <Images className="w-6 h-6 text-[#c2571f]" />
                             </div>
                             <div>
                                 <h2 className="text-xl font-semibold text-[#111827]">Slide Preview</h2>
@@ -86,7 +86,7 @@ export const SlidePreviewSection: React.FC<SlidePreviewSectionProps> = ({
                             style={{
                                 background: isLoading
                                     ? '#E5E7EB'
-                                    : 'linear-gradient(135deg, #EFE3C2 0%, #F2E8D2 35%, #F4DCD3 70%, #FDE4C2 100%)',
+                                    : 'linear-gradient(135deg, #F5D9C2 0%, #F7E4D3 35%, #F4DCD3 70%, #FDE4C2 100%)',
                                 color: isLoading ? '#9CA3AF' : '#111827',
                             }}
                         >

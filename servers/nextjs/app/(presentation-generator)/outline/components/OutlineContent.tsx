@@ -16,6 +16,7 @@ import {
 import { OutlineItem } from "./OutlineItem";
 import { Button } from "@/components/ui/button";
 import { FileText, Loader2 } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 interface OutlineContentProps {
   outlines: { content: string }[] | null;
@@ -38,6 +39,7 @@ const OutlineContent: React.FC<OutlineContentProps> = ({
   onDragEnd,
   onAddSlide,
 }) => {
+  const { t } = useI18n();
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -116,7 +118,7 @@ const OutlineContent: React.FC<OutlineContentProps> = ({
             disabled={isLoading || isStreaming}
             className="w-full my-4 text-blue-600 border-blue-200"
           >
-            + Add Slide
+            {t("up.outline.addSlide")}
           </Button>
         </div>
       )}
@@ -124,7 +126,7 @@ const OutlineContent: React.FC<OutlineContentProps> = ({
       {!isStreaming && !isLoading && outlines && outlines.length === 0 && (
         <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-200">
           <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 mb-4">No outlines available</p>
+          <p className="text-gray-600 mb-4">{t("up.outline.noOutlines")}</p>
           <Button
             variant="outline"
             onClick={() => {
@@ -132,7 +134,7 @@ const OutlineContent: React.FC<OutlineContentProps> = ({
             }}
             className="text-blue-600 border-blue-200"
           >
-            + Add First Slide
+            {t("up.outline.addFirstSlide")}
           </Button>
         </div>
       )}

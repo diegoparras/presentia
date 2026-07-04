@@ -592,7 +592,27 @@ const ja: Dict = {
   "costs.unknown": "不明",
 };
 
-const DICTS: Record<Lang, Dict> = { en, es, fr, pt, it, zh, ja };
+const BASE_DICTS: Record<Lang, Dict> = { en, es, fr, pt, it, zh, ja };
+
+// Diccionarios por área (los llenan pasadas de traducción independientes)
+import { dict as onboardingDict } from "./i18n-dicts/onboarding";
+import { dict as authDict } from "./i18n-dicts/auth";
+import { dict as settingsDict } from "./i18n-dicts/settings";
+import { dict as uploadDict } from "./i18n-dicts/upload";
+import { dict as dashboardDict } from "./i18n-dicts/dashboard";
+
+const EXTRA_DICTS = [onboardingDict, authDict, settingsDict, uploadDict, dashboardDict];
+
+const DICTS: Record<Lang, Dict> = Object.fromEntries(
+  LANGS.map((lang) => [
+    lang,
+    Object.assign(
+      {},
+      BASE_DICTS[lang],
+      ...EXTRA_DICTS.map((extra) => extra[lang] || {})
+    ),
+  ])
+) as Record<Lang, Dict>;
 
 const STORAGE_KEY = "presentia.lang";
 

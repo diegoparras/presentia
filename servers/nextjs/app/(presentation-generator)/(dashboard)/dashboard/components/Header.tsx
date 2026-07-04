@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import { ArrowLeft } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 const PATHS_WITH_HEADER_BACK = [
   "/upload",
@@ -19,6 +20,7 @@ function pathMatches(pathname: string | null, base: string) {
 }
 
 const Header = () => {
+  const { t } = useI18n();
   const pathname = usePathname();
   const showHeaderBack = PATHS_WITH_HEADER_BACK.some((p) => pathMatches(pathname, p));
 
@@ -27,11 +29,7 @@ const Header = () => {
   const backToTemplates = pathMatches(pathname, "/template-preview");
 
   const backHref = backToUpload ? "/upload" : backToTemplates ? "/templates" : "/dashboard";
-  const backLabel = backToUpload
-    ? "BACK"
-    : backToTemplates
-      ? "BACK"
-      : "BACK";
+  const backLabel = t("dash.back");
 
   return (
     <div className="w-full   sticky top-0 z-50 py-7 "

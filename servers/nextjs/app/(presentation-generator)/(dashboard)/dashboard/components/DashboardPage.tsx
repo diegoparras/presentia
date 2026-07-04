@@ -8,6 +8,7 @@ import Link from "next/link";
 import { ArrowUpDown } from "lucide-react";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import { usePathname } from "next/navigation";
+import { useI18n } from "@/lib/i18n";
 
 const actionCardBase =
   "absolute aspect-[16/9] h-[46.238px] w-[82.201px] rounded-[4.474px] border border-white/50 bg-cover bg-center bg-no-repeat shadow-[0_8px_18px_rgba(16,24,40,0.18)] transition-all duration-500 ease-out opacity-100 translate-y-0 scale-100";
@@ -36,6 +37,7 @@ const FloatingActionCards = () => (
 );
 
 const DashboardPage: React.FC = () => {
+  const { t } = useI18n();
   const pathname = usePathname();
   const [presentations, setPresentations] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,13 +102,13 @@ const DashboardPage: React.FC = () => {
       <div className="sticky top-0 right-0 z-50 py-[28px] backdrop-blur mb-2">
         <div className="flex items-center justify-between">
           <h3 className="text-[28px] tracking-[-0.84px] font-syne font-normal text-[#101828] flex items-center gap-2">
-            Slide Presentation
+            {t("dash.title")}
           </h3>
         </div>
       </div>
       <section className="relative z-10 overflow-visible  ">
         <h2 className="font-syne text-base bg-transparent font-medium pb-3.5  text-[#333333] ">
-          Actions
+          {t("dash.actions")}
         </h2>
         <Link
           href="/upload"
@@ -116,31 +118,31 @@ const DashboardPage: React.FC = () => {
               source: "dashboard_actions_card",
             })
           }
-          className="group/action bg-white z-50 mt-2  relative  block w-[304px] max-w-full overflow-visible rounded-[10.8px] outline-none focus-visible:ring-2 focus-visible:ring-[#a87f16] focus-visible:ring-offset-4 cursor-pointer"
-          aria-label="Create presentation"
+          className="group/action bg-white z-50 mt-2  relative  block w-[304px] max-w-full overflow-visible rounded-[10.8px] outline-none focus-visible:ring-2 focus-visible:ring-[#c2571f] focus-visible:ring-offset-4 cursor-pointer"
+          aria-label={t("dash.createPresentation")}
         >
           <FloatingActionCards />
 
           <img
             src="/create_presentation_bg.png"
-            alt="Background of the create presentation card"
+            alt={t("dash.createBgAlt")}
             className="relative bg-white z-10 h-[89.983px] w-[304px] max-w-full rounded-[10.8px] object-cover"
           />
           <span className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 text-center font-syne text-sm font-medium text-[#191919]">
-            Create Presentation
+            {t("dash.createPresentation")}
           </span>
         </Link>
       </section>
       <section className="relative z-10 mt-12">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-syne text-base font-medium  text-[#333333] ">
-            Decks
+            {t("dash.decks")}
           </h2>
           <button
             type="button"
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#2F3033] transition-colors hover:bg-[#F3F3F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a87f16]"
-            title="Toggle deck sort order"
-            aria-label="Toggle deck sort order"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[#2F3033] transition-colors hover:bg-[#F3F3F6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c2571f]"
+            title={t("dash.sortToggle")}
+            aria-label={t("dash.sortToggle")}
             onClick={() =>
               setDeckSortDirection((current) =>
                 current === "desc" ? "asc" : "desc"
