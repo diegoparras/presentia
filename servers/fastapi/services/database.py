@@ -13,6 +13,7 @@ from models.sql.async_presentation_generation_status import (
 from models.sql.chat_history_message import ChatHistoryMessageModel
 from models.sql.image_asset import ImageAsset
 from models.sql.key_value import KeyValueSqlModel
+from models.sql.llm_usage_event import LLMUsageEventModel
 from models.sql.ollama_pull_status import OllamaPullStatus
 from models.sql.presentation_layout_code import PresentationLayoutCodeModel
 from models.sql.presentation import PresentationModel

@@ -17,6 +17,7 @@ from models.sse_response import (
     SSEStatusResponse,
 )
 from services.anonimal_service import anonymize_generation_inputs
+from services.llm_usage_service import flush_usage_events, set_usage_scope
 from services.temp_file_service import TEMP_FILE_SERVICE
 from services.database import get_async_session
 from services.documents_loader import DocumentsLoader
@@ -107,6 +108,7 @@ async def stream_outlines(
     temp_dir = TEMP_FILE_SERVICE.create_temp_dir()
 
     async def inner():
+        set_usage_scope(presentation_id=str(presentation.id), stage="outline")
         yield SSEStatusResponse(
             status="Preparing your presentation outline"
         ).to_string()
@@ -248,6 +250,9 @@ async def stream_outlines(
 
         sql_session.add(presentation)
         await sql_session.commit()
+
+        # Suite Escriba (Fase 5): persistir métricas de usage del outline
+        await flush_usage_events(sql_session)
 
         await MEM0_PRESENTATION_MEMORY_SERVICE.store_generated_outlines(
             presentation.id,

@@ -31,6 +31,7 @@ from models.presentation_with_slides import (
 from models.sql.template import TemplateModel
 from services.anonimal_service import anonymize_generation_inputs
 from services.documents_loader import DocumentsLoader
+from services.llm_usage_service import flush_usage_events, set_usage_scope
 from services.temp_file_service import TEMP_FILE_SERVICE
 from services.webhook_service import WebhookService
 from services.image_generation_service import ImageGenerationService
@@ -470,6 +471,7 @@ async def stream_presentation(
             finally:
                 await asset_events.put(slide_index)
 
+        set_usage_scope(presentation_id=str(id), stage="slide")
         slides: List[SlideModel] = []
         yield SSEResponse(
             event="response",
@@ -489,6 +491,7 @@ async def stream_presentation(
                     presentation.verbosity,
                     presentation.instructions,
                     dataset=presentation.dataset,
+                    slide_index=i,
                 )
             except HTTPException as e:
                 yield SSEErrorResponse(detail=e.detail).to_string()
@@ -593,6 +596,9 @@ async def stream_presentation(
         sql_session.add_all(slides)
         sql_session.add_all(generated_assets)
         await sql_session.commit()
+
+        # Suite Escriba (Fase 5): persistir métricas de usage de esta generación
+        await flush_usage_events(sql_session)
 
         response = PresentationWithSlides(
             **presentation.model_dump(),
@@ -733,6 +739,7 @@ async def generate_presentation_handler(
     sql_session: AsyncSession = Depends(get_async_session),
 ):
     try:
+        set_usage_scope(presentation_id=str(presentation_id), stage="outline")
         using_slides_markdown = False
         language_to_use = (request.language or "").strip() or None
         additional_context = ""
@@ -915,6 +922,7 @@ async def generate_presentation_handler(
         total_slide_layouts = len(layout_model.slides)
 
         # Generate Structure
+        set_usage_scope(stage="structure")
         if layout_model.ordered:
             presentation_structure = layout_model.to_presentation_structure()
         else:
@@ -992,6 +1000,7 @@ async def generate_presentation_handler(
         async_assets_generation_tasks = []
 
         # 7. Generate slide content concurrently (batched), then build slides and fetch assets
+        set_usage_scope(stage="slide")
         slides: List[SlideModel] = []
 
         slide_layout_indices = presentation_structure.slides
@@ -1014,6 +1023,7 @@ async def generate_presentation_handler(
                     request.verbosity.value,
                     request.instructions,
                     dataset=request.dataset,
+                    slide_index=i,
                 )
                 for i in range(start, end)
             ]
@@ -1073,6 +1083,9 @@ async def generate_presentation_handler(
         sql_session.add_all(slides)
         sql_session.add_all(generated_assets)
         await sql_session.commit()
+
+        # Suite Escriba (Fase 5): persistir métricas de usage de esta generación
+        await flush_usage_events(sql_session)
 
         if async_status:
             async_status.message = "Exporting presentation"

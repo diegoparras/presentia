@@ -51,10 +51,16 @@ async def get_slide_content_with_dataset_guard(
     verbosity: Optional[str] = None,
     instructions: Optional[str] = None,
     dataset: Optional[Dict[str, Any]] = None,
+    slide_index: Optional[int] = None,
 ):
-    """Drop-in replacement for get_slide_content_from_type_and_outline with an
-    extra `dataset` parameter. Without dataset (or on chartless layouts) it
-    delegates untouched, so vanilla behavior is preserved."""
+    """Drop-in replacement for get_slide_content_from_type_and_outline with
+    extra `dataset` and `slide_index` parameters. Without dataset (or on
+    chartless layouts) it delegates untouched, so vanilla behavior is
+    preserved. slide_index feeds the usage attribution (Fase 5)."""
+    if slide_index is not None:
+        from services.llm_usage_service import set_usage_scope
+
+        set_usage_scope(stage="slide", slide_index=slide_index)
     has_chart = bool(dataset) and schema_contains_chart(slide_layout.json_schema)
     if not has_chart:
         return await _generate_slide_content(

@@ -56,6 +56,10 @@
 >   -F "content=Informe mensual de conciliación bancaria" \
 >   -F "n_slides=6" -F "language=Spanish" -F "export_as=pdf"
 > ```
+>
+> ### Panel de costos LLM
+>
+> Cada llamada al modelo registra tokens de entrada/salida, proveedor, modelo y costo estimado (catálogo de precios versionado en `servers/fastapi/constants/llm_pricing.py`), con atribución por presentación, etapa y slide. La vista Costos del dashboard muestra el costo total por deck, el desglose y la comparativa entre proveedores; también hay endpoints de consulta (`GET /api/v1/ppt/usage/presentations`, `/usage/presentation/{id}`, `/usage/summary`). Los proveedores locales (Ollama, LM Studio) cuestan cero y los modelos fuera del catálogo muestran solo tokens. Se desactiva con `LLM_USAGE_TRACKING=false`; es la única funcionalidad del fork activa por defecto porque no tiene efectos externos (todo queda en la base local).
 
 # Open-Source AI Presentation Generator and API (Gamma, Canva, Beautiful AI, Decktopus, Presentations AI Alternative)
 

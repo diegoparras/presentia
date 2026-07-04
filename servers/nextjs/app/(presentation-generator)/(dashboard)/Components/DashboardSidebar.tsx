@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { LayoutDashboard, Star, Brain, Settings, Palette, HelpCircle } from "lucide-react";
+import { LayoutDashboard, Star, Brain, Settings, Palette, HelpCircle, Coins } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import AboutPresentia from "@/components/AboutPresentia";
@@ -12,6 +12,7 @@ export const defaultNavItems = [
     { key: "dashboard" as const, label: "Dashboard", icon: LayoutDashboard },
     { key: "templates" as const, label: "Standard", icon: Star },
     { key: "designs" as const, label: "Smart", icon: Brain },
+    { key: "costs" as const, label: "Costos", icon: Coins },
 
 
 
@@ -87,6 +88,21 @@ const DashboardSidebar = () => {
                             <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
                                 <Palette className={`h-4 w-4 ${pathname === "/theme" ? "text-[#a87f16]" : "text-slate-600"}`} />
                                 <span className="text-[11px] text-slate-800">Themes</span>
+                            </div>
+                        </Link>
+                        <Link
+                            prefetch={false}
+                            href={`/costs`}
+                            className={[
+                                "flex flex-col tex-center items-center gap-2  transition-colors",
+                                pathname === "/costs" ? "" : "ring-transparent",
+                            ].join(" ")}
+                            aria-label="Costos"
+                            title="Costos"
+                        >
+                            <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
+                                <Coins className={`h-4 w-4 ${pathname === "/costs" ? "text-[#a87f16]" : "text-slate-600"}`} />
+                                <span className="text-[11px] text-slate-800">Costos</span>
                             </div>
                         </Link>
                     </div>
