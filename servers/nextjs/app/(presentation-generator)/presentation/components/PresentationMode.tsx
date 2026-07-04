@@ -16,6 +16,7 @@ import { Slide } from "../../types/slide";
 import SlideScale from "../../components/PresentationRender";
 import type { Theme } from "../../services/api/types";
 import { applyPresentationThemeToElement } from "../utils/applyPresentationThemeDom";
+import { useI18n } from "@/lib/i18n";
 
 interface PresentationModeProps {
   slides: Slide[];
@@ -38,6 +39,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
   onExit,
   onSlideChange,
 }) => {
+  const { t } = useI18n();
   const rootRef = useRef<HTMLDivElement>(null);
   const hideChromeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showSpeakerNotes, setShowSpeakerNotes] = useState(true);
@@ -191,7 +193,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
       id="presentation-mode-wrapper"
       ref={rootRef}
       role="application"
-      aria-label="Presentation"
+      aria-label={t("ed.mode.aria")}
       className="fixed inset-0 z-[100] flex h-[100dvh] w-[100dvw] flex-col overflow-hidden outline-none select-none"
       style={{ backgroundColor: "var(--page-background-color, #c8c7c9)" }}
       tabIndex={0}
@@ -199,7 +201,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
       onClick={handleSlideAreaClick}
     >
       <span className="sr-only">
-        Slide {currentSlide + 1} of {slides.length}
+        {t("ed.mode.slideOf", { n: currentSlide + 1, total: slides.length })}
       </span>
 
       {/* Top bar — fullscreen: auto-hide */}
@@ -212,7 +214,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
             type="button"
             variant="ghost"
             size="icon"
-            title="Fullscreen (F)"
+            title={t("ed.mode.fullscreen")}
             onClick={(e) => {
               e.stopPropagation();
               onFullscreenToggle(rootRef.current);
@@ -225,7 +227,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
             type="button"
             variant="ghost"
             size="icon"
-            title="Exit presentation (Esc)"
+            title={t("ed.mode.exit")}
             onClick={(e) => {
               e.stopPropagation();
               onExit();
@@ -280,7 +282,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
           type="button"
           variant="ghost"
           size="icon"
-          title="Previous slide"
+          title={t("ed.mode.prev")}
           onClick={(e) => {
             e.stopPropagation();
             goPrev();
@@ -302,7 +304,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
           type="button"
           variant="ghost"
           size="icon"
-          title="Next slide"
+          title={t("ed.mode.next")}
           onClick={(e) => {
             e.stopPropagation();
             goNext();
@@ -315,11 +317,11 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
         <div className="mx-1 hidden h-6 w-px bg-gray-200 sm:block" />
         <div
           className="hidden max-w-[200px] items-center gap-1.5 text-[11px] leading-tight text-gray-500 sm:flex"
-          title="Keyboard shortcuts"
+          title={t("ed.mode.kbd")}
         >
           <Keyboard className="h-3.5 w-3.5 shrink-0" />
           <span>
-            ← → space · Home/End · F fullscreen · N notes · Esc exit
+            {t("ed.mode.kbdLegend")}
           </span>
         </div>
       </div>
@@ -334,7 +336,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
               <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
                 <div className="flex items-center gap-2 text-sm font-medium text-gray-800">
                   <StickyNote className="h-4 w-4 text-amber-600" />
-                  Speaker notes
+                  {t("ed.slide.notesTitle")}
                 </div>
                 <Button
                   type="button"
@@ -347,7 +349,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
                   className="h-8 px-2 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                 >
                   <EyeOff className="mr-1 h-4 w-4" />
-                  Hide
+                  {t("ed.mode.hide")}
                 </Button>
               </div>
               <div className="max-h-[min(28vh,220px)] overflow-auto whitespace-pre-wrap px-3 py-2.5 text-sm leading-relaxed text-gray-700">
@@ -365,7 +367,7 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
               className="h-9 rounded-full border border-gray-200 bg-white/95 px-3 text-gray-800 shadow-md backdrop-blur-sm hover:bg-gray-50"
             >
               <StickyNote className="mr-2 h-4 w-4 text-amber-600" />
-              Show notes
+              {t("ed.mode.showNotes")}
             </Button>
           )}
         </div>

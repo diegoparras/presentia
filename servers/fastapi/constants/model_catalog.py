@@ -25,6 +25,23 @@ TEXT_PROVIDER_REQUIREMENTS = {
     "google": ("GOOGLE_API_KEY", "API key de Google"),
     "deepseek": ("DEEPSEEK_API_KEY", "API key de DeepSeek"),
     "ollama": ("OLLAMA_URL", "URL de Ollama"),
+    "openrouter": ("OPENROUTER_API_KEY", "API key de OpenRouter"),
+}
+
+# Slug de cada modelo en OpenRouter: una sola API key habilita casi todo el
+# catálogo. Editable acá si OpenRouter cambia un slug.
+OPENROUTER_IDS = {
+    "claude-fable-5": "anthropic/claude-fable-5",
+    "claude-opus-4-8": "anthropic/claude-opus-4.8",
+    "claude-sonnet-5": "anthropic/claude-sonnet-5",
+    "claude-haiku-4-5": "anthropic/claude-haiku-4.5",
+    "gpt-4.1": "openai/gpt-4.1",
+    "gpt-4o": "openai/gpt-4o",
+    "gpt-4o-mini": "openai/gpt-4o-mini",
+    "gemini-2.5-pro": "google/gemini-2.5-pro",
+    "gemini-2.5-flash": "google/gemini-2.5-flash",
+    "gemini-2.0-flash": "google/gemini-2.0-flash-001",
+    "deepseek-chat": "deepseek/deepseek-chat",
 }
 
 # id, provider, nombre, calidad 1-5, descripción corta
@@ -102,10 +119,16 @@ def _assign_badges(models: list[dict]) -> None:
 
 
 def build_text_model_catalog() -> list[dict]:
+    openrouter_key = _has(TEXT_PROVIDER_REQUIREMENTS["openrouter"][0])
     models = []
     for model_id, provider, name, quality, description in TEXT_MODELS:
         env_key, requirement = TEXT_PROVIDER_REQUIREMENTS[provider]
         price = get_model_price(model_id)
+        direct = _has(env_key)
+        openrouter_id = OPENROUTER_IDS.get(model_id)
+        via_openrouter = bool(openrouter_id) and openrouter_key
+        if openrouter_id:
+            requirement = f"{requirement} (o de OpenRouter)"
         models.append(
             {
                 "id": model_id,
@@ -116,7 +139,9 @@ def build_text_model_catalog() -> list[dict]:
                 "input_price": price[0] if price else (0.0 if provider == "ollama" else None),
                 "output_price": price[1] if price else (0.0 if provider == "ollama" else None),
                 "blended_price": _blended_text_price(model_id, provider),
-                "available": _has(env_key),
+                "available": direct or via_openrouter,
+                "via": "direct" if direct else ("openrouter" if via_openrouter else None),
+                "openrouter_id": openrouter_id,
                 "requirement": requirement,
                 "badge": None,
             }

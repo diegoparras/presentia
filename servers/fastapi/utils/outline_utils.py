@@ -32,12 +32,17 @@ def get_presentation_title_from_presentation_outline(
             count=1,
         )
 
+    # Solo el título de la primera slide (encabezado o primera oración),
+    # nunca el cuerpo completo concatenado.
+    title = _extract_outline_title(first_content)
+
     return (
-        first_content[:100]
+        title[:100]
         .replace("#", "")
         .replace("/", "")
         .replace("\\", "")
         .replace("\n", " ")
+        .strip()
     )
 
 

@@ -1,6 +1,7 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useDispatch } from "react-redux";
 import { notify } from "@/components/ui/sonner";
+import { useI18n } from "@/lib/i18n";
 import { setPresentationData } from "@/store/slices/presentationGeneration";
 import { DashboardApi } from '../../services/api/dashboard';
 import { clearHistory } from "@/store/slices/undoRedoSlice";
@@ -15,6 +16,10 @@ export const usePresentationData = (
   setError: (error: boolean) => void
 ) => {
   const dispatch = useDispatch();
+  const { t } = useI18n();
+  // Ref para no invalidar el callback (y el stream que depende de él) al cambiar de idioma
+  const tRef = useRef(t);
+  tRef.current = t;
 
   const fetchUserSlides = useCallback(async (options?: { clearHistory?: boolean }) => {
     try {
@@ -38,7 +43,7 @@ export const usePresentationData = (
       }
     } catch (error) {
       setError(true);
-      notify.error("Failed to load presentation", "The presentation could not be loaded. Please try again.");
+      notify.error(tRef.current("ed.hooks.loadFail"), tRef.current("ed.hooks.loadFailDesc"));
       console.error("Error fetching user slides:", error);
       setLoading(false);
     }

@@ -25,6 +25,7 @@ import { usePathname } from "next/navigation";
 import NewSlide from "./NewSlide";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import { SlideThumbnailCard } from "./SlideThumbnailCard";
+import { useI18n } from "@/lib/i18n";
 
 interface SidePanelProps {
   selectedSlide: number;
@@ -41,6 +42,7 @@ const SidePanel = ({
 
   loading,
 }: SidePanelProps) => {
+  const { t } = useI18n();
   const pathname = usePathname();
   const [showNewSlideSelection, setShowNewSlideSelection] = useState(false);
 
@@ -213,7 +215,7 @@ const SidePanel = ({
           >
             <Plus className="w-3.5 h-3.5" />
             <span className="text-[11px] font-normal text-[#000000]">
-              Add Slide
+              {t("ed.side.addSlide")}
             </span>
           </button>
         </div>

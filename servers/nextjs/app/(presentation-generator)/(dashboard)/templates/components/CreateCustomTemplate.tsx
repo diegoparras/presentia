@@ -1,10 +1,13 @@
+"use client";
 import { Plus, Sparkles } from 'lucide-react'
 import { useRouter } from 'next/navigation';
 import React from 'react'
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
+import { useI18n } from "@/lib/i18n";
 
 const CreateCustomTemplate = () => {
     const router = useRouter();
+    const { t } = useI18n();
     return (
         <div
             onClick={() => {
@@ -30,8 +33,8 @@ const CreateCustomTemplate = () => {
                     <Sparkles className='w-6 h-6 text-white' />
                 </div>
                 <div>
-                    <h4 className='text-[#191919] text-sm font-semibold '>Build Template</h4>
-                    <p className='flex text-[#808080] text-sm  font-medium items-center gap-2'>Build Your Own Template</p>
+                    <h4 className='text-[#191919] text-sm font-semibold '>{t('lib.templates.build')}</h4>
+                    <p className='flex text-[#808080] text-sm  font-medium items-center gap-2'>{t('lib.templates.buildDesc')}</p>
                 </div>
 
             </div>

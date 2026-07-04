@@ -16,7 +16,20 @@ def test_get_presentation_title_handles_prefixed_page_heading():
     )
 
     title = get_presentation_title_from_presentation_outline(outline)
-    assert title == "GrowthPlanRoadmap Body"
+    assert title == "GrowthPlanRoadmap"
+
+
+def test_get_presentation_title_ignores_slide_body():
+    outline = PresentationOutlineModel(
+        slides=[
+            SlideOutlineModel(
+                content="# The Dogo Argentino: A Powerful Breed\nThe Dogo Argentino is a large, muscular dog."
+            )
+        ]
+    )
+
+    title = get_presentation_title_from_presentation_outline(outline)
+    assert title == "The Dogo Argentino: A Powerful Breed"
 
 
 def test_get_presentation_title_for_empty_outline():

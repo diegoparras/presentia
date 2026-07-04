@@ -13,6 +13,7 @@ import {
 import CreateCustomTemplate from "./CreateCustomTemplate";
 import Link from "next/link";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
+import { useI18n } from "@/lib/i18n";
 import {
     TemplatePreviewStage,
     LayoutsBadge,
@@ -92,6 +93,7 @@ const InbuiltTemplateCard = React.memo(function InbuiltTemplateCard({
 const LayoutPreview = () => {
     const [tab, setTab] = useState<'custom' | 'default'>('default');
     const router = useRouter();
+    const { t } = useI18n();
     const { templates: customTemplates, loading: customLoading } = useCustomTemplateSummaries();
 
     useEffect(() => {
@@ -130,21 +132,21 @@ const LayoutPreview = () => {
             <div className="sticky top-0 right-0 z-50 py-[28px] px-6   backdrop-blur ">
                 <div className="flex xl:flex-row flex-col gap-6 xl:gap-0 items-center justify-between">
                     <h3 className=" text-[28px] tracking-[-0.84px] font-unbounded font-normal text-[#101828] flex items-center gap-2">
-                        Templates
+                        {t("lib.templates.title")}
                     </h3>
                     <div className="flex  gap-2.5 max-sm:w-full max-md:justify-center max-sm:flex-wrap">
                         <Link
                             href="/custom-template"
                             onClick={() => trackEvent(MixpanelEvent.Templates_New_Template_Clicked)}
                             className="inline-flex items-center font-syne font-semibold gap-2 rounded-xl px-4 py-2.5 text-black text-sm  shadow-sm hover:shadow-md"
-                            aria-label="Create new template"
+                            aria-label={t("lib.templates.newAria")}
                             style={{
                                 borderRadius: "48px",
                                 background: "linear-gradient(270deg, #F8D8D1 2.4%, #FAE4DF 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
                             }}
                         >
-                            <span className="hidden md:inline">New Template</span>
-                            <span className="md:hidden">New</span>
+                            <span className="hidden md:inline">{t("lib.templates.new")}</span>
+                            <span className="md:hidden">{t("lib.templates.newShort")}</span>
                             <ChevronRight className="w-4 h-4" />
                         </Link>
 
@@ -160,7 +162,7 @@ const LayoutPreview = () => {
                             background: tab === 'custom' ? '#FBEDEA' : 'transparent',
                             color: tab === 'custom' ? '#e25a4e' : '#3A3A3A'
                         }}
-                    >Custom</button>
+                    >{t("lib.templates.tabCustom")}</button>
                     <svg xmlns="http://www.w3.org/2000/svg" className='mx-1' width="2" height="17" viewBox="0 0 2 17" fill="none">
                         <path d="M1 0V16.5" stroke="#EDECEC" strokeWidth="2" />
                     </svg>
@@ -170,7 +172,7 @@ const LayoutPreview = () => {
                             background: tab === 'default' ? '#FBEDEA' : 'transparent',
                             color: tab === 'default' ? '#e25a4e' : '#3A3A3A'
                         }}
-                    >Built-in</button>
+                    >{t("lib.templates.tabBuiltIn")}</button>
                 </div>
 
                 {/* Inbuilt Templates Section: non-neo first, then Report (neo) */}
@@ -188,7 +190,7 @@ const LayoutPreview = () => {
                         {neoInbuilt.length > 0 && (
                             <div>
                                 <h4 className="text-base font-semibold text-[#101828] mb-6 font-syne tracking-tight">
-                                    Report
+                                    {t("lib.templates.report")}
                                 </h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                     {neoInbuilt.map((template) => (
@@ -209,7 +211,7 @@ const LayoutPreview = () => {
                     {customLoading ? (
                         <div className="flex items-center justify-center py-12">
                             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                            <span className="ml-3 text-gray-600">Loading custom templates...</span>
+                            <span className="ml-3 text-gray-600">{t("lib.templates.loadingCustom")}</span>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 items-center lg:grid-cols-4 gap-6">

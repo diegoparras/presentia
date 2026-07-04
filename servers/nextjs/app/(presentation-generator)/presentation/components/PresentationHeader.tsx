@@ -48,6 +48,7 @@ import ThemeApi from "../../services/api/theme";
 import { Theme } from "../../services/api/types";
 import MarkdownRenderer from "@/components/MarkDownRender";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 
 const MAX_EXPORT_TITLE_LENGTH = 40;
 
@@ -94,6 +95,7 @@ const PresentationHeader = ({
   isPresentationSaving: boolean;
   currentSlide?: number;
 }) => {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const [isExporting, setIsExporting] = useState(false);
@@ -118,7 +120,7 @@ const PresentationHeader = ({
         const [customThemes] = await Promise.all([ThemeApi.getThemes()]);
         setThemes([...customThemes, ...DEFAULT_THEMES]);
       } catch (e: any) {
-        notify.error("Could not load themes", e?.message || "Failed to load themes.");
+        notify.error(t("ed.hdr.themesErr"), e?.message || t("ed.hdr.themesErrDesc"));
       }
     };
     if (themes.length === 0) {
@@ -213,8 +215,8 @@ const PresentationHeader = ({
         slide_count: presentationData?.slides?.length || 0,
       });
       exportToastId = notify.loading(
-        "Exporting PPTX",
-        "Your presentation is being exported. This may take a moment."
+        t("ed.hdr.exportingPptx"),
+        t("ed.hdr.exportingDesc")
       );
       setIsExporting(true);
       // Save the presentation data before exporting
@@ -250,15 +252,15 @@ const PresentationHeader = ({
         downloadLink(pptxPath, safePptxFileName);
       }
       notify.success(
-        "Export complete",
-        "Your PPTX file has been downloaded.",
+        t("ed.hdr.exportDone"),
+        t("ed.hdr.exportDonePptx"),
         { id: exportToastId }
       );
     } catch (error) {
       console.error("Export failed:", error);
       notify.error(
-        "Export failed",
-        "We are having trouble exporting your presentation. Please try again.",
+        t("ed.hdr.exportFail"),
+        t("ed.hdr.exportFailDesc"),
         exportToastId !== undefined ? { id: exportToastId } : undefined
       );
     } finally {
@@ -278,8 +280,8 @@ const PresentationHeader = ({
         slide_count: presentationData?.slides?.length || 0,
       });
       exportToastId = notify.loading(
-        "Exporting PDF",
-        "Your presentation is being exported. This may take a moment."
+        t("ed.hdr.exportingPdf"),
+        t("ed.hdr.exportingDesc")
       );
       setIsExporting(true);
       // Save the presentation data before exporting
@@ -311,15 +313,15 @@ const PresentationHeader = ({
         }
       }
       notify.success(
-        "Export complete",
-        "Your PDF file has been downloaded.",
+        t("ed.hdr.exportDone"),
+        t("ed.hdr.exportDonePdf"),
         { id: exportToastId }
       );
     } catch (err) {
       console.error(err);
       notify.error(
-        "Export failed",
-        "We are having trouble exporting your presentation. Please try again.",
+        t("ed.hdr.exportFail"),
+        t("ed.hdr.exportFailDesc"),
         exportToastId !== undefined ? { id: exportToastId } : undefined
       );
     } finally {
@@ -351,7 +353,7 @@ const PresentationHeader = ({
     <div
       className={` rounded-[18px] max-md:mt-4 ${mobile ? "" : "bg-white"}  p-5`}
     >
-      <p className="text-sm font-medium text-[#19001F]">Export as</p>
+      <p className="text-sm font-medium text-[#19001F]">{t("ed.hdr.exportAs")}</p>
       <div className="my-[18px] h-[1px] bg-[#E8E8E8]" />
       <div className="space-y-3">
         <Button
@@ -409,29 +411,29 @@ const PresentationHeader = ({
                 cancelTitleEdit();
               }
             }}
-            placeholder="Presentation title"
+            placeholder={t("ed.hdr.titlePh")}
             className="min-w-0 flex-1 bg-transparent py-2 pr-2 font-unbounded text-base leading-tight text-[#101323] placeholder:text-[#101323]/35 outline-none border-0 focus:ring-0"
-            aria-label="Presentation title"
+            aria-label={t("ed.hdr.titlePh")}
           />
           <div className="flex shrink-0 items-center gap-0.5 border-l border-[#EDECEC] pl-1 ml-0.5">
-            <ToolTip content="Save · Enter">
+            <ToolTip content={t("ed.hdr.saveEnter")}>
               <button
                 type="button"
                 onMouseDown={onTitleSaveMouseDown}
                 onClick={commitTitleEdit}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-[#5141e5] hover:bg-[#5141e5]/10 transition-colors"
-                aria-label="Save title"
+                aria-label={t("ed.hdr.saveTitle")}
               >
                 <Check className="h-4 w-4" strokeWidth={2.25} />
               </button>
             </ToolTip>
-            <ToolTip content="Cancel · Esc">
+            <ToolTip content={t("ed.hdr.cancelEsc")}>
               <button
                 type="button"
                 onMouseDown={onTitleCancelMouseDown}
                 onClick={cancelTitleEdit}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-[#101323]/55 hover:bg-[#F6F6F9] hover:text-[#101323] transition-colors"
-                aria-label="Cancel editing title"
+                aria-label={t("ed.hdr.cancelTitle")}
               >
                 <X className="h-4 w-4" strokeWidth={2.25} />
               </button>
@@ -479,7 +481,7 @@ const PresentationHeader = ({
             className="w-10 h-10 cursor-pointer object-contain"
           />
           {presentationData && !isStreaming && !isEditingTitle ? (
-            <ToolTip content="Rename presentation">{titleBlock}</ToolTip>
+            <ToolTip content={t("ed.hdr.rename")}>{titleBlock}</ToolTip>
           ) : (
             titleBlock
           )}
@@ -501,7 +503,7 @@ const PresentationHeader = ({
             )}
 
           <div className="flex items-center gap-2 bg-[#F6F6F9] px-3.5 h-[38px] border border-[#EDECEC] rounded-[80px]">
-            <ToolTip content="Regenerate Presentation">
+            <ToolTip content={t("ed.hdr.regenerate")}>
               <button
                 type="button"
                 onClick={() => setIsRegenerateConfirmOpen(true)}
@@ -511,7 +513,7 @@ const PresentationHeader = ({
               </button>
             </ToolTip>
             <Separator orientation="vertical" className="h-4" />
-            <ToolTip content="Undo">
+            <ToolTip content={t("ed.hdr.undo")}>
               <button
                 disabled={!canUndo}
                 className=" disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer group"
@@ -523,7 +525,7 @@ const PresentationHeader = ({
               </button>
             </ToolTip>
             <Separator orientation="vertical" className="h-4" />
-            <ToolTip content="Redo">
+            <ToolTip content={t("ed.hdr.redo")}>
               <button
                 disabled={!canRedo}
                 className=" disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer group"
@@ -535,7 +537,7 @@ const PresentationHeader = ({
               </button>
             </ToolTip>
             <Separator orientation="vertical" className="h-4 w-[2px]" />
-            <ToolTip content="Present">
+            <ToolTip content={t("ed.hdr.present")}>
               <button
                 onClick={() => {
                   const to = `?id=${presentation_id}&mode=present&slide=${
@@ -575,7 +577,7 @@ const PresentationHeader = ({
                 {isExporting ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  "Export"
+                  t("ed.hdr.export")
                 )}{" "}
                 <ArrowRightFromLine className="w-3.5 h-3.5" />
               </button>
@@ -599,11 +601,10 @@ const PresentationHeader = ({
               <AlertTriangle className="h-6 w-6 text-red-500" />
             </div>
             <DialogTitle className="text-lg font-semibold text-[#191919]">
-              Regenerate Presentation?
+              {t("ed.hdr.regenTitle")}
             </DialogTitle>
             <DialogDescription className="text-sm leading-relaxed text-gray-500">
-              This will replace the current slides with a newly generated
-              version and clear undo history. Your current edits may be lost.
+              {t("ed.hdr.regenDesc")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-row border-t border-gray-100 p-0 sm:space-x-0">
@@ -613,7 +614,7 @@ const PresentationHeader = ({
               onClick={() => setIsRegenerateConfirmOpen(false)}
               className="h-auto flex-1 rounded-none rounded-bl-2xl px-4 py-3.5 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-700"
             >
-              Cancel
+              {t("ed.common.cancel")}
             </Button>
             <Button
               type="button"
@@ -621,7 +622,7 @@ const PresentationHeader = ({
               onClick={handleReGenerate}
               className="h-auto flex-1 rounded-none rounded-br-2xl border-l border-gray-100 px-4 py-3.5 text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600"
             >
-              Regenerate
+              {t("ed.hdr.regenConfirm")}
             </Button>
           </DialogFooter>
         </DialogContent>

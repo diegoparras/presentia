@@ -5,36 +5,10 @@ import React, { useState, useEffect, useMemo } from "react";
 import { DashboardApi } from "@/app/(presentation-generator)/services/api/dashboard";
 import { PresentationGrid } from "@/app/(presentation-generator)/(dashboard)/dashboard/components/PresentationGrid";
 import Link from "next/link";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Plus } from "lucide-react";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import { usePathname } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
-
-const actionCardBase =
-  "absolute aspect-[16/9] h-[46.238px] w-[82.201px] rounded-[4.474px] border border-white/50 bg-cover bg-center bg-no-repeat shadow-[0_8px_18px_rgba(16,24,40,0.18)] transition-all duration-500 ease-out opacity-100 translate-y-0 scale-100";
-
-const FloatingActionCards = () => (
-  <div className="pointer-events-none absolute right-[14px] top-[-36px] z-0 block h-[64px] w-[158px]">
-    <div
-      className={`${actionCardBase} left-0 top-0 border-none group-hover/action:-translate-x-2 group-hover/action:-rotate-3 group-focus-visible/action:-translate-x-2 group-focus-visible/action:-rotate-3`}
-      style={{
-        backgroundImage: "url('/create_presentation_card_3.png')",
-      }}
-    />
-    <div
-      className={`${actionCardBase} left-[39px] top-1 z-10 border-none group-hover/action:-translate-y-1 group-hover/action:scale-105 group-focus-visible/action:-translate-y-1 group-focus-visible/action:scale-105`}
-      style={{
-        backgroundImage: "url('/create_presentation_card_2.png')",
-      }}
-    />
-    <div
-      className={`${actionCardBase} left-[76px] top-0 border-none group-hover/action:translate-x-2 group-hover/action:rotate-3 group-focus-visible/action:translate-x-2 group-focus-visible/action:rotate-3`}
-      style={{
-        backgroundImage: "url('/create_presentation_card_1.png')",
-      }}
-    />
-  </div>
-);
 
 const DashboardPage: React.FC = () => {
   const { t } = useI18n();
@@ -121,16 +95,23 @@ const DashboardPage: React.FC = () => {
           className="group/action bg-white z-50 mt-2  relative  block w-[304px] max-w-full overflow-visible rounded-[10.8px] outline-none focus-visible:ring-2 focus-visible:ring-[#e25a4e] focus-visible:ring-offset-4 cursor-pointer"
           aria-label={t("dash.createPresentation")}
         >
-          <FloatingActionCards />
-
-          <img
-            src="/create_presentation_bg.png"
-            alt={t("dash.createBgAlt")}
-            className="relative bg-white z-10 h-[89.983px] w-[304px] max-w-full rounded-[10.8px] object-cover"
-          />
-          <span className="absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 text-center font-syne text-sm font-medium text-[#191919]">
-            {t("dash.createPresentation")}
-          </span>
+          <div
+            className="relative z-10 flex h-[89.983px] w-[304px] max-w-full items-center justify-center rounded-[10.8px] border border-[#f6c9c0] transition-shadow group-hover/action:shadow-md"
+            style={{
+              background:
+                "linear-gradient(135deg, #FDF0EE 0%, #FAE4DF 45%, #F8D8D1 100%)",
+            }}
+          >
+            <span className="flex items-center gap-2.5 font-syne text-sm font-medium text-[#191919]">
+              <span
+                className="flex h-6 w-6 items-center justify-center rounded-full text-white transition-transform group-hover/action:scale-110"
+                style={{ backgroundColor: "#e25a4e" }}
+              >
+                <Plus className="h-4 w-4" />
+              </span>
+              {t("dash.createPresentation")}
+            </span>
+          </div>
         </Link>
       </section>
       <section className="relative z-10 mt-12">

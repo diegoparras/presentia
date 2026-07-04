@@ -9,6 +9,7 @@ ALL_KEYS = [
     "GOOGLE_API_KEY",
     "DEEPSEEK_API_KEY",
     "OLLAMA_URL",
+    "OPENROUTER_API_KEY",
     "PEXELS_API_KEY",
     "PIXABAY_API_KEY",
     "COMFYUI_URL",
@@ -74,3 +75,27 @@ def test_no_keys_means_no_badges(monkeypatch):
     models = build_text_model_catalog()
     assert all(m["badge"] is None for m in models)
     assert all(m["available"] is False for m in models)
+
+
+def test_openrouter_key_unlocks_catalog(monkeypatch):
+    _clear(monkeypatch)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test")
+
+    models = {m["id"]: m for m in build_text_model_catalog()}
+    assert models["gpt-4o"]["available"] is True
+    assert models["gpt-4o"]["via"] == "openrouter"
+    assert models["gpt-4o"]["openrouter_id"] == "openai/gpt-4o"
+    assert models["claude-sonnet-5"]["available"] is True
+    # Ollama es local: OpenRouter no lo habilita
+    assert models["__ollama__"]["available"] is False
+    assert models["__ollama__"]["via"] is None
+
+
+def test_direct_key_wins_over_openrouter(monkeypatch):
+    _clear(monkeypatch)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+
+    models = {m["id"]: m for m in build_text_model_catalog()}
+    assert models["gpt-4o"]["via"] == "direct"
+    assert models["claude-sonnet-5"]["via"] == "openrouter"

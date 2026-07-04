@@ -593,7 +593,7 @@ const TextProvider = ({ onInputChange, llmConfig }: OpenAIConfigProps) => {
                   />
                 ) : (
                   <>
-                    <label className="block text-sm font-medium capitalize text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       {providerApiKeyLabel}
                     </label>
                     <div className="relative">

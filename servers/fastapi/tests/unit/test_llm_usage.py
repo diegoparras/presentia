@@ -36,6 +36,18 @@ def test_price_lookup_strips_bedrock_prefix():
     assert get_model_price("us.anthropic.claude-opus-4-8") == (5.00, 25.00)
 
 
+def test_price_lookup_strips_openrouter_vendor_prefix():
+    assert get_model_price("openai/gpt-4o") == (2.50, 10.00)
+    assert get_model_price("deepseek/deepseek-chat:free") == (0.27, 1.10)
+    # Los slugs de Claude en OpenRouter usan puntos en la versión
+    assert get_model_price("anthropic/claude-opus-4.8") == (5.00, 25.00)
+    assert get_model_price("anthropic/claude-haiku-4.5") == (1.00, 5.00)
+
+
+def test_estimate_cost_via_openrouter():
+    assert estimate_cost_usd("openrouter", "openai/gpt-4o", 1_000_000, 1_000_000) == 12.5
+
+
 def test_estimate_cost():
     # 1M de entrada + 1M de salida en Haiku 4.5 = 1 + 5
     assert estimate_cost_usd("anthropic", "claude-haiku-4-5", 1_000_000, 1_000_000) == 6.0

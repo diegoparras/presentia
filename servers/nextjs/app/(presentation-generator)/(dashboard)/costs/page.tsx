@@ -3,13 +3,14 @@
 /**
  * Panel de costos LLM (Suite Escriba, Fase 5).
  * Costo total por deck, desglose por etapa/slide/modelo y comparativa por
- * proveedor. Sigue el contrato de diseño de la suite: acento ámbar, sin glow.
+ * proveedor. Sigue el contrato de diseño de la suite: acento coral, sin glow.
  */
 
 import React, { useEffect, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { getApiUrl } from "@/utils/api";
 import { useI18n } from "@/lib/i18n";
+import PageShell from "../Components/PageShell";
 
 const ACCENT = "#e25a4e";
 
@@ -92,11 +93,41 @@ const CostsPage = () => {
   const headerCell = "px-4 py-2.5 text-left text-[11px] uppercase tracking-[0.07em] text-[#70707b] font-medium";
   const cell = "px-4 py-2.5 text-[13px] text-[#16161a] tabular-nums";
 
+  const totals = presentations.reduce(
+    (acc, p) => ({
+      calls: acc.calls + p.calls,
+      input: acc.input + p.input_tokens,
+      output: acc.output + p.output_tokens,
+      cost: p.cost_usd === null ? acc.cost : (acc.cost ?? 0) + p.cost_usd,
+    }),
+    { calls: 0, input: 0, output: 0, cost: null as number | null }
+  );
+
+  const summaryCards = [
+    { label: t("costs.calls"), value: String(totals.calls) },
+    { label: t("costs.tokensIn"), value: formatTokens(totals.input) },
+    { label: t("costs.tokensOut"), value: formatTokens(totals.output) },
+    { label: t("costs.cost"), value: formatCost(totals.cost) },
+  ];
+
   return (
-    <div className="pb-10 font-inter">
-      <p className="text-sm text-[#70707b] max-w-[70ch] mb-6">
-        {t("costs.intro")}
-      </p>
+    <PageShell title={t("costs.title")} subtitle={t("costs.intro")}>
+      <div className="pb-10 font-inter">
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 max-w-[880px]">
+        {summaryCards.map((card) => (
+          <div
+            key={card.label}
+            className="rounded-xl border border-[#E1E1E5] bg-white px-4 py-3"
+          >
+            <p className="text-[11px] uppercase tracking-[0.07em] text-[#70707b]">
+              {card.label}
+            </p>
+            <p className="mt-1 text-[20px] font-semibold tabular-nums text-[#16161a]">
+              {card.value}
+            </p>
+          </div>
+        ))}
+      </div>
 
       <div className="rounded-xl border border-[#E1E1E5] bg-white overflow-hidden">
         <table className="w-full border-collapse">
@@ -220,7 +251,8 @@ const CostsPage = () => {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </PageShell>
   );
 };
 

@@ -33,6 +33,7 @@ import ThemeApi from '@/app/(presentation-generator)/services/api/theme'
 import { useFontLoader } from '@/app/(presentation-generator)/hooks/useFontLoad'
 import Link from 'next/link'
 import { MixpanelEvent, trackEvent } from '@/utils/mixpanel'
+import { useI18n } from '@/lib/i18n'
 
 // Fallback theme used before defaults are loaded from API (unified Theme type)
 const FALLBACK_THEME: Theme = {
@@ -69,6 +70,7 @@ const FALLBACK_THEME: Theme = {
 const ThemePanel: React.FC = () => {
   const searchParams = useSearchParams()
   const pathname = usePathname()
+  const { t } = useI18n()
 
 
   const [selectedTheme, setSelectedTheme] = useState<Theme>(FALLBACK_THEME)
@@ -149,8 +151,8 @@ const ThemePanel: React.FC = () => {
       } catch (error: any) {
         console.error('Failed to load custom themes', error)
         notify.error(
-          'Could not load themes',
-          error?.message || 'Your saved themes could not be loaded. Built-in themes are still available.'
+          t('lib.themes.loadErrorTitle'),
+          error?.message || t('lib.themes.loadErrorDesc')
         )
       }
     }
@@ -161,8 +163,8 @@ const ThemePanel: React.FC = () => {
       } catch (error: any) {
         console.error('Failed to load user fonts', error)
         notify.error(
-          'Could not load fonts',
-          error?.message || 'Your uploaded fonts could not be loaded right now.'
+          t('lib.themes.fontsLoadErrorTitle'),
+          error?.message || t('lib.themes.fontsLoadErrorDesc')
         )
       }
     }
@@ -319,8 +321,8 @@ const ThemePanel: React.FC = () => {
     } catch (error: any) {
       console.error('Failed to upload logo', error)
       notify.error(
-        'Could not upload logo',
-        error?.message || 'Something went wrong while uploading your logo. Please try again.'
+        t('lib.themes.logoUploadErrorTitle'),
+        error?.message || t('lib.themes.logoUploadErrorDesc')
       )
     } finally {
       setIsLogoUploading(false)
@@ -365,8 +367,8 @@ const ThemePanel: React.FC = () => {
     setIsNewTheme(true)
     const newTheme: Theme = {
       id: `custom-${Date.now()}`,
-      name: 'New Custom Theme',
-      description: 'Start with a blank canvas',
+      name: t('lib.themes.newCustomName'),
+      description: t('lib.themes.newCustomDesc'),
       user: 'local',
       logo: '',
       logo_url: '',
@@ -463,12 +465,12 @@ const ThemePanel: React.FC = () => {
             has_logo: Boolean(updated.logo_url),
             font_name: updated.data?.fonts?.textFont?.name || "",
           })
-          notify.success('Theme updated', 'Your theme changes were saved.')
+          notify.success(t('lib.themes.updatedTitle'), t('lib.themes.updatedDesc'))
         } catch (error: any) {
           console.error('Failed to update theme', error)
           notify.error(
-            'Could not update theme',
-            error?.message || 'Something went wrong while saving your theme changes.'
+            t('lib.themes.updateErrorTitle'),
+            error?.message || t('lib.themes.updateErrorDesc')
           )
         }
       })()
@@ -483,7 +485,7 @@ const ThemePanel: React.FC = () => {
       })
       const params: ThemeParams = {
         name: selectedTheme.name,
-        description: selectedTheme.description || `Custom version of ${selectedTheme.name}`,
+        description: selectedTheme.description || t('lib.themes.customVersionOf', { name: selectedTheme.name }),
         logo: customBrandLogoId || null,
         logo_url: customBrandLogo || null,
         company_name: themeCompanyName || null,
@@ -507,12 +509,12 @@ const ThemePanel: React.FC = () => {
         has_logo: Boolean(created.logo_url),
         font_name: created.data?.fonts?.textFont?.name || "",
       })
-      notify.success('Theme saved', 'Your new theme was created and is ready to use.')
+      notify.success(t('lib.themes.savedTitle'), t('lib.themes.savedDesc'))
     } catch (error: any) {
       console.error('Failed to save theme', error)
       notify.error(
-        'Could not save theme',
-        error?.message || 'Something went wrong while creating your theme.'
+        t('lib.themes.saveErrorTitle'),
+        error?.message || t('lib.themes.saveErrorDesc')
       )
     }
   }
@@ -528,12 +530,12 @@ const ThemePanel: React.FC = () => {
         pathname,
         theme_id: themeId,
       })
-      notify.success("Theme deleted", "The theme was removed from your library.")
+      notify.success(t('lib.themes.deletedTitle'), t('lib.themes.deletedDesc'))
     } catch (error: any) {
       console.error('Failed to delete theme', error)
       notify.error(
-        'Could not delete theme',
-        error?.message || 'Something went wrong while deleting the theme.'
+        t('lib.themes.deleteErrorTitle'),
+        error?.message || t('lib.themes.deleteErrorDesc')
       )
     }
   }
@@ -567,14 +569,14 @@ const ThemePanel: React.FC = () => {
         }))
       }
       notify.success(
-        'Font uploaded',
-        `Font "${font_name}" is now available for your themes.`
+        t('lib.themes.fontUploadedTitle'),
+        t('lib.themes.fontUploadedDesc', { name: font_name })
       )
     } catch (error: any) {
       console.error('Failed to upload font', error)
       notify.error(
-        'Could not upload font',
-        error?.message || 'Something went wrong while uploading the font file.'
+        t('lib.themes.fontUploadErrorTitle'),
+        error?.message || t('lib.themes.fontUploadErrorDesc')
       )
     } finally {
       setIsFontUploading(false)
@@ -588,7 +590,7 @@ const ThemePanel: React.FC = () => {
     >
       <Label className="flex text-xl font-medium text-[#191919] items-center gap-2 pb-5">
 
-        {step === 1 ? 'Brand Colors' : 'Palette'}
+        {step === 1 ? t('lib.themes.brandColors') : t('lib.themes.palette')}
         <RefreshCcw onClick={() => refeshTheme(step === 1 ? {
 
         } : {
@@ -601,7 +603,7 @@ const ThemePanel: React.FC = () => {
 
         <div>
 
-          {step === 2 && <p className="text-xs text-[#4C4C4C] font-medium rounded-lg text-end pb-1.5">Brand Colors</p>}
+          {step === 2 && <p className="text-xs text-[#4C4C4C] font-medium rounded-lg text-end pb-1.5">{t('lib.themes.brandColors')}</p>}
           <div className="space-y-4"
             style={{
               padding: step === 2 ? '10px' : '0px',
@@ -610,7 +612,7 @@ const ThemePanel: React.FC = () => {
           >
             <ColorPickerComponent
               colorKey="primary"
-              label="Primary Color"
+              label={t('lib.themes.primaryColor')}
               currentColor={customColors['primary']}
               onColorChange={handleColorChange}
               showColorPicker={showColorPicker}
@@ -618,7 +620,7 @@ const ThemePanel: React.FC = () => {
             />
             <ColorPickerComponent
               colorKey="background"
-              label="Background Color"
+              label={t('lib.themes.backgroundColor')}
               currentColor={customColors['background']}
               onColorChange={handleColorChange}
               showColorPicker={showColorPicker}
@@ -627,7 +629,7 @@ const ThemePanel: React.FC = () => {
           </div>
         </div>
         {step === 2 && <div>
-          <p className="text-xs text-[#4C4C4C] font-medium text-end pb-1.5">Text Colors</p>
+          <p className="text-xs text-[#4C4C4C] font-medium text-end pb-1.5">{t('lib.themes.textColors')}</p>
           <div className="space-y-4"
             style={{
               padding: step === 2 ? '10px' : '0px',
@@ -636,7 +638,7 @@ const ThemePanel: React.FC = () => {
           >
             <ColorPickerComponent
               colorKey="background_text"
-              label="Background Text"
+              label={t('lib.themes.backgroundText')}
               currentColor={customColors['background_text']}
               onColorChange={handleColorChange}
               showColorPicker={showColorPicker}
@@ -644,7 +646,7 @@ const ThemePanel: React.FC = () => {
             />
             <ColorPickerComponent
               colorKey="primary_text"
-              label="Primary Text"
+              label={t('lib.themes.primaryText')}
               currentColor={customColors['primary_text']}
               onColorChange={handleColorChange}
               showColorPicker={showColorPicker}
@@ -655,7 +657,7 @@ const ThemePanel: React.FC = () => {
         {step === 2 && <div className='px-2.5'>
           <ColorPickerComponent
             colorKey="card"
-            label="Card Color"
+            label={t('lib.themes.cardColor')}
             currentColor={customColors['card']}
             onColorChange={handleColorChange}
             showColorPicker={showColorPicker}
@@ -663,7 +665,7 @@ const ThemePanel: React.FC = () => {
           />
         </div>}
         {step === 2 && <div>
-          <p className="text-xs text-[#4C4C4C] font-medium text-end pb-1.5">Graph/Chart Colors</p>
+          <p className="text-xs text-[#4C4C4C] font-medium text-end pb-1.5">{t('lib.themes.graphColors')}</p>
           <div className="space-y-4"
             style={{
               padding: step === 2 ? '10px' : '0px',
@@ -766,7 +768,7 @@ const ThemePanel: React.FC = () => {
       }}
     >
       <Label className="flex text-xl font-medium text-[#191919] items-center gap-2 px-2.5">
-        Typography
+        {t('lib.themes.typography')}
       </Label>
 
 
@@ -774,7 +776,7 @@ const ThemePanel: React.FC = () => {
 
       {/* Upload Custom Font */}
       <div className="px-2.5">
-        <p className='text-xs text-[#4C4C4C] font-medium text-end pb-1.5'>Upload Custom Font</p>
+        <p className='text-xs text-[#4C4C4C] font-medium text-end pb-1.5'>{t('lib.themes.uploadCustomFont')}</p>
         <div
           className={`p-3 rounded-xl border-2 border-dashed transition-all duration-200 cursor-pointer group
             ${isFontUploading
@@ -795,8 +797,8 @@ const ThemePanel: React.FC = () => {
                 <Loader2 className='w-5 h-5 text-[#e25a4e] animate-spin' />
               </div>
               <div className='flex-1'>
-                <p className='text-sm font-medium text-[#e25a4e]'>Uploading font...</p>
-                <p className='text-xs text-[#888]'>Please wait</p>
+                <p className='text-sm font-medium text-[#e25a4e]'>{t('lib.themes.uploadingFont')}</p>
+                <p className='text-xs text-[#888]'>{t('lib.themes.pleaseWait')}</p>
               </div>
             </div>
           ) : (
@@ -805,7 +807,7 @@ const ThemePanel: React.FC = () => {
                 <Plus className='w-5 h-5 text-[#e25a4e]' />
               </div>
               <div className='flex-1'>
-                <p className='text-sm font-medium text-[#151515]'>Upload Font File</p>
+                <p className='text-sm font-medium text-[#151515]'>{t('lib.themes.uploadFontFile')}</p>
                 <p className='text-xs text-[#888]'>.ttf, .otf, .woff, .woff2</p>
               </div>
               <ChevronRight className='w-4 h-4 text-[#999] group-hover:text-[#e25a4e] transition-colors' />
@@ -829,7 +831,7 @@ const ThemePanel: React.FC = () => {
       {/* User's Uploaded Fonts */}
       {userFonts.fonts.length > 0 && (
         <div className="px-2.5">
-          <p className='text-xs text-[#4C4C4C] font-medium text-end pb-1.5'>Your Uploaded Fonts</p>
+          <p className='text-xs text-[#4C4C4C] font-medium text-end pb-1.5'>{t('lib.themes.yourFonts')}</p>
           <div className='grid grid-cols-2 gap-2'>
             {userFonts.fonts?.map((font) => (
               <FontCard
@@ -848,7 +850,7 @@ const ThemePanel: React.FC = () => {
 
       {/* Preset Fonts */}
       <div className='px-2.5'>
-        <p className='text-xs text-[#4C4C4C] font-medium text-end pb-1.5'>Pre-Sets</p>
+        <p className='text-xs text-[#4C4C4C] font-medium text-end pb-1.5'>{t('lib.themes.presets')}</p>
         <div className="grid grid-cols-2 gap-2 overflow-y-auto custom_scrollbar">
           {FONT_OPTIONS.map((font) => (
             <FontCard
@@ -867,23 +869,23 @@ const ThemePanel: React.FC = () => {
     <div className="space-y-4 px-5">
       <Label className="flex text-xl font-medium text-[#191919] items-center gap-2">
 
-        Logo
+        {t('lib.themes.logo')}
         {/* <RefreshCcw className='w-5 h-5 text-[#808080] hover:text-[#191919] duration-300 transition-all cursor-pointer' /> */}
       </Label>
       <div className="space-y-2">
         <Label className="flex text-base items-center gap-2">
 
-          Company Name
+          {t('lib.themes.companyName')}
         </Label>
         <Input
           defaultValue={themeCompanyName}
-          placeholder="Enter company name"
+          placeholder={t('lib.themes.companyNamePlaceholder')}
           onBlur={(e) => setThemeCompanyName(e.target.value)}
         />
       </div>
       <Label className="flex text-base items-center gap-2">
 
-        Brand Logo
+        {t('lib.themes.brandLogo')}
       </Label>
 
       <div className="space-y-2 bg-[#F6F6F9] rounded-md p-1 cursor-pointer"
@@ -901,7 +903,7 @@ const ThemePanel: React.FC = () => {
           {isLogoUploading ? (
             <div className="flex flex-col items-center justify-center py-6 text-gray-500">
               <Loader2 className="h-6 w-6 animate-spin mb-2" />
-              <p className="text-sm">Uploading logo...</p>
+              <p className="text-sm">{t('lib.themes.uploadingLogo')}</p>
             </div>
           ) : customBrandLogo ? (
             <div className="space-y-2">
@@ -919,7 +921,7 @@ const ThemePanel: React.FC = () => {
                   setCustomBrandLogoId('')
                 }}
               >
-                Remove Logo
+                {t('lib.themes.removeLogo')}
               </Button>
             </div>
           ) : (
@@ -931,8 +933,8 @@ const ThemePanel: React.FC = () => {
               </div>
               <div className="mt-2">
                 <label htmlFor="logo-upload" className="cursor-pointer">
-                  <span className="text-blue-600 hover:text-blue-500">Click to upload</span>
-                  <span className="text-gray-500"> or drag and drop</span>
+                  <span className="text-blue-600 hover:text-blue-500">{t('lib.themes.clickToUpload')}</span>
+                  <span className="text-gray-500"> {t('lib.themes.orDragAndDrop')}</span>
                 </label>
                 <input
                   id="logo-upload"
@@ -971,7 +973,7 @@ const ThemePanel: React.FC = () => {
       <div className='py-[28px] flex justify-between'>
 
         <h3 className=" text-[28px]  tracking-[-0.84px] font-unbounded font-normal text-[#101828] flex items-center gap-2">
-          Themes
+          {t('lib.themes.title')}
         </h3>
         <Link
           href="/theme?tab=new-theme"
@@ -980,15 +982,15 @@ const ThemePanel: React.FC = () => {
             source: "theme_page_header",
           })}
           className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-black text-sm font-semibold font-syne shadow-sm hover:shadow-md"
-          aria-label="Create new theme"
+          aria-label={t('lib.themes.newAria')}
           style={{
             borderRadius: "48px",
             background: "linear-gradient(270deg, #F8D8D1 2.4%, #FAE4DF 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
           }}
         >
 
-          <span className="hidden md:inline">New Theme</span>
-          <span className="md:hidden">New</span>
+          <span className="hidden md:inline">{t('lib.themes.new')}</span>
+          <span className="md:hidden">{t('lib.themes.newShort')}</span>
           <ChevronRight className="w-4 h-4" />
         </Link>
       </div>
@@ -1002,7 +1004,7 @@ const ThemePanel: React.FC = () => {
           style={{
             background: tab === 'custom' ? 'linear-gradient(270deg, #F8D8D1 2.4%, #FAE4DF 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)' : 'transparent'
           }}
-        >Custom</button>
+        >{t('lib.themes.tabCustom')}</button>
         <svg xmlns="http://www.w3.org/2000/svg" className='mx-1' width="2" height="17" viewBox="0 0 2 17" fill="none">
           <path d="M1 0V16.5" stroke="#EDECEC" strokeWidth="2" />
         </svg>
@@ -1014,7 +1016,7 @@ const ThemePanel: React.FC = () => {
           style={{
             background: tab === 'default' ? 'linear-gradient(270deg, #F8D8D1 2.4%, #FAE4DF 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)' : 'transparent'
           }}
-        >Built-in</button>
+        >{t('lib.themes.tabBuiltIn')}</button>
       </div>
       {/* Built-in Themes */}
 
@@ -1086,7 +1088,7 @@ const ThemePanel: React.FC = () => {
 
                         className='px-3.5 py-2.5 bg-[#F7F6F9] rounded-[48px] text-xs font-semibold text-[#101323]'
                         onClick={() => setCurrentStep(currentStep - 1)}
-                      >Back</button>}
+                      >{t('lib.themes.back')}</button>}
 
                       <button className='px-7 py-2.5 flex items-center gap-1 rounded-[48px] text-xs font-semibold text-[#101323] '
 
@@ -1112,7 +1114,7 @@ const ThemePanel: React.FC = () => {
                           background: 'linear-gradient(270deg, #F8D8D1 2.4%, #FAE4DF 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)'
                         }}
                       >
-                        {currentStep === 1 ? 'Generate theme palette' : currentStep === 2 ? 'Continue to Fonts' : currentStep === 3 ? 'Continue to Design' : 'Save as Custom Theme'}
+                        {currentStep === 1 ? t('lib.themes.generatePalette') : currentStep === 2 ? t('lib.themes.continueFonts') : currentStep === 3 ? t('lib.themes.continueDesign') : t('lib.themes.saveAsCustom')}
                         <ChevronRight className='w-4 h-4' />
                       </button>
                     </div>

@@ -32,7 +32,7 @@ export const dict: Record<Lang, Record<string, string>> = {
     "dash.actions": "Acciones",
     "dash.createPresentation": "Crear presentación",
     "dash.createBgAlt": "Fondo de la tarjeta de crear presentación",
-    "dash.decks": "Decks",
+    "dash.decks": "Tus decks",
     "dash.sortToggle": "Cambiar el orden de los decks",
     "dash.newPresentation": "Nueva presentación",
     "dash.new": "Nueva",

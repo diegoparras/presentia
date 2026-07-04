@@ -11,8 +11,10 @@ import {
     clearPresentationThemeFromElement,
 } from "../utils/applyPresentationThemeDom";
 import { trackEvent, MixpanelEvent } from '@/utils/mixpanel';
+import { useI18n } from '@/lib/i18n';
 
 const ThemeSelector = ({ current_theme, themes: allThemes }: { current_theme: any, themes: any[] }) => {
+    const { t } = useI18n()
     const [currentTheme, setCurrentTheme] = useState<any>(current_theme)
     const dispatch = useDispatch()
     const [isOpen, setIsOpen] = useState(false)
@@ -47,7 +49,7 @@ const ThemeSelector = ({ current_theme, themes: allThemes }: { current_theme: an
         <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger asChild>
                 <button type="button" className={`text-sm px-[18px] py-2.5 gap-1.5 flex items-center  border border-[#EDEEEF] bg-[#F6F6F9]   duration-300 rounded-[88px] font-medium font-syne ${isOpen ? 'text-[#007AFF]' : 'text-black'}`}>
-                    <Palette className={`h-4 w-4 ${isOpen ? 'text-[#007AFF]' : 'text-black'}`} /> Theme
+                    <Palette className={`h-4 w-4 ${isOpen ? 'text-[#007AFF]' : 'text-black'}`} /> {t("ed.theme.button")}
                 </button>
             </PopoverTrigger>
             <PopoverContent className="w-fit rounded-[18px] max-h-80 overflow-y-auto hide-scrollbar">
@@ -55,8 +57,8 @@ const ThemeSelector = ({ current_theme, themes: allThemes }: { current_theme: an
                     <button className='text-xs text-gray-500 pb-2 text-right underline' onClick={() => {
                         trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/theme?tab=new-theme" });
                         router.push(`/theme?tab=new-theme`)
-                    }}>+Customize Theme</button>
-                    <button className='text-xs text-gray-500 pb-2 text-right underline' onClick={resetTheme}>Reset Theme</button>
+                    }}>{t("ed.theme.customize")}</button>
+                    <button className='text-xs text-gray-500 pb-2 text-right underline' onClick={resetTheme}>{t("ed.theme.reset")}</button>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
 

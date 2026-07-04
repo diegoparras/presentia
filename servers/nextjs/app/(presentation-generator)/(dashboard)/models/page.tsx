@@ -11,6 +11,7 @@ import { Check, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { getApiUrl } from "@/utils/api";
 import { useI18n } from "@/lib/i18n";
+import PageShell from "../Components/PageShell";
 
 const ACCENT = "#e25a4e";
 
@@ -23,6 +24,8 @@ type TextModel = {
   input_price: number | null;
   output_price: number | null;
   available: boolean;
+  via: "direct" | "openrouter" | null;
+  openrouter_id: string | null;
   requirement: string;
   badge: "quality" | "value" | "budget" | null;
 };
@@ -132,6 +135,13 @@ const ModelsPage = () => {
   };
 
   const selectTextModel = (model: TextModel) => {
+    if (model.via === "openrouter" && model.openrouter_id) {
+      applyConfig(
+        { LLM: "openrouter", OPENROUTER_MODEL: model.openrouter_id },
+        `text:${model.id}`
+      );
+      return;
+    }
     const patch: Record<string, string> = { LLM: model.provider };
     const field = PROVIDER_MODEL_FIELD[model.provider];
     if (field && !model.id.startsWith("__")) patch[field] = model.id;
@@ -142,10 +152,22 @@ const ModelsPage = () => {
     applyConfig({ IMAGE_PROVIDER: model.id }, `image:${model.id}`);
   };
 
-  const isCurrentText = (model: TextModel) =>
-    data?.text.current.provider === model.provider &&
-    (model.id.startsWith("__") ||
-      (data?.text.current.model || "").startsWith(model.id));
+  const isCurrentText = (model: TextModel) => {
+    const current = data?.text.current;
+    if (!current) return false;
+    if (current.provider === "openrouter") {
+      const currentModel = (current.model || "").toLowerCase();
+      const stripped = currentModel.split("/").pop()?.split(":")[0] || "";
+      return (
+        currentModel === (model.openrouter_id || "").toLowerCase() ||
+        stripped === model.id.toLowerCase()
+      );
+    }
+    return (
+      current.provider === model.provider &&
+      (model.id.startsWith("__") || (current.model || "").startsWith(model.id))
+    );
+  };
 
   const cardClass = (available: boolean, current: boolean) =>
     [
@@ -163,11 +185,8 @@ const ModelsPage = () => {
     value === null ? t("models.noPrice") : value === 0 ? t("models.free") : `US$ ${value} ${suffix}`;
 
   return (
-    <div className="pb-10 font-inter max-w-[1040px]">
-      <p className="text-sm text-[#70707b] max-w-[72ch] mb-6">
-        {t("models.intro")}
-      </p>
-
+    <PageShell title={t("models.title")} subtitle={t("models.intro")}>
+      <div className="pb-10 font-inter max-w-[1040px]">
       {error && (
         <p className="mb-4 text-sm text-[#cf222e]" role="alert">{error}</p>
       )}
@@ -296,7 +315,8 @@ const ModelsPage = () => {
           </p>
         </>
       )}
-    </div>
+      </div>
+    </PageShell>
   );
 };
 

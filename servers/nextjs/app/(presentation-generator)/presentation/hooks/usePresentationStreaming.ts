@@ -12,6 +12,7 @@ import { notify } from "@/components/ui/sonner";
 import { MixpanelEvent, trackEvent } from "@/utils/mixpanel";
 import { getApiUrl, normalizeBackendAssetUrls } from "@/utils/api";
 import { store } from "@/store/store";
+import { useI18n } from "@/lib/i18n";
 
 const MAX_STREAM_RETRIES = 3;
 const STREAM_RETRY_DELAY_MS = 1_000;
@@ -116,6 +117,10 @@ export const usePresentationStreaming = (
 ) => {
   const dispatch = useDispatch();
   const previousSlidesLength = useRef(0);
+  const { t } = useI18n();
+  // Ref para no reiniciar el stream (deps del efecto) al cambiar de idioma
+  const tRef = useRef(t);
+  tRef.current = t;
 
   useEffect(() => {
     if (!stream) {
@@ -150,7 +155,7 @@ export const usePresentationStreaming = (
       setLoading(false);
       dispatch(setStreaming(false));
       setError(true);
-      notify.error("Presentation streaming failed", description);
+      notify.error(tRef.current("ed.hooks.streamFail"), description);
     };
 
     const scheduleRetry = (reason: string): boolean => {
@@ -190,7 +195,7 @@ export const usePresentationStreaming = (
           data = JSON.parse(event.data);
         } catch {
           if (!scheduleRetry("invalid SSE payload")) {
-            finalizeFailure("Failed to parse stream response.");
+            finalizeFailure(tRef.current("ed.hooks.streamParse"));
           }
           return;
         }
@@ -256,7 +261,7 @@ export const usePresentationStreaming = (
                   continue;
                 }
                 shownAssetWarnings.add(detail);
-                notify.warning("Some images could not be generated", detail, {
+                notify.warning(tRef.current("ed.hooks.imgWarn"), detail, {
                   duration: 12_000,
                 });
               }
@@ -280,7 +285,7 @@ export const usePresentationStreaming = (
               window.history.replaceState({}, "", newUrl.toString());
             } catch (error) {
               if (!scheduleRetry("failed to parse complete payload")) {
-                finalizeFailure("Failed to parse final presentation payload.");
+                finalizeFailure(tRef.current("ed.hooks.streamParseFinal"));
               }
             }
             accumulatedChunks = "";
@@ -307,8 +312,7 @@ export const usePresentationStreaming = (
               )
             ) {
               finalizeFailure(
-                data.detail ||
-                  "Failed to connect to the server. Please try again."
+                data.detail || tRef.current("ed.hooks.streamConnect")
               );
             }
             break;
@@ -318,7 +322,7 @@ export const usePresentationStreaming = (
       eventSource.onerror = (error) => {
         console.error("EventSource failed:", error);
         if (!scheduleRetry("connection lost")) {
-          finalizeFailure("Failed to connect to the server. Please try again.");
+          finalizeFailure(tRef.current("ed.hooks.streamConnect"));
         }
       };
     };

@@ -56,11 +56,22 @@ def get_model_price(model: Optional[str]) -> Optional[Tuple[float, float]]:
         if normalized.startswith(provider_prefix):
             normalized = normalized[len(provider_prefix):]
             break
+    # OpenRouter usa "vendor/modelo" y sufijos de variante tipo ":free"
+    if "/" in normalized:
+        normalized = normalized.rsplit("/", 1)[1]
+    normalized = normalized.split(":", 1)[0]
+    candidates = [normalized]
+    # Los slugs de Claude en OpenRouter llevan puntos ("claude-opus-4.8")
+    if "claude" in normalized and "." in normalized:
+        candidates.append(normalized.replace(".", "-"))
     best_match = None
-    for prefix, price in MODEL_PRICES.items():
-        if normalized.startswith(prefix):
-            if best_match is None or len(prefix) > len(best_match[0]):
-                best_match = (prefix, price)
+    for candidate in candidates:
+        for prefix, price in MODEL_PRICES.items():
+            if candidate.startswith(prefix):
+                if best_match is None or len(prefix) > len(best_match[0]):
+                    best_match = (prefix, price)
+        if best_match:
+            break
     return best_match[1] if best_match else None
 
 
