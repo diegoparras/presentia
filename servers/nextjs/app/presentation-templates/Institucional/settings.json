@@ -1,0 +1,7 @@
+{
+  "description": "Institutional layouts for Argentine academic and professional contexts: formal reports, professional council presentations, audit findings, corporate training. Sober typography-first design with cover, table of contents, section dividers, prose, bullets, comparison tables, charts, normative quotes, recommendations and closing.",
+  "ordered": false,
+  "default": false,
+  "icon_weight": "regular",
+  "style_instructions": "# Estilo de redacción (obligatorio para este template):\nEscribí en español rioplatense formal. Usá voseo donde corresponda el trato directo (\"tené en cuenta\", no \"tenga en cuenta\") y registro institucional sobrio en el resto. Evitá tics de traducción del inglés: nada de \"es importante destacar que\", \"a lo largo de este documento\", \"usted puede encontrar\", gerundios encadenados ni calcos como \"asumir\" por suponer. Usá terminología académica y profesional argentina (cátedra, consejo profesional, sindicatura, resolución, dictamen). Cifras con coma decimal y punto de miles (1.234,56). Fechas en formato día de mes de año. Sin emojis ni signos de exclamación."
+}

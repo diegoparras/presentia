@@ -32,6 +32,7 @@ from models.sql.template import TemplateModel
 from services.anonimal_service import anonymize_generation_inputs
 from services.documents_loader import DocumentsLoader
 from services.llm_usage_service import flush_usage_events, set_usage_scope
+from utils.template_style import apply_template_style
 from services.temp_file_service import TEMP_FILE_SERVICE
 from services.webhook_service import WebhookService
 from services.image_generation_service import ImageGenerationService
@@ -472,6 +473,10 @@ async def stream_presentation(
                 await asset_events.put(slide_index)
 
         set_usage_scope(presentation_id=str(id), stage="slide")
+        # Suite Escriba (Fase 6): estilo declarado por el template (settings.json)
+        slide_instructions = apply_template_style(
+            layout.name, presentation.instructions
+        )
         slides: List[SlideModel] = []
         yield SSEResponse(
             event="response",
@@ -489,7 +494,7 @@ async def stream_presentation(
                     presentation.language,
                     presentation.tone,
                     presentation.verbosity,
-                    presentation.instructions,
+                    slide_instructions,
                     dataset=presentation.dataset,
                     slide_index=i,
                 )
@@ -740,6 +745,10 @@ async def generate_presentation_handler(
 ):
     try:
         set_usage_scope(presentation_id=str(presentation_id), stage="outline")
+        # Suite Escriba (Fase 6): estilo declarado por el template (settings.json)
+        request.instructions = apply_template_style(
+            request.template, request.instructions
+        )
         using_slides_markdown = False
         language_to_use = (request.language or "").strip() or None
         additional_context = ""

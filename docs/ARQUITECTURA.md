@@ -261,6 +261,8 @@ Estado: implementado. Piezas: `utils/llm_client.py` (proxy instrumentado; los oc
 
 Enganche: carpetas nuevas en `servers/nextjs/app/presentation-templates/` con sus `settings.json`; el auto-descubrimiento las registra sin tocar código. Los prompts de sistema afinados para español rioplatense formal se evaluarán contra los prompts de outline y contenido (`generate_presentation_outlines.py`, `generate_slide_content.py`) buscando el punto de inyección que menos diverja del upstream (probablemente vía `instructions` o un template de sistema configurable).
 
+Estado: implementado. Un solo template `Institucional` versátil (los cuatro contextos del roadmap se cubren con los temas de color existentes) con once layouts sobrios: portada, índice, separador de sección, prosa a dos columnas, bullets con columna de contexto, tabla comparativa, chart con análisis (reusa `flexibleChartDataSchema`, hereda el guard de datos reales), cita normativa, conclusiones numeradas, imagen con texto y cierre. Mecanismo genérico de prompts por template: campo aditivo `style_instructions` en el `settings.json`, leído por `utils/template_style.py` (autocontenido, con fallback de capitalización para Linux) y concatenado a las instructions en el handler y en el stream de slides. El de Institucional fija rioplatense formal con voseo, sin tics de traducción, terminología argentina y cifras con coma decimal.
+
 ### Extensión — Markdown a deck (modo Gamma)
 
 Enganche: el campo `slides_markdown` que el upstream ya soporta (mapea tarjetas 1:1 a slides sin pasar por el LLM de outline) más el pipeline de assets existente.

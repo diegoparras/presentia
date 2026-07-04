@@ -1364,6 +1364,75 @@ import educationSettings from "./Education/settings.json";
 import productOverviewSettings from "./ProductOverview/settings.json";
 import reportSettings from "./Report/settings.json";
 import pitchDeckSettings from "./pitch-deck/settings.json";
+import institucionalSettings from "./Institucional/settings.json";
+
+// Institucional templates (Suite Escriba)
+import InstitucionalCoverSlide, {
+  Schema as InstCoverSchema,
+  slideLayoutId as InstCoverId,
+  slideLayoutName as InstCoverName,
+  slideLayoutDescription as InstCoverDesc,
+} from "./Institucional/InstitucionalCoverSlide";
+import InstitucionalTocSlide, {
+  Schema as InstTocSchema,
+  slideLayoutId as InstTocId,
+  slideLayoutName as InstTocName,
+  slideLayoutDescription as InstTocDesc,
+} from "./Institucional/InstitucionalTocSlide";
+import InstitucionalSectionSlide, {
+  Schema as InstSectionSchema,
+  slideLayoutId as InstSectionId,
+  slideLayoutName as InstSectionName,
+  slideLayoutDescription as InstSectionDesc,
+} from "./Institucional/InstitucionalSectionSlide";
+import InstitucionalProseSlide, {
+  Schema as InstProseSchema,
+  slideLayoutId as InstProseId,
+  slideLayoutName as InstProseName,
+  slideLayoutDescription as InstProseDesc,
+} from "./Institucional/InstitucionalProseSlide";
+import InstitucionalBulletsSlide, {
+  Schema as InstBulletsSchema,
+  slideLayoutId as InstBulletsId,
+  slideLayoutName as InstBulletsName,
+  slideLayoutDescription as InstBulletsDesc,
+} from "./Institucional/InstitucionalBulletsSlide";
+import InstitucionalTableSlide, {
+  Schema as InstTableSchema,
+  slideLayoutId as InstTableId,
+  slideLayoutName as InstTableName,
+  slideLayoutDescription as InstTableDesc,
+} from "./Institucional/InstitucionalTableSlide";
+import InstitucionalChartSlide, {
+  Schema as InstChartSchema,
+  slideLayoutId as InstChartId,
+  slideLayoutName as InstChartName,
+  slideLayoutDescription as InstChartDesc,
+} from "./Institucional/InstitucionalChartSlide";
+import InstitucionalQuoteSlide, {
+  Schema as InstQuoteSchema,
+  slideLayoutId as InstQuoteId,
+  slideLayoutName as InstQuoteName,
+  slideLayoutDescription as InstQuoteDesc,
+} from "./Institucional/InstitucionalQuoteSlide";
+import InstitucionalConclusionsSlide, {
+  Schema as InstConclusionsSchema,
+  slideLayoutId as InstConclusionsId,
+  slideLayoutName as InstConclusionsName,
+  slideLayoutDescription as InstConclusionsDesc,
+} from "./Institucional/InstitucionalConclusionsSlide";
+import InstitucionalImageSlide, {
+  Schema as InstImageSchema,
+  slideLayoutId as InstImageId,
+  slideLayoutName as InstImageName,
+  slideLayoutDescription as InstImageDesc,
+} from "./Institucional/InstitucionalImageSlide";
+import InstitucionalClosingSlide, {
+  Schema as InstClosingSchema,
+  slideLayoutId as InstClosingId,
+  slideLayoutName as InstClosingName,
+  slideLayoutDescription as InstClosingDesc,
+} from "./Institucional/InstitucionalClosingSlide";
 
 // Helper to create template entry
 
@@ -1514,6 +1583,20 @@ export const codeTemplates: TemplateWithData[] = [
     "code",
     "CodeOutputSlide"
   ),
+];
+
+export const institucionalTemplates: TemplateWithData[] = [
+  createTemplateEntry(InstitucionalCoverSlide, InstCoverSchema, InstCoverId, InstCoverName, InstCoverDesc, "institucional", "InstitucionalCoverSlide"),
+  createTemplateEntry(InstitucionalTocSlide, InstTocSchema, InstTocId, InstTocName, InstTocDesc, "institucional", "InstitucionalTocSlide"),
+  createTemplateEntry(InstitucionalSectionSlide, InstSectionSchema, InstSectionId, InstSectionName, InstSectionDesc, "institucional", "InstitucionalSectionSlide"),
+  createTemplateEntry(InstitucionalProseSlide, InstProseSchema, InstProseId, InstProseName, InstProseDesc, "institucional", "InstitucionalProseSlide"),
+  createTemplateEntry(InstitucionalBulletsSlide, InstBulletsSchema, InstBulletsId, InstBulletsName, InstBulletsDesc, "institucional", "InstitucionalBulletsSlide"),
+  createTemplateEntry(InstitucionalTableSlide, InstTableSchema, InstTableId, InstTableName, InstTableDesc, "institucional", "InstitucionalTableSlide"),
+  createTemplateEntry(InstitucionalChartSlide, InstChartSchema, InstChartId, InstChartName, InstChartDesc, "institucional", "InstitucionalChartSlide"),
+  createTemplateEntry(InstitucionalQuoteSlide, InstQuoteSchema, InstQuoteId, InstQuoteName, InstQuoteDesc, "institucional", "InstitucionalQuoteSlide"),
+  createTemplateEntry(InstitucionalConclusionsSlide, InstConclusionsSchema, InstConclusionsId, InstConclusionsName, InstConclusionsDesc, "institucional", "InstitucionalConclusionsSlide"),
+  createTemplateEntry(InstitucionalImageSlide, InstImageSchema, InstImageId, InstImageName, InstImageDesc, "institucional", "InstitucionalImageSlide"),
+  createTemplateEntry(InstitucionalClosingSlide, InstClosingSchema, InstClosingId, InstClosingName, InstClosingDesc, "institucional", "InstitucionalClosingSlide"),
 ];
 
 export const educationTemplates: TemplateWithData[] = [
@@ -3397,6 +3480,7 @@ export const allLayouts: TemplateWithData[] = [
   ...productOverviewTemplates,
   ...reportTemplates,
   ...pitchDeckTemplates,
+  ...institucionalTemplates,
 ];
 
 // TODO: Step 5: Combine all templates into a single array For UseCases (like the ones below)
@@ -3492,6 +3576,13 @@ export const templates: TemplateLayoutsWithSettings[] = [
     description: neoSwiftSettings.description,
     settings: neoSwiftSettings as TemplateGroupSettings,
     layouts: neoSwiftTemplates,
+  },
+  {
+    id: "institucional",
+    name: "Institucional",
+    description: institucionalSettings.description,
+    settings: institucionalSettings as TemplateGroupSettings,
+    layouts: institucionalTemplates,
   },
 ];
 
