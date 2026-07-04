@@ -12,10 +12,13 @@ export const PRESENTIA = {
   upstreamName: "Presenton",
   upstreamVersion: "0.8.7",
   upstreamUrl: "https://github.com/presenton/presenton",
+  upstreamSite: "https://presenton.ai",
+  upstreamDocs: "https://docs.presenton.ai",
+  suiteUrl: "https://getescriba.com",
   license: "Apache 2.0",
   suiteRole: "Satélite — decks desde documentos y datos",
   author: "Diego Parras · Ecosistema Escriba",
-  // Acento oficial propuesto para Presentia (ámbar dorado, brand board de la suite)
+  // Acento oficial de Presentia (coral claro, brand board de la suite)
   accent: "#e25a4e",
   accentHover: "#c9473c",
   accentDark: "#ef8175",

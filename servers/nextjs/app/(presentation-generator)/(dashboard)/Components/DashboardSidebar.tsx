@@ -1,10 +1,11 @@
 "use client";
 
 import React from "react";
-import { LayoutDashboard, Star, Brain, Settings, Palette, HelpCircle, Coins, FileText, Cpu } from "lucide-react";
+import { LayoutDashboard, Star, Brain, Settings, Palette, Coins, FileText, Cpu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import AboutPresentia from "@/components/AboutPresentia";
+import HelpPresentia from "@/components/HelpPresentia";
 import LanguageSelector from "@/components/LanguageSelector";
 import { useI18n } from "@/lib/i18n";
 
@@ -146,9 +147,8 @@ const DashboardSidebar = () => {
 
             <div className=" pt-5 border-t border-[#E1E1E5]  font-syne "
             >
-                <div className="mb-4">
-
-                    <Link href="https://docs.presenton.ai/help" target="_blank" className="flex flex-col tex-center items-center gap-2  transition-colors"><HelpCircle className="w-4 h-4" /><span className="text-[11px] text-slate-800">{t("nav.help")}</span></Link>
+                <div className="mb-4 flex justify-center">
+                    <HelpPresentia />
                 </div>
                 <div className="mb-4 flex justify-center">
                     <AboutPresentia />
