@@ -16,7 +16,7 @@ interface ConfigurationSelectsProps {
 }
 
 const toggleClassName =
-    'h-[22px] w-[36px] border-0 bg-[#D8D8DD] data-[state=checked]:bg-[#c2571f] ';
+    'h-[22px] w-[36px] border-0 bg-[#D8D8DD] data-[state=checked]:bg-[#e25a4e] ';
 
 const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) => {
     const { t } = useI18n();
@@ -133,7 +133,7 @@ const AdvanceSettings = ({ config, onConfigChange }: ConfigurationSelectsProps) 
                                     onClick={handleSaveAdvanced}
                                     style={{
                                         background:
-                                            'linear-gradient(270deg, #F5D9C2 2.4%, #F7E4D3 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)',
+                                            'linear-gradient(270deg, #F8D8D1 2.4%, #FAE4DF 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)',
                                     }}
                                     className=" rounded-full px-[28px]  py-[10px] font-syne text-xs font-semibold text-[#1E1D2B] shadow-none hover:opacity-95"
                                 >

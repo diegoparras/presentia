@@ -360,7 +360,7 @@ const SettingsPage = () => {
               <h3 className=" text-[28px] tracking-[-0.84px] font-unbounded font-normal text-black flex items-center gap-2">
                 {t("set.title")}
               </h3>
-              <p className="text-[10px] px-2.5 py-0.5 rounded-[50px] text-[#c2571f] border border-[#EDEEEF]  font-medium ">
+              <p className="text-[10px] px-2.5 py-0.5 rounded-[50px] text-[#e25a4e] border border-[#EDEEEF]  font-medium ">
                 {textSummary} · {imageSummary} · {webSearchSummary}
               </p>
             </div>
@@ -383,7 +383,7 @@ const SettingsPage = () => {
               </div>
               <LogoutButton
                 label={t("set.session.button")}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-[58px] border border-[#EDEEEF] bg-[#c2571f] px-5 py-3 font-syne text-xs font-semibold text-white transition hover:bg-[#6d46e6] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[58px] border border-[#EDEEEF] bg-[#e25a4e] px-5 py-3 font-syne text-xs font-semibold text-white transition hover:bg-[#6d46e6] disabled:cursor-not-allowed disabled:opacity-60"
               />
             </div>
           )}
@@ -399,7 +399,7 @@ const SettingsPage = () => {
             disabled={buttonState.isDisabled}
             style={{
               background:
-                "linear-gradient(270deg, #F5D9C2 2.4%, #F7E4D3 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+                "linear-gradient(270deg, #F8D8D1 2.4%, #FAE4DF 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
               color: "#101323",
             }}
             className={`w-full font-syne font-semibold flex items-center justify-center gap-2 py-3 px-5 rounded-[58px] transition-all duration-500 ${buttonState.isDisabled

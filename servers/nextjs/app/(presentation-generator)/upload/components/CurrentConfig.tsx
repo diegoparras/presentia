@@ -65,7 +65,7 @@ const CurrentConfig = ({ webSearchEnabled }: { webSearchEnabled: boolean }) => {
     });
 
     return (
-        <p className="text-[10px] px-2.5 py-0.5 rounded-[50px] text-[#c2571f] border border-[#EDEEEF]  font-medium ">
+        <p className="text-[10px] px-2.5 py-0.5 rounded-[50px] text-[#e25a4e] border border-[#EDEEEF]  font-medium ">
             {textSummary} · {imageSummary} · {webSearchSummary}
         </p>
 

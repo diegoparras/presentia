@@ -532,7 +532,7 @@ const PresentonMode = ({
                         <a
                             href={provider.getApiKeyUrl}
                             target="_blank"
-                            className="flex shrink-0 items-center gap-1 rounded-full border border-[#EDEEEF] bg-white px-3 py-1.5 text-xs font-medium text-[#666666] transition-colors hover:border-[#D9D6FE] hover:text-[#c2571f]"
+                            className="flex shrink-0 items-center gap-1 rounded-full border border-[#EDEEEF] bg-white px-3 py-1.5 text-xs font-medium text-[#666666] transition-colors hover:border-[#D9D6FE] hover:text-[#e25a4e]"
                         >
                             {t("ob.getApiKey")} <ArrowUpRight className="h-3.5 w-3.5" />
                         </a>
@@ -574,7 +574,7 @@ const PresentonMode = ({
                                 <input
                                     type="text"
                                     placeholder="http://192.168.1.7:8188"
-                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
+                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none transition-colors focus:border-[#e25a4e] focus:ring-2 focus:ring-[#e25a4e]/20"
                                     value={llmConfig.COMFYUI_URL || ""}
                                     onChange={(e) => {
                                         setLlmConfig(prev => ({
@@ -590,7 +590,7 @@ const PresentonMode = ({
                                 </label>
                                 <textarea
                                     placeholder={t("ob.comfyui.workflowPh")}
-                                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-mono text-xs outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 font-mono text-xs outline-none transition-colors focus:border-[#e25a4e] focus:ring-2 focus:ring-[#e25a4e]/20"
                                     rows={3}
                                     value={llmConfig.COMFYUI_WORKFLOW || ""}
                                     onChange={(e) => {
@@ -611,7 +611,7 @@ const PresentonMode = ({
                                 <input
                                     type="text"
                                     placeholder="http://localhost:3000/api/v1"
-                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
+                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 outline-none transition-colors focus:border-[#e25a4e] focus:ring-2 focus:ring-[#e25a4e]/20"
                                     value={llmConfig.OPEN_WEBUI_IMAGE_URL || ""}
                                     onChange={(e) => {
                                         setLlmConfig(prev => ({
@@ -629,7 +629,7 @@ const PresentonMode = ({
                                     <input
                                         type={showApiKey ? "text" : "password"}
                                         placeholder={t("ob.apiKeyPh")}
-                                        className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-12 outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
+                                        className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-12 outline-none transition-colors focus:border-[#e25a4e] focus:ring-2 focus:ring-[#e25a4e]/20"
                                         value={llmConfig.OPEN_WEBUI_IMAGE_API_KEY || ""}
                                         onChange={(e) => {
                                             setLlmConfig(prev => ({
@@ -657,7 +657,7 @@ const PresentonMode = ({
                                 <input
                                     type={showApiKey ? "text" : "password"}
                                     placeholder={t("ob.enterField", { label: provider.apiKeyFieldLabel || "" })}
-                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-12 outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
+                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 py-2.5 pr-12 outline-none transition-colors focus:border-[#e25a4e] focus:ring-2 focus:ring-[#e25a4e]/20"
                                     value={getFieldValue(provider.apiKeyField)}
                                     onChange={(e) => {
                                         setLlmConfig((prev) => ({
@@ -886,7 +886,7 @@ const PresentonMode = ({
 
                 <div className="space-y-4">
                     {selectedWebProvider.value === "auto" && (
-                        <div className="rounded-lg border border-[#D9D6FE] bg-[#FAEEE3] p-3 text-xs leading-5 text-[#c2571f]">
+                        <div className="rounded-lg border border-[#D9D6FE] bg-[#FBEDEA] p-3 text-xs leading-5 text-[#e25a4e]">
                             {t("ob.web.autoNote")}
                         </div>
                     )}
@@ -900,7 +900,7 @@ const PresentonMode = ({
                                 type="url"
                                 value={getFieldValue(selectedWebProvider.urlField)}
                                 onChange={(event) => setLlmConfig(prev => ({ ...prev, [selectedWebProvider.urlField!]: event.target.value }))}
-                                className="h-12 w-full rounded-lg border border-gray-300 px-4 outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
+                                className="h-12 w-full rounded-lg border border-gray-300 px-4 outline-none transition-colors focus:border-[#e25a4e] focus:ring-2 focus:ring-[#e25a4e]/20"
                                 placeholder="https://search.example.com"
                             />
                         </div>
@@ -916,7 +916,7 @@ const PresentonMode = ({
                                     type={showApiKey ? "text" : "password"}
                                     value={getFieldValue(selectedWebProvider.apiKeyField)}
                                     onChange={(event) => setLlmConfig(prev => ({ ...prev, [selectedWebProvider.apiKeyField!]: event.target.value }))}
-                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 pr-12 outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
+                                    className="h-12 w-full rounded-lg border border-gray-300 px-4 pr-12 outline-none transition-colors focus:border-[#e25a4e] focus:ring-2 focus:ring-[#e25a4e]/20"
                                     placeholder={t("ob.enterField", { label: selectedWebProvider.apiKeyLabel || "" })}
                                 />
                                 <button
@@ -941,7 +941,7 @@ const PresentonMode = ({
                                 max={10}
                                 value={llmConfig.WEB_SEARCH_MAX_RESULTS || "5"}
                                 onChange={(event) => setLlmConfig(prev => ({ ...prev, WEB_SEARCH_MAX_RESULTS: event.target.value }))}
-                                className="h-12 w-full rounded-lg border border-gray-300 px-4 outline-none transition-colors focus:border-[#c2571f] focus:ring-2 focus:ring-[#c2571f]/20"
+                                className="h-12 w-full rounded-lg border border-gray-300 px-4 outline-none transition-colors focus:border-[#e25a4e] focus:ring-2 focus:ring-[#e25a4e]/20"
                             />
                         </div>
                     )}
@@ -1030,7 +1030,7 @@ const PresentonMode = ({
 
     return (
         <div className='w-full max-w-[660px] font-syne pb-10'>
-            <p className='px-2.5 py-0.5 w-fit text-[#c2571f] rounded-[50px]  border border-[#EDEEEF] text-[10px] font-medium mb-5 font-syne'>PRESENTIA</p>
+            <p className='px-2.5 py-0.5 w-fit text-[#e25a4e] rounded-[50px]  border border-[#EDEEEF] text-[10px] font-medium mb-5 font-syne'>PRESENTIA</p>
             <div className=''>
 
                 <h2 className='mb-4 text-black text-[26px] font-normal font-unbounded '>
@@ -1145,7 +1145,7 @@ const PresentonMode = ({
                                         onClick={() => handleProviderChange(value)}
                                         className={cn(
                                             "flex items-center gap-3 rounded-xl border p-4 text-left transition-colors hover:bg-[#F7F6F9]",
-                                            llmConfig.LLM === value ? "border-[#c2571f] bg-[#FAEEE3]" : "border-[#EDEEEF]"
+                                            llmConfig.LLM === value ? "border-[#e25a4e] bg-[#FBEDEA]" : "border-[#EDEEEF]"
                                         )}
                                     >
                                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white border border-[#EDEEEF]">
@@ -1596,7 +1596,7 @@ const PresentonMode = ({
                 </ToolTip>
                 <div className={` flex items-center gap-6 ${llmConfig.DISABLE_IMAGE_GENERATION ? "" : "mb-[42px]"}`}>
                     <div className='w-[74px] h-[74px] px-[13.5px] py-[14.2px] rounded-[4px] flex items-center justify-center'
-                        style={{ backgroundColor: '#FAEEE3' }}
+                        style={{ backgroundColor: '#FBEDEA' }}
                     >
                         <img src="/image-markup.svg" className='w-full h-full object-cover' alt='image-markup' />
                     </div>
@@ -1632,7 +1632,7 @@ const PresentonMode = ({
                                                 className={cn(
                                                     "group flex min-h-24 flex-col items-center justify-center gap-2 rounded-[10px] border p-3 text-center transition-all hover:border-[#D9D6FE] hover:bg-[#F7F6F9]",
                                                     llmConfig.IMAGE_PROVIDER === provider.value
-                                                        ? "border-[#c2571f] bg-[#FAEEE3] shadow-[0_10px_24px_rgba(122,90,248,0.12)]"
+                                                        ? "border-[#e25a4e] bg-[#FBEDEA] shadow-[0_10px_24px_rgba(122,90,248,0.12)]"
                                                         : "border-[#EDEEEF] bg-white"
                                                 )}
                                             >
@@ -1682,8 +1682,8 @@ const PresentonMode = ({
                         </div>
                     </ToolTip>
                     <div className="mb-[42px] flex items-center gap-6">
-                        <div className='flex h-[74px] w-[74px] items-center justify-center rounded-[4px] bg-[#FAEEE3]'>
-                            <Search className="h-9 w-9 text-[#c2571f]" />
+                        <div className='flex h-[74px] w-[74px] items-center justify-center rounded-[4px] bg-[#FBEDEA]'>
+                            <Search className="h-9 w-9 text-[#e25a4e]" />
                         </div>
                         <div>
                             <h3 className="text-xl font-normal text-[#191919]">{t("ob.web.title")}</h3>
@@ -1714,7 +1714,7 @@ const PresentonMode = ({
                                                     className={cn(
                                                         "group flex min-h-32 flex-col items-center justify-center gap-2 rounded-[10px] border p-3 text-center transition-all hover:border-[#D9D6FE] hover:bg-[#F7F6F9]",
                                                         selectedWebProvider?.value === provider.value
-                                                            ? "border-[#c2571f] bg-[#FAEEE3] shadow-[0_10px_24px_rgba(122,90,248,0.12)]"
+                                                            ? "border-[#e25a4e] bg-[#FBEDEA] shadow-[0_10px_24px_rgba(122,90,248,0.12)]"
                                                             : "border-[#EDEEEF] bg-white"
                                                     )}
                                                 >
@@ -1753,7 +1753,7 @@ const PresentonMode = ({
 
                     disabled={savingConfig}
                     onClick={handleContinue}
-                    className='border font-syne border-[#EDEEEF] bg-[#c2571f]  rounded-[58px] px-5 py-2.5 text-white text-xs  font-semibold'>
+                    className='border font-syne border-[#EDEEEF] bg-[#e25a4e]  rounded-[58px] px-5 py-2.5 text-white text-xs  font-semibold'>
                     {providerStep === 1
                         ? t("ob.continueToImage")
                         : providerStep === 2

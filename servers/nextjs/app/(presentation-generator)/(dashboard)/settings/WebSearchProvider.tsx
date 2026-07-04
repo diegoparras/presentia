@@ -80,8 +80,8 @@ const WebSearchProvider = ({
         </div>
         <div className="flex flex-col items-start justify-between gap-8 lg:flex-row lg:gap-10">
           <div className="max-w-[300px] shrink-0 pb-2 lg:pb-[20px]">
-            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-[4px] bg-[#FAEEE3]">
-              <Search className="h-7 w-7 text-[#c2571f]" />
+            <div className="flex h-[60px] w-[60px] items-center justify-center rounded-[4px] bg-[#FBEDEA]">
+              <Search className="h-7 w-7 text-[#e25a4e]" />
             </div>
             <h3 className="py-2.5 text-xl font-normal text-[#191919]">
               {t("set.web.title")}
@@ -158,7 +158,7 @@ const WebSearchProvider = ({
                 </div>
 
                 {selected === "auto" && (
-                  <div className="rounded-lg border border-[#D9D6FE] bg-[#FAEEE3] p-3 text-xs text-[#c2571f]">
+                  <div className="rounded-lg border border-[#D9D6FE] bg-[#FBEDEA] p-3 text-xs text-[#e25a4e]">
                     {t("set.web.autoNote")}
                   </div>
                 )}

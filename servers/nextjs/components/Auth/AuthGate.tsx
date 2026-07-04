@@ -221,17 +221,17 @@ export default function AuthGate() {
               className="mx-auto mb-5 h-12 w-auto opacity-95"
               priority
             />
-            <div className="mx-auto mb-4 h-1 w-16 rounded-full bg-[#c2571f]" />
+            <div className="mx-auto mb-4 h-1 w-16 rounded-full bg-[#e25a4e]" />
             <h1 className="font-syne text-lg font-semibold text-black">Presentia</h1>
             <p className="mt-3 font-syne text-sm text-[#000000CC]">{t("auth.preparing")}</p>
             <div className="mt-6 flex justify-center gap-1.5">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-[#c2571f]" />
+              <span className="h-2 w-2 animate-pulse rounded-full bg-[#e25a4e]" />
               <span
-                className="h-2 w-2 animate-pulse rounded-full bg-[#c2571f]"
+                className="h-2 w-2 animate-pulse rounded-full bg-[#e25a4e]"
                 style={{ animationDelay: "0.2s" }}
               />
               <span
-                className="h-2 w-2 animate-pulse rounded-full bg-[#c2571f]"
+                className="h-2 w-2 animate-pulse rounded-full bg-[#e25a4e]"
                 style={{ animationDelay: "0.4s" }}
               />
             </div>
@@ -246,7 +246,7 @@ export default function AuthGate() {
       <section className="relative z-10 w-full max-w-xl rounded-2xl border border-[#E1E1E5] bg-white p-7 shadow-xl sm:p-10">
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-[74px] w-[74px] shrink-0 items-center justify-center rounded-[4px] bg-[#FAEEE3] p-3">
+            <div className="flex h-[74px] w-[74px] shrink-0 items-center justify-center rounded-[4px] bg-[#FBEDEA] p-3">
               <Image
                 src="/presentia-logo.svg"
                 alt=""
@@ -256,7 +256,7 @@ export default function AuthGate() {
               />
             </div>
             <div>
-              <p className="font-syne text-[10px] font-semibold uppercase tracking-[0.14em] text-[#a34618]">
+              <p className="font-syne text-[10px] font-semibold uppercase tracking-[0.14em] text-[#c9473c]">
                 {t("auth.secureInstance")}
               </p>
               <h1 className="mt-1 font-syne text-2xl font-semibold leading-tight text-black sm:text-[26px]">
@@ -281,7 +281,7 @@ export default function AuthGate() {
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               placeholder={t("auth.username.ph")}
-              className="w-full rounded-[11px] border border-[#EDEEEF] bg-white px-4 py-3 font-syne text-sm text-black outline-none transition placeholder:text-[#999999] focus:border-[#dd7a42] focus:ring-2 focus:ring-[#c2571f]/20"
+              className="w-full rounded-[11px] border border-[#EDEEEF] bg-white px-4 py-3 font-syne text-sm text-black outline-none transition placeholder:text-[#999999] focus:border-[#ef8175] focus:ring-2 focus:ring-[#e25a4e]/20"
               disabled={isSubmitting}
             />
           </div>
@@ -297,7 +297,7 @@ export default function AuthGate() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder={t("auth.password.ph")}
-              className="w-full rounded-[11px] border border-[#EDEEEF] bg-white px-4 py-3 font-syne text-sm text-black outline-none transition placeholder:text-[#999999] focus:border-[#dd7a42] focus:ring-2 focus:ring-[#c2571f]/20"
+              className="w-full rounded-[11px] border border-[#EDEEEF] bg-white px-4 py-3 font-syne text-sm text-black outline-none transition placeholder:text-[#999999] focus:border-[#ef8175] focus:ring-2 focus:ring-[#e25a4e]/20"
               disabled={isSubmitting}
             />
           </div>
@@ -314,7 +314,7 @@ export default function AuthGate() {
                 value={confirmPassword}
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 placeholder={t("auth.confirmPassword.ph")}
-                className="w-full rounded-[11px] border border-[#EDEEEF] bg-white px-4 py-3 font-syne text-sm text-black outline-none transition placeholder:text-[#999999] focus:border-[#dd7a42] focus:ring-2 focus:ring-[#c2571f]/20"
+                className="w-full rounded-[11px] border border-[#EDEEEF] bg-white px-4 py-3 font-syne text-sm text-black outline-none transition placeholder:text-[#999999] focus:border-[#ef8175] focus:ring-2 focus:ring-[#e25a4e]/20"
                 disabled={isSubmitting}
               />
             </div>
@@ -329,7 +329,7 @@ export default function AuthGate() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-[58px] border border-[#EDEEEF] bg-[#c2571f] px-5 py-3 font-syne text-xs font-semibold text-white transition hover:bg-[#6d46e6] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-[58px] border border-[#EDEEEF] bg-[#e25a4e] px-5 py-3 font-syne text-xs font-semibold text-white transition hover:bg-[#6d46e6] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting
               ? isSetupMode

@@ -116,17 +116,17 @@ const TableInfoSlideLayout: React.FC<TableInfoSlideLayoutProps> = ({
           <svg className="w-full h-full" viewBox="0 0 200 400" fill="none">
             <path
               d="M0 100C50 150 100 50 150 100C175 125 200 100 200 100V0H0V100Z"
-              fill="var(--primary-color,#c2571f)"
+              fill="var(--primary-color,#e25a4e)"
               opacity="0.3"
             />
             <path
               d="M0 200C75 250 125 150 200 200V150C150 175 100 150 50 175L0 200Z"
-              fill="var(--primary-color,#c2571f)"
+              fill="var(--primary-color,#e25a4e)"
               opacity="0.2"
             />
             <path
               d="M0 300C100 350 150 250 200 300V250C125 275 75 250 25 275L0 300Z"
-              fill="var(--primary-color,#c2571f)"
+              fill="var(--primary-color,#e25a4e)"
               opacity="0.1"
             />
           </svg>
@@ -136,17 +136,17 @@ const TableInfoSlideLayout: React.FC<TableInfoSlideLayoutProps> = ({
           <svg className="w-full h-full" viewBox="0 0 200 400" fill="none">
             <path
               d="M0 100C50 150 100 50 150 100C175 125 200 100 200 100V0H0V100Z"
-              fill="var(--primary-color,#c2571f)"
+              fill="var(--primary-color,#e25a4e)"
               opacity="0.3"
             />
             <path
               d="M0 200C75 250 125 150 200 200V150C150 175 100 150 50 175L0 200Z"
-              fill="var(--primary-color,#c2571f)"
+              fill="var(--primary-color,#e25a4e)"
               opacity="0.2"
             />
             <path
               d="M0 300C100 350 150 250 200 300V250C125 275 75 250 25 275L0 300Z"
-              fill="var(--primary-color,#c2571f)"
+              fill="var(--primary-color,#e25a4e)"
               opacity="0.1"
             />
           </svg>
@@ -164,7 +164,7 @@ const TableInfoSlideLayout: React.FC<TableInfoSlideLayoutProps> = ({
             </h1>
             {/* Purple accent line */}
             <div
-              style={{ background: "var(--primary-color,#c2571f)" }}
+              style={{ background: "var(--primary-color,#e25a4e)" }}
               className="w-20 h-1 bg-purple-600 mx-auto"
             ></div>
           </div>
@@ -181,7 +181,7 @@ const TableInfoSlideLayout: React.FC<TableInfoSlideLayoutProps> = ({
               >
                 {/* Table Header */}
                 <div
-                  style={{ backgroundColor: "var(--primary-color,#c2571f)" }}
+                  style={{ backgroundColor: "var(--primary-color,#e25a4e)" }}
                 >
                   <div
                     className="grid gap-px"

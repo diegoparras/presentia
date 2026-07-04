@@ -78,7 +78,7 @@ const OutlinePromptBar: React.FC<OutlinePromptBarProps> = ({
           )}
           style={{
             background:
-              "linear-gradient(270deg, #F5D9C2 2.4%, #F7E4D3 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+              "linear-gradient(270deg, #F8D8D1 2.4%, #FAE4DF 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
           }}
         >
           {isBusy ? (

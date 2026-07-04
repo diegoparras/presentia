@@ -96,7 +96,7 @@ const NumberedBulletsSlideLayout: React.FC<NumberedBulletsSlideLayoutProps> = ({
                                 {slideData?.title || 'Market Validation'}
                             </h1>
                             {/* Purple accent line */}
-                            <div style={{ background: "var(--primary-color,#c2571f)" }} className="w-24 h-1 bg-purple-600 mb-6"></div>
+                            <div style={{ background: "var(--primary-color,#e25a4e)" }} className="w-24 h-1 bg-purple-600 mb-6"></div>
                         </div>
 
                         {/* Image Section */}
@@ -147,9 +147,9 @@ const NumberedBulletsSlideLayout: React.FC<NumberedBulletsSlideLayoutProps> = ({
                             />
                             <defs>
                                 <linearGradient id="wave-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stopColor="var(--primary-color,#c2571f)" />
-                                    <stop offset="50%" stopColor="var(--primary-color,#c2571f)" />
-                                    <stop offset="100%" stopColor="var(--primary-color,#c2571f)" />
+                                    <stop offset="0%" stopColor="var(--primary-color,#e25a4e)" />
+                                    <stop offset="50%" stopColor="var(--primary-color,#e25a4e)" />
+                                    <stop offset="100%" stopColor="var(--primary-color,#e25a4e)" />
                                 </linearGradient>
                             </defs>
                         </svg>

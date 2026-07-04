@@ -16,7 +16,7 @@ export const PRESENTIA = {
   suiteRole: "Satélite — decks desde documentos y datos",
   author: "Diego Parras · Ecosistema Escriba",
   // Acento oficial propuesto para Presentia (ámbar dorado, brand board de la suite)
-  accent: "#c2571f",
-  accentHover: "#a34618",
-  accentDark: "#dd7a42",
+  accent: "#e25a4e",
+  accentHover: "#c9473c",
+  accentDark: "#ef8175",
 } as const;

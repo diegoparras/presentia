@@ -342,7 +342,7 @@ const IconsEditor = ({
                           className={cn(
                             "flex h-[45px] w-[48px] items-center justify-center rounded-[8px] border  transition-colors",
                             isSelected
-                              ? "border-[#D9D6FE] bg-[#FAEEE3]"
+                              ? "border-[#D9D6FE] bg-[#FBEDEA]"
                               : "border-[#EDEEEF] bg-white group-hover:bg-[#F7F7FA]"
                           )}
                         >
@@ -360,7 +360,7 @@ const IconsEditor = ({
                         <span
                           className={cn(
                             "truncate text-xs ",
-                            isSelected ? "text-[#c2571f]" : "text-[#666666]"
+                            isSelected ? "text-[#e25a4e]" : "text-[#666666]"
                           )}
                         >
                           {ICON_WEIGHT_LABELS[weight]}
@@ -459,7 +459,7 @@ const IconsEditor = ({
                 }}
                 style={{
                   background:
-                    "linear-gradient(270deg, #F5D9C2 2.4%, #F7E4D3 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+                    "linear-gradient(270deg, #F8D8D1 2.4%, #FAE4DF 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
                 }}
                 disabled={!selectedIconUrl && !currentIconUrl}
                 className="h-10 rounded-full  px-4 text-sm font-semibold text-[#101323] shadow-none hover:bg-[#F2DDAA] disabled:cursor-not-allowed disabled:opacity-50"

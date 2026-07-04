@@ -53,7 +53,7 @@ const PrivacySettings = () => {
   if (trackingEnabled === null) {
     return (
       <div className="w-full bg-[#F9F8F8] p-7 rounded-[20px] flex items-center justify-center min-h-[200px]">
-        <Loader2 className="w-5 h-5 animate-spin text-[#c2571f]" />
+        <Loader2 className="w-5 h-5 animate-spin text-[#e25a4e]" />
       </div>
     );
   }

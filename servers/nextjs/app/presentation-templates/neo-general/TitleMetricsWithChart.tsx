@@ -26,7 +26,7 @@ import {
 
 // Color palettes
 const DEFAULT_CHART_COLORS = [
-  "#cf6a2e",
+  "#e56a5c",
   "#06B6D4",
   "#10B981",
   "#F59E0B",

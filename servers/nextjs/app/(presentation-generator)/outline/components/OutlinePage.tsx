@@ -301,7 +301,7 @@ const OutlinePage: React.FC = () => {
                   <TabsList className="h-auto w-fit rounded-full border border-[#EDEEEF] bg-white p-1.5 shadow-sm">
                     <TabsTrigger
                       value={TABS.LAYOUTS}
-                      className="relative rounded-full px-5 py-2 text-xs font-medium text-[#2D2D2D] shadow-none data-[state=active]:bg-[#FAEEE3] data-[state=active]:text-[#7E3AF2] data-[state=active]:shadow-none"
+                      className="relative rounded-full px-5 py-2 text-xs font-medium text-[#2D2D2D] shadow-none data-[state=active]:bg-[#FBEDEA] data-[state=active]:text-[#7E3AF2] data-[state=active]:shadow-none"
                     >
                       {t("up.outline.tab.template")}
                     </TabsTrigger>
@@ -310,7 +310,7 @@ const OutlinePage: React.FC = () => {
                       value={TABS.OUTLINE}
                       disabled={!isOutlineReady}
                       className={cn(
-                        "rounded-full px-5 py-2 text-xs font-medium text-[#2D2D2D] shadow-none data-[state=active]:bg-[#FAEEE3] data-[state=active]:text-[#7E3AF2] data-[state=active]:shadow-none",
+                        "rounded-full px-5 py-2 text-xs font-medium text-[#2D2D2D] shadow-none data-[state=active]:bg-[#FBEDEA] data-[state=active]:text-[#7E3AF2] data-[state=active]:shadow-none",
                         !isOutlineReady && "cursor-not-allowed opacity-50"
                       )}
                     >

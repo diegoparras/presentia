@@ -42,7 +42,7 @@ const DashboardNav = () => {
                         aria-label={t("dash.newPresentation")}
                         style={{
                             borderRadius: "48px",
-                            background: "linear-gradient(270deg, #F5D9C2 2.4%, #F7E4D3 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+                            background: "linear-gradient(270deg, #F8D8D1 2.4%, #FAE4DF 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
                         }}
                     >
 
@@ -57,7 +57,7 @@ const DashboardNav = () => {
                             aria-label={t("dash.newThemes")}
                             style={{
                                 borderRadius: "48px",
-                                background: "linear-gradient(270deg, #F5D9C2 2.4%, #F7E4D3 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
+                                background: "linear-gradient(270deg, #F8D8D1 2.4%, #FAE4DF 27.88%, #F4DCD3 69.23%, #FDE4C2 100%)",
                             }}
                         >
                             <span className="hidden md:inline">{t("dash.newThemes")}</span>

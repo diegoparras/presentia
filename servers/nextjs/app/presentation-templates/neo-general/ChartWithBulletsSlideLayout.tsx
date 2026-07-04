@@ -17,7 +17,7 @@ export const layoutName = 'Chart With Bullet Cards'
 export const layoutDescription = 'A split layout with title, description, and a versatile chart on the left, paired with 1-3 colored icon bullet cards on the right. Supports bar, grouped, stacked, clustered, diverging, line, area, pie, and scatter charts.'
 
 // Color palettes
-const DEFAULT_CHART_COLORS = ['#cf6a2e', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#EC4899']
+const DEFAULT_CHART_COLORS = ['#e56a5c', '#06B6D4', '#10B981', '#F59E0B', '#EF4444', '#EC4899']
 
 
 const formatComma = (value: number) => {
@@ -547,12 +547,12 @@ const ChartWithBulletsSlideLayout: React.FC<ChartWithBulletsSlideLayoutProps> = 
                                 key={index}
                                 className="rounded-2xl p-6 text-white"
                                 style={{
-                                    backgroundColor: 'var(--card-color,#c2571f)'
+                                    backgroundColor: 'var(--card-color,#e25a4e)'
                                 }}
                             >
                                 {/* Icon and Title */}
                                 <div className="flex items-center space-x-3 mb-3">
-                                    <div style={{ background: "var(--primary-color,#c2571f)" }} className="w-8 h-8 rounded-lg flex items-center justify-center">
+                                    <div style={{ background: "var(--primary-color,#e25a4e)" }} className="w-8 h-8 rounded-lg flex items-center justify-center">
                                         <RemoteSvgIcon
                                             url={bullet.icon.__icon_url__}
                                             strokeColor={"currentColor"}

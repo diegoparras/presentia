@@ -105,8 +105,8 @@ const Schema = z
   })
 
 const CHART_COLORS = [
-  '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#cf6a2e',
-  '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#cf6a2e'
+  '#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#e56a5c',
+  '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#e56a5c'
 ];
 
 type SlideData = z.infer<typeof Schema>

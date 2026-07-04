@@ -102,17 +102,17 @@ const FinalStep = () => {
                         <Switch
                             checked={trackingEnabled}
                             onCheckedChange={handleTrackingToggle}
-                            className='data-[state=checked]:bg-[#c2571f]'
+                            className='data-[state=checked]:bg-[#e25a4e]'
                         />
                     </div>
                 )}
 
-                <button onClick={handleGoToUpload} className='bg-[#c2571f] px-[23px] mt-8 py-[15px]  rounded-[70px] text-white text-lg font-syne font-semibold'>{t("ob.final.cta")}</button>
-                <button onClick={fireRealisticConfetti} className='mt-3 flex items-center gap-1.5 text-sm text-[#c2571f] font-syne font-medium hover:underline'>
+                <button onClick={handleGoToUpload} className='bg-[#e25a4e] px-[23px] mt-8 py-[15px]  rounded-[70px] text-white text-lg font-syne font-semibold'>{t("ob.final.cta")}</button>
+                <button onClick={fireRealisticConfetti} className='mt-3 flex items-center gap-1.5 text-sm text-[#e25a4e] font-syne font-medium hover:underline'>
                     <PartyPopper className='w-4 h-4' /> {t("ob.final.celebrate")}
                 </button>
             </div>
-            <button onClick={handleGoToDashboard} className='absolute uppercase bottom-20 text-[#c2571f] flex items-center gap-2 right-10  text-xs font-normal font-syne'>{t("ob.final.dashboard")} <ArrowRight className='w-4 h-4 text-[#c2571f]' /></button>
+            <button onClick={handleGoToDashboard} className='absolute uppercase bottom-20 text-[#e25a4e] flex items-center gap-2 right-10  text-xs font-normal font-syne'>{t("ob.final.dashboard")} <ArrowRight className='w-4 h-4 text-[#e25a4e]' /></button>
         </div>
     )
 }

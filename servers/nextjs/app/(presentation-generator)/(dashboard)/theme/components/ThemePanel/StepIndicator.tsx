@@ -19,7 +19,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep }) => 
         <div key={step} className="flex flex-col items-center gap-1.5 px-3  ">
           <span
             className={`px-2 py-0.5 rounded-full text-[9px] font-medium ${isActive
-              ? 'bg-[#c2571f] text-white'
+              ? 'bg-[#e25a4e] text-white'
               : 'bg-white text-[#404348] border border-[#EDEEEF]'
               }`}
           >
