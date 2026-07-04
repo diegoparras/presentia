@@ -188,39 +188,14 @@ export function ConfigurationInitializer({ children }: { children: React.ReactNo
 
 
   if (isLoading) {
+    // Sin cartel de inicio: solo un indicador mínimo mientras se resuelve
+    // la configuración y el ruteo inicial.
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white p-4">
-        <div className="w-full max-w-md">
-          <div className="rounded-2xl border border-[#EDEEEF] bg-white p-8 text-center shadow-xl">
-            {/* Logo/Branding */}
-            <div className="mb-6">
-              <img
-                src="/Logo.png"
-                alt="PresentOn"
-                className="mx-auto mb-4 h-12 opacity-90"
-              />
-              <div className="mx-auto h-1 w-16 rounded-full bg-[#e25a4e]" />
-            </div>
-
-            {/* Loading Text */}
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-gray-800 font-inter">
-                Initializing Application
-              </h3>
-              <p className="text-sm text-gray-600 font-inter">
-                Loading configuration and checking model availability...
-              </p>
-            </div>
-
-            {/* Progress Indicator */}
-            <div className="mt-6">
-              <div className="flex space-x-1 justify-center">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-              </div>
-            </div>
-          </div>
+      <div className="flex min-h-screen items-center justify-center bg-white" aria-busy="true">
+        <div className="flex space-x-1.5">
+          <div className="h-2 w-2 animate-pulse rounded-full bg-[#e25a4e]"></div>
+          <div className="h-2 w-2 animate-pulse rounded-full bg-[#ef8175]" style={{ animationDelay: '0.2s' }}></div>
+          <div className="h-2 w-2 animate-pulse rounded-full bg-[#e25a4e]" style={{ animationDelay: '0.4s' }}></div>
         </div>
       </div>
     );
