@@ -45,14 +45,42 @@ COMFYUI_SEED_SOURCE_VALUE_KEYS = {"value", "int", "integer", "number"}
 
 
 class ImageGenerationService:
-    def __init__(self, output_directory: str):
+    def __init__(
+        self,
+        output_directory: str,
+        style: str | None = None,
+        source_override: str | None = None,
+    ):
         self.output_directory = output_directory
-        self.is_image_generation_disabled = is_image_generation_disabled()
+        # Suite Escriba (modo Gamma): estilo por request concatenado a cada
+        # prompt de imagen, y override opcional del proveedor global.
+        self.style = (style or "").strip() or None
+        self.source_override = (source_override or "").strip().lower() or None
+        self.is_image_generation_disabled = (
+            is_image_generation_disabled() or self.source_override == "none"
+        )
         self.image_gen_func = self.get_image_gen_func()
+
+    def _source_override_func(self):
+        mapping = {
+            "pixabay": self.get_image_from_pixabay,
+            "pexels": self.get_image_from_pexels,
+            "gemini-flash": self.generate_image_gemini_flash,
+            "nanobanana-pro": self.generate_image_nanobanana_pro,
+            "dall-e-3": self.generate_image_openai_dalle3,
+            "gpt-image-1.5": self.generate_image_openai_gpt_image_1_5,
+            "comfyui": self.generate_image_comfyui,
+            "open-webui": self.generate_image_open_webui,
+            "openai-compatible": self.generate_image_openai_compatible,
+        }
+        return mapping.get(self.source_override)
 
     def get_image_gen_func(self):
         if self.is_image_generation_disabled:
             return None
+
+        if self.source_override:
+            return self._source_override_func()
 
         if is_pixabay_selected():
             return self.get_image_from_pixabay
@@ -75,6 +103,8 @@ class ImageGenerationService:
         return None
 
     def is_stock_provider_selected(self):
+        if self.source_override:
+            return self.source_override in {"pexels", "pixabay"}
         return is_pixels_selected() or is_pixabay_selected()
 
     async def generate_image(self, prompt: ImagePrompt) -> str | ImageAsset:
@@ -96,6 +126,9 @@ class ImageGenerationService:
         image_prompt = prompt.get_image_prompt(
             with_theme=not self.is_stock_provider_selected()
         )
+        # Estilo por request para consistencia visual de todo el deck
+        if self.style and not self.is_stock_provider_selected():
+            image_prompt = f"{image_prompt}\nArt style: {self.style}"
         print(f"Request - Generating Image for {image_prompt}")
 
         try:

@@ -996,7 +996,11 @@ async def generate_presentation_handler(
             sql_session.add(async_status)
             await sql_session.commit()
 
-        image_generation_service = ImageGenerationService(get_images_directory())
+        image_generation_service = ImageGenerationService(
+            get_images_directory(),
+            style=request.image_style,
+            source_override=request.image_source,
+        )
         async_assets_generation_tasks = []
 
         # 7. Generate slide content concurrently (batched), then build slides and fetch assets

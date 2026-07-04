@@ -261,6 +261,12 @@ Estado: implementado. Piezas: `utils/llm_client.py` (proxy instrumentado; los oc
 
 Enganche: carpetas nuevas en `servers/nextjs/app/presentation-templates/` con sus `settings.json`; el auto-descubrimiento las registra sin tocar código. Los prompts de sistema afinados para español rioplatense formal se evaluarán contra los prompts de outline y contenido (`generate_presentation_outlines.py`, `generate_slide_content.py`) buscando el punto de inyección que menos diverja del upstream (probablemente vía `instructions` o un template de sistema configurable).
 
+### Extensión — Markdown a deck (modo Gamma)
+
+Enganche: el campo `slides_markdown` que el upstream ya soporta (mapea tarjetas 1:1 a slides sin pasar por el LLM de outline) más el pipeline de assets existente.
+
+Estado: implementado. Piezas: `services/markdown_deck_service.py` (splitter determinístico con la semántica de Gamma: separadores `---`, una tarjeta por encabezado `#`/`##`, reparto parejo como fallback; y las directivas de `text_mode` preserve/condense/generate que se inyectan como instructions), endpoint `POST /presentation/generate-from-markdown` en `api/v1/ppt/endpoints/markdown_presentations.py`, campos aditivos `image_style` (estilo concatenado a cada `__image_prompt__` en `ImageGenerationService`) e `image_source` (override por request del proveedor global de imágenes, incluido `none`), y la página Markdown del dashboard. Referencia investigada: la Generate API de Gamma (`inputText`, `textMode`, `cardSplit`, `imageOptions`).
+
 ### Transversal — Branding Escriba
 
 Enganche: assets e identidad en `servers/nextjs/app/` (íconos, `layout.tsx`, `globals.css`, `DashboardNav.tsx`), configuración de next-themes a `data-theme`, y las reglas fijas del contrato sobre toda UI nueva del fork (sección 9). La UI interna de Presenton no se rediseña, siguiendo el precedente Secretia.

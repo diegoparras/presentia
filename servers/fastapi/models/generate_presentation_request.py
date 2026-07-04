@@ -46,6 +46,23 @@ class GeneratePresentationRequest(BaseModel):
             "Chart figures are validated against these values."
         ),
     )
+    image_style: Optional[str] = Field(
+        default=None,
+        description=(
+            "Art-style directive appended to every generated image prompt "
+            "for deck-wide visual consistency (e.g. 'photorealistic', "
+            "'minimal line art')."
+        ),
+    )
+    image_source: Optional[str] = Field(
+        default=None,
+        description=(
+            "Per-request override of the global image provider: pexels, "
+            "pixabay, dall-e-3, gpt-image-1.5, gemini-flash, nanobanana-pro, "
+            "comfyui, open-webui, openai-compatible, or 'none' to disable "
+            "images for this deck."
+        ),
+    )
     export_as: Literal["pptx", "pdf"] = Field(
         default="pptx", description="Export format"
     )

@@ -57,6 +57,16 @@
 >   -F "n_slides=6" -F "language=Spanish" -F "export_as=pdf"
 > ```
 >
+> ### Markdown a presentación (modo Gamma)
+>
+> `POST /api/v1/ppt/presentation/generate-from-markdown` (y la página Markdown del dashboard) transforma un markdown pegado en un deck, replicando el modo paste de gamma.app: cada sección separada con `---` o cada encabezado `#`/`##` es una tarjeta. El parámetro `text_mode` controla qué hace la IA con tu texto: `preserve` (default) lo mantiene textual y solo elige layouts, `condense` lo resume, `generate` lo reescribe. Las imágenes se generan por tarjeta automáticamente; `image_style` aplica un estilo artístico consistente a todo el deck e `image_source` permite elegir el proveedor por pedido (stock, generación IA, o `none`).
+>
+> ```bash
+> curl -u usuario:clave -X POST http://localhost:5001/api/v1/ppt/presentation/generate-from-markdown \
+>   -H "Content-Type: application/json" \
+>   -d '{"markdown": "# Mi deck\n\n---\n\n## Sección\nContenido...", "text_mode": "preserve", "image_style": "line art minimalista"}'
+> ```
+>
 > ### Panel de costos LLM
 >
 > Cada llamada al modelo registra tokens de entrada/salida, proveedor, modelo y costo estimado (catálogo de precios versionado en `servers/fastapi/constants/llm_pricing.py`), con atribución por presentación, etapa y slide. La vista Costos del dashboard muestra el costo total por deck, el desglose y la comparativa entre proveedores; también hay endpoints de consulta (`GET /api/v1/ppt/usage/presentations`, `/usage/presentation/{id}`, `/usage/summary`). Los proveedores locales (Ollama, LM Studio) cuestan cero y los modelos fuera del catálogo muestran solo tokens. Se desactiva con `LLM_USAGE_TRACKING=false`; es la única funcionalidad del fork activa por defecto porque no tiene efectos externos (todo queda en la base local).
