@@ -32,6 +32,19 @@
 > | `ESCRIBA_TIMEOUT` | `600` | Timeout de conversión en segundos |
 >
 > En `docker-compose.yml` hay un bloque de ejemplo comentado con el servicio `escriba` en red interna. Sin estas variables no cambia ningún comportamiento del upstream.
+>
+> ### Anonimización con Anonimal (opcional)
+>
+> Con estas variables, el contenido del usuario y el texto extraído de los documentos se anonimizan con [Anonimal](https://github.com/diegoparras/anonimal) antes de viajar al proveedor de LLM (y antes de indexarse en la memoria semántica). El comportamiento es fail-closed: si Anonimal está habilitado y no responde, la generación se corta con un error claro en lugar de mandar PII cruda. Los textos originales nunca salen del host.
+>
+> | Variable | Default | Descripción |
+> |---|---|---|
+> | `ANONIMAL_ENABLED` | `false` | Activa el sidecar |
+> | `ANONIMAL_URL` | — | URL base del servicio, p. ej. `http://anonimal:8000` |
+> | `ANONIMAL_TOKEN` | — | Token de servicio si Anonimal lo exige (`X-Anonimal-Token`) |
+> | `ANONIMAL_MODE` | `pseudo` | Nivel: `typed`, `anon`, `pseudo` (reversible), `mask`, `hash` |
+> | `ANONIMAL_ENGINE` | `auto` | `lite` (regex, instantáneo) o `ml` (NER: nombres, direcciones) |
+> | `ANONIMAL_TIMEOUT` | `120` | Timeout en segundos |
 
 # Open-Source AI Presentation Generator and API (Gamma, Canva, Beautiful AI, Decktopus, Presentations AI Alternative)
 

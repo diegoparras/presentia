@@ -241,6 +241,8 @@ Enganche: los dos lugares donde el texto extraído se convierte en `additional_c
 
 Un servicio `anonymize(text) -> text` aplicado sobre `additional_context` y sobre `request.content` en esos puntos garantiza que al proveedor LLM (y a Mem0) solo viaje texto anonimizado, mientras los originales quedan en el host. Hay que revisar en esa fase los flujos secundarios que también mandan contenido del usuario al LLM: edición de slides y chat.
 
+Estado: implementado (MVP). El sidecar vive en `services/anonimal_service.py` con el helper fail-closed `anonymize_generation_inputs()`, insertado en los dos handlers de generación; los tests en `tests/unit/test_anonimal_service.py`. Decisión de diseño: ante falla de Anonimal con el flag activo, la generación aborta con 503 (o error SSE) en lugar de degradar, porque el peor caso de la anonimización es mandar PII cruda en silencio. Pendientes como incrementos: rehidratación de decks con `/deanonymize` en modo `pseudo`, y anonimización de los prompts sueltos de edición y chat.
+
 ### Fase 4 — Charts desde datos reales
 
 Enganche: los schemas Zod de charts existentes (sección 5) y la generación de contenido del slide (`utils/llm_calls/generate_slide_content.py:169-223`).

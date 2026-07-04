@@ -16,6 +16,7 @@ from models.sse_response import (
     SSEResponse,
     SSEStatusResponse,
 )
+from services.anonimal_service import anonymize_generation_inputs
 from services.temp_file_service import TEMP_FILE_SERVICE
 from services.database import get_async_session
 from services.documents_loader import DocumentsLoader
@@ -121,6 +122,17 @@ async def stream_outlines(
             if documents:
                 additional_context = "\n\n".join(documents)
 
+        # Suite Escriba: optional PII anonymization before prompts and Mem0.
+        # Fail-closed: the stream ends with an error instead of sending raw PII.
+        try:
+            content_for_llm, additional_context = await anonymize_generation_inputs(
+                presentation.content,
+                additional_context,
+            )
+        except HTTPException as exc:
+            yield SSEErrorResponse(detail=exc.detail).to_string()
+            return
+
         presentation_outlines_text = ""
 
         if presentation.n_slides > 0:
@@ -133,7 +145,7 @@ async def stream_outlines(
             n_slides_to_generate = None
 
         outline_messages = get_outline_messages(
-            presentation.content,
+            content_for_llm,
             n_slides_to_generate,
             presentation.language,
             additional_context,
@@ -156,12 +168,12 @@ async def stream_outlines(
                 else None
             ),
             extracted_document_text=additional_context,
-            source_content=presentation.content,
+            source_content=content_for_llm,
             instructions=presentation.instructions,
         )
 
         async for chunk in generate_ppt_outline(
-            presentation.content,
+            content_for_llm,
             n_slides_to_generate,
             presentation.language,
             additional_context,

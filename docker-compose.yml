@@ -23,6 +23,14 @@ services:
       - ESCRIBA_URL=${ESCRIBA_URL:-}
       - ESCRIBA_API_TOKEN=${ESCRIBA_API_TOKEN:-}
       - ESCRIBA_TIMEOUT=${ESCRIBA_TIMEOUT:-}
+      # Suite Escriba: anonimización de PII antes de que el contenido llegue al LLM
+      # (opcional, fail-closed; ver el servicio "anonimal" comentado al final del archivo)
+      - ANONIMAL_ENABLED=${ANONIMAL_ENABLED:-}
+      - ANONIMAL_URL=${ANONIMAL_URL:-}
+      - ANONIMAL_TOKEN=${ANONIMAL_TOKEN:-}
+      - ANONIMAL_MODE=${ANONIMAL_MODE:-}
+      - ANONIMAL_ENGINE=${ANONIMAL_ENGINE:-}
+      - ANONIMAL_TIMEOUT=${ANONIMAL_TIMEOUT:-}
       - LLM=${LLM:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_MODEL=${OPENAI_MODEL:-}
@@ -147,6 +155,14 @@ services:
       - ESCRIBA_URL=${ESCRIBA_URL:-}
       - ESCRIBA_API_TOKEN=${ESCRIBA_API_TOKEN:-}
       - ESCRIBA_TIMEOUT=${ESCRIBA_TIMEOUT:-}
+      # Suite Escriba: anonimización de PII antes de que el contenido llegue al LLM
+      # (opcional, fail-closed; ver el servicio "anonimal" comentado al final del archivo)
+      - ANONIMAL_ENABLED=${ANONIMAL_ENABLED:-}
+      - ANONIMAL_URL=${ANONIMAL_URL:-}
+      - ANONIMAL_TOKEN=${ANONIMAL_TOKEN:-}
+      - ANONIMAL_MODE=${ANONIMAL_MODE:-}
+      - ANONIMAL_ENGINE=${ANONIMAL_ENGINE:-}
+      - ANONIMAL_TIMEOUT=${ANONIMAL_TIMEOUT:-}
       - LLM=${LLM:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_MODEL=${OPENAI_MODEL:-}
@@ -491,6 +507,24 @@ services:
   #     - API_TOKEN=${ESCRIBA_API_TOKEN:-}
   #     - API_TOKEN_ROLE=angel
   #   # Sin "ports": queda solo en la red interna de compose, accesible como http://escriba:8000
+
+  # --- Anonimal (opcional) --------------------------------------------------------
+  # Sidecar de anonimización de PII. Con ANONIMAL_ENABLED=true, el contenido del
+  # usuario y el texto extraído de documentos se anonimizan ANTES de viajar al
+  # proveedor de LLM (y antes de indexarse en Mem0). Fail-closed: si el servicio
+  # no responde, la generación se corta en lugar de mandar PII cruda.
+  # Descomentá este bloque y definí en tu .env:
+  #   ANONIMAL_ENABLED=true
+  #   ANONIMAL_URL=http://anonimal:8000
+  #   ANONIMAL_MODE=pseudo   # typed | anon | pseudo | mask | hash
+  #
+  # anonimal:
+  #   image: ghcr.io/diegoparras/anonimal-svc:lite   # :latest para el motor ML (NER)
+  #   restart: unless-stopped
+  #   environment:
+  #     - ANONIMAL_ENGINE=lite
+  #     - ANONIMAL_TOKEN=${ANONIMAL_TOKEN:-}
+  #   # Sin "ports": queda solo en la red interna, accesible como http://anonimal:8000
 
 volumes:
   presenton_root_node_modules:

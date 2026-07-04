@@ -29,6 +29,7 @@ from models.presentation_with_slides import (
     PresentationWithSlides,
 )
 from models.sql.template import TemplateModel
+from services.anonimal_service import anonymize_generation_inputs
 from services.documents_loader import DocumentsLoader
 from services.temp_file_service import TEMP_FILE_SERVICE
 from services.webhook_service import WebhookService
@@ -754,6 +755,13 @@ async def generate_presentation_handler(
                 if documents:
                     additional_context = "\n\n".join(documents)
 
+            # Suite Escriba: optional PII anonymization before prompts and Mem0.
+            # Fail-closed: raises HTTPException(503) if Anonimal is enabled but fails.
+            content_for_llm, additional_context = await anonymize_generation_inputs(
+                request.content,
+                additional_context,
+            )
+
             # Finding number of slides to generate by considering table of contents
             n_slides_to_generate = request.n_slides
             if request.include_table_of_contents and request.n_slides is not None:
@@ -766,7 +774,7 @@ async def generate_presentation_handler(
                 )
 
             outline_messages = get_outline_messages(
-                request.content,
+                content_for_llm,
                 n_slides_to_generate,
                 language_to_use,
                 additional_context,
@@ -789,13 +797,13 @@ async def generate_presentation_handler(
                     else None
                 ),
                 extracted_document_text=additional_context,
-                source_content=request.content,
+                source_content=content_for_llm,
                 instructions=request.instructions,
             )
 
             presentation_outlines_text = ""
             async for chunk in generate_ppt_outline(
-                request.content,
+                content_for_llm,
                 n_slides_to_generate,
                 language_to_use,
                 additional_context,

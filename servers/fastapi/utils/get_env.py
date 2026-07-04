@@ -415,3 +415,28 @@ def get_escriba_api_token_env():
 
 def get_escriba_timeout_env():
     return os.getenv("ESCRIBA_TIMEOUT")
+
+
+# Anonimal PII anonymization sidecar (Suite Escriba integration, optional)
+def is_anonimal_enabled_env() -> bool:
+    return _is_truthy(os.getenv("ANONIMAL_ENABLED"))
+
+
+def get_anonimal_url_env():
+    return os.getenv("ANONIMAL_URL")
+
+
+def get_anonimal_token_env():
+    return os.getenv("ANONIMAL_TOKEN")
+
+
+def get_anonimal_mode_env():
+    return os.getenv("ANONIMAL_MODE")
+
+
+def get_anonimal_engine_env():
+    return os.getenv("ANONIMAL_ENGINE")
+
+
+def get_anonimal_timeout_env():
+    return os.getenv("ANONIMAL_TIMEOUT")
