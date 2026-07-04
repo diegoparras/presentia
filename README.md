@@ -45,6 +45,17 @@
 > | `ANONIMAL_MODE` | `pseudo` | Nivel: `typed`, `anon`, `pseudo` (reversible), `mask`, `hash` |
 > | `ANONIMAL_ENGINE` | `auto` | `lite` (regex, instantáneo) o `ml` (NER: nombres, direcciones) |
 > | `ANONIMAL_TIMEOUT` | `120` | Timeout en segundos |
+>
+> ### Charts desde datos reales (opcional)
+>
+> `POST /api/v1/ppt/presentation/generate-from-data` genera un deck a partir de un dataset CSV, TSV o JSON (multipart: `file` más `content`, `n_slides`, `language`, `template`, `instructions`, `export_as`). Las cifras de los gráficos se validan contra el dataset: toda cifra debe existir en los datos o ser un agregado exacto de columna (suma, promedio, mínimo, máximo, conteo); si el modelo devuelve una cifra ajena se reintenta con feedback y, si insiste, el slide se rechaza. El dataset se espera ya agregado (por ejemplo, un resumen de conciliación de Concilius); el límite es `DATASET_MAX_ROWS` (default 200). El template por defecto es `Report`, que trae los layouts con gráficos.
+>
+> ```bash
+> curl -u usuario:clave -X POST http://localhost:5001/api/v1/ppt/presentation/generate-from-data \
+>   -F "file=@resumen_conciliacion.csv" \
+>   -F "content=Informe mensual de conciliación bancaria" \
+>   -F "n_slides=6" -F "language=Spanish" -F "export_as=pdf"
+> ```
 
 # Open-Source AI Presentation Generator and API (Gamma, Canva, Beautiful AI, Decktopus, Presentations AI Alternative)
 

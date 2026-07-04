@@ -38,6 +38,14 @@ class GeneratePresentationRequest(BaseModel):
     files: Optional[List[str]] = Field(
         default=None, description="Files to use for the presentation"
     )
+    dataset: Optional[dict] = Field(
+        default=None,
+        description=(
+            "Canonical dataset for data-grounded charts "
+            '({"columns": [...], "rows": [...], "table_md": "..."}). '
+            "Chart figures are validated against these values."
+        ),
+    )
     export_as: Literal["pptx", "pdf"] = Field(
         default="pptx", description="Export format"
     )

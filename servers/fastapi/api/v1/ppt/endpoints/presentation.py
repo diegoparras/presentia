@@ -60,6 +60,9 @@ from utils.llm_calls.generate_presentation_structure import (
 from utils.llm_calls.generate_slide_content import (
     get_slide_content_from_type_and_outline,
 )
+from utils.llm_calls.generate_slide_content_with_data import (
+    get_slide_content_with_dataset_guard,
+)
 from utils.ppt_utils import (
     select_toc_or_list_slide_layout_index,
 )
@@ -478,13 +481,14 @@ async def stream_presentation(
             slide_layout = layout.slides[slide_layout_index]
 
             try:
-                slide_content = await get_slide_content_from_type_and_outline(
+                slide_content = await get_slide_content_with_dataset_guard(
                     slide_layout,
                     outline.slides[i],
                     presentation.language,
                     presentation.tone,
                     presentation.verbosity,
                     presentation.instructions,
+                    dataset=presentation.dataset,
                 )
             except HTTPException as e:
                 yield SSEErrorResponse(detail=e.detail).to_string()
@@ -762,6 +766,19 @@ async def generate_presentation_handler(
                 additional_context,
             )
 
+            # Suite Escriba: dataset table as outline context so chart slides
+            # get planned. table_md is already anonymized at the entry endpoint.
+            if request.dataset and request.dataset.get("table_md"):
+                dataset_block = (
+                    "# Dataset (source of truth for chart figures):\n"
+                    + request.dataset["table_md"]
+                )
+                additional_context = (
+                    f"{additional_context}\n\n{dataset_block}"
+                    if additional_context
+                    else dataset_block
+                )
+
             # Finding number of slides to generate by considering table of contents
             n_slides_to_generate = request.n_slides
             if request.include_table_of_contents and request.n_slides is not None:
@@ -961,6 +978,7 @@ async def generate_presentation_handler(
             tone=request.tone.value,
             verbosity=request.verbosity.value,
             instructions=request.instructions,
+            dataset=request.dataset,
         )
 
         # Updating async status
@@ -988,13 +1006,14 @@ async def generate_presentation_handler(
 
             # Generate contents for this batch concurrently
             content_tasks = [
-                get_slide_content_from_type_and_outline(
+                get_slide_content_with_dataset_guard(
                     slide_layouts[i],
                     presentation_outlines.slides[i],
                     language_to_use,
                     request.tone.value,
                     request.verbosity.value,
                     request.instructions,
+                    dataset=request.dataset,
                 )
                 for i in range(start, end)
             ]
