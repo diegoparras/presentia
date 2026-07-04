@@ -67,6 +67,10 @@
 >   -d '{"markdown": "# Mi deck\n\n---\n\n## Sección\nContenido...", "text_mode": "preserve", "image_style": "line art minimalista"}'
 > ```
 >
+> ### Selector guiado de modelos
+>
+> La página Modelos del dashboard muestra, según las API keys que configuraste, qué modelos de texto y de imágenes tenés disponibles, con calidad (curación propia), precio por millón de tokens o por imagen, y tres recomendaciones automáticas: mejor calidad, mejor precio-calidad y más económico. La selección aplica con un click (escribe en el userConfig existente) y los modelos sin credencial aparecen atenuados con el aviso de qué falta. Endpoint: `GET /api/v1/ppt/models/recommendations`. El catálogo curado vive en `servers/fastapi/constants/model_catalog.py`.
+>
 > ### Panel de costos LLM
 >
 > Cada llamada al modelo registra tokens de entrada/salida, proveedor, modelo y costo estimado (catálogo de precios versionado en `servers/fastapi/constants/llm_pricing.py`), con atribución por presentación, etapa y slide. La vista Costos del dashboard muestra el costo total por deck, el desglose y la comparativa entre proveedores; también hay endpoints de consulta (`GET /api/v1/ppt/usage/presentations`, `/usage/presentation/{id}`, `/usage/summary`). Los proveedores locales (Ollama, LM Studio) cuestan cero y los modelos fuera del catálogo muestran solo tokens. Se desactiva con `LLM_USAGE_TRACKING=false`; es la única funcionalidad del fork activa por defecto porque no tiene efectos externos (todo queda en la base local).

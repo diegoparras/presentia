@@ -58,8 +58,8 @@ class GeneratePresentationRequest(BaseModel):
         default=None,
         description=(
             "Per-request override of the global image provider: pexels, "
-            "pixabay, dall-e-3, gpt-image-1.5, gemini-flash, nanobanana-pro, "
-            "comfyui, open-webui, openai-compatible, or 'none' to disable "
+            "pixabay, dall-e-3, gpt-image-1.5, gemini_flash, nanobanana_pro, "
+            "comfyui, open_webui, openai_compatible, or 'none' to disable "
             "images for this deck."
         ),
     )

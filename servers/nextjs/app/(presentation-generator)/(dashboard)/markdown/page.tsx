@@ -24,7 +24,7 @@ const IMAGE_SOURCES = [
   { value: "pixabay", label: "Pixabay (stock)" },
   { value: "dall-e-3", label: "DALL-E 3" },
   { value: "gpt-image-1.5", label: "GPT Image 1.5" },
-  { value: "gemini-flash", label: "Gemini Flash" },
+  { value: "gemini_flash", label: "Gemini Flash" },
   { value: "comfyui", label: "ComfyUI" },
   { value: "none", label: "Sin imágenes" },
 ];

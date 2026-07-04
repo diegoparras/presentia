@@ -62,16 +62,17 @@ class ImageGenerationService:
         self.image_gen_func = self.get_image_gen_func()
 
     def _source_override_func(self):
+        # Claves alineadas con enums.image_provider.ImageProvider
         mapping = {
             "pixabay": self.get_image_from_pixabay,
             "pexels": self.get_image_from_pexels,
-            "gemini-flash": self.generate_image_gemini_flash,
-            "nanobanana-pro": self.generate_image_nanobanana_pro,
+            "gemini_flash": self.generate_image_gemini_flash,
+            "nanobanana_pro": self.generate_image_nanobanana_pro,
             "dall-e-3": self.generate_image_openai_dalle3,
             "gpt-image-1.5": self.generate_image_openai_gpt_image_1_5,
             "comfyui": self.generate_image_comfyui,
-            "open-webui": self.generate_image_open_webui,
-            "openai-compatible": self.generate_image_openai_compatible,
+            "open_webui": self.generate_image_open_webui,
+            "openai_compatible": self.generate_image_openai_compatible,
         }
         return mapping.get(self.source_override)
 
