@@ -15,6 +15,24 @@
   <a href="https://presenton.ai/"><img src="https://img.shields.io/badge/Platform-Docker%20%7C%20Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat" alt="Platform" /></a>
 </p>
 
+> [!NOTE]
+> ## Presentia — fork de la Suite Escriba
+>
+> Este repositorio es Presentia, un fork de [Presenton](https://github.com/presenton/presenton) (Apache 2.0) mantenido por Nodemat como pieza de generación de decks del ecosistema Escriba. Funciona standalone, exactamente igual que Presenton vanilla, y también integrado a la suite. El mapa del código está en [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
+>
+> ### Integración con Escriba (opcional)
+>
+> Con estas variables, el parsing de documentos se delega al servicio [Escriba](https://github.com/diegoparras/escriba) (documento → markdown, con OCR). Si Escriba no está disponible o falla con un archivo, Presentia cae automáticamente a los parsers originales.
+>
+> | Variable | Default | Descripción |
+> |---|---|---|
+> | `ESCRIBA_ENABLED` | `false` | Activa el adaptador |
+> | `ESCRIBA_URL` | — | URL base del servicio, p. ej. `http://escriba:8000` |
+> | `ESCRIBA_API_TOKEN` | — | `API_TOKEN` de Escriba (se envía como `X-API-Key`) |
+> | `ESCRIBA_TIMEOUT` | `600` | Timeout de conversión en segundos |
+>
+> En `docker-compose.yml` hay un bloque de ejemplo comentado con el servicio `escriba` en red interna. Sin estas variables no cambia ningún comportamiento del upstream.
+
 # Open-Source AI Presentation Generator and API (Gamma, Canva, Beautiful AI, Decktopus, Presentations AI Alternative)
 
 Discover what Presenton can do from AI-powered presentation generation to editing, exporting, and flexible model providers.

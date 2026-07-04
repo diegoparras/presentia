@@ -230,6 +230,8 @@ class EscribaParseService:
 
 Comportamiento: si `ESCRIBA_ENABLED` es true y el health check pasa, el despacho de `load_documents()` prueba primero con Escriba para los formatos que este soporte; ante error o timeout cae a los servicios originales (LiteParse/Office) y lo registra en el log. Presenton vanilla queda intacto con la variable apagada.
 
+Estado: implementado. El adaptador vive en `services/escriba_parse_service.py`, la integración en `_parse_with_escriba` de `DocumentsLoader`, los tests en `tests/unit/test_escriba_parse_service.py`, y la configuración documentada en el README y el compose.
+
 ### Fase 3 — Anonimal
 
 Enganche: los dos lugares donde el texto extraído se convierte en `additional_context`, antes de que entre a los prompts y a Mem0:

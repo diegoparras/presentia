@@ -17,6 +17,12 @@ services:
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
       - MIGRATE_DATABASE_ON_STARTUP=true
       - CAN_CHANGE_KEYS=${CAN_CHANGE_KEYS:-}
+      # Suite Escriba: delega el parsing de documentos al servicio Escriba (opcional,
+      # apagado por defecto; ver el servicio "escriba" comentado al final del archivo)
+      - ESCRIBA_ENABLED=${ESCRIBA_ENABLED:-}
+      - ESCRIBA_URL=${ESCRIBA_URL:-}
+      - ESCRIBA_API_TOKEN=${ESCRIBA_API_TOKEN:-}
+      - ESCRIBA_TIMEOUT=${ESCRIBA_TIMEOUT:-}
       - LLM=${LLM:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_MODEL=${OPENAI_MODEL:-}
@@ -135,6 +141,12 @@ services:
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
       - MIGRATE_DATABASE_ON_STARTUP=true
       - CAN_CHANGE_KEYS=${CAN_CHANGE_KEYS:-}
+      # Suite Escriba: delega el parsing de documentos al servicio Escriba (opcional,
+      # apagado por defecto; ver el servicio "escriba" comentado al final del archivo)
+      - ESCRIBA_ENABLED=${ESCRIBA_ENABLED:-}
+      - ESCRIBA_URL=${ESCRIBA_URL:-}
+      - ESCRIBA_API_TOKEN=${ESCRIBA_API_TOKEN:-}
+      - ESCRIBA_TIMEOUT=${ESCRIBA_TIMEOUT:-}
       - LLM=${LLM:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_MODEL=${OPENAI_MODEL:-}
@@ -462,6 +474,23 @@ services:
       - AUTH_PASSWORD=${AUTH_PASSWORD:-}
       - AUTH_OVERRIDE_FROM_ENV=${AUTH_OVERRIDE_FROM_ENV:-}
       - RESET_AUTH=${RESET_AUTH:-}
+
+  # --- Suite Escriba (opcional) -------------------------------------------------
+  # Servicio Escriba para delegar la conversión documento -> markdown.
+  # Descomentá este bloque y definí en tu .env:
+  #   ESCRIBA_ENABLED=true
+  #   ESCRIBA_URL=http://escriba:8000
+  #   ESCRIBA_API_TOKEN=<API_TOKEN de Escriba, rol angel alcanza>
+  # Sin estas variables, Presentia usa los parsers locales (comportamiento vanilla).
+  #
+  # escriba:
+  #   image: ghcr.io/nodemat/escriba:latest
+  #   restart: unless-stopped
+  #   environment:
+  #     - SECRET_KEY=${ESCRIBA_SECRET_KEY:?definir con openssl rand -hex 32}
+  #     - API_TOKEN=${ESCRIBA_API_TOKEN:-}
+  #     - API_TOKEN_ROLE=angel
+  #   # Sin "ports": queda solo en la red interna de compose, accesible como http://escriba:8000
 
 volumes:
   presenton_root_node_modules:

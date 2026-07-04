@@ -398,3 +398,20 @@ def get_openai_compat_image_api_key_env():
 
 def get_openai_compat_image_model_env():
     return os.getenv("OPENAI_COMPAT_IMAGE_MODEL")
+
+
+# Escriba document-to-markdown service (Suite Escriba integration, optional)
+def is_escriba_enabled_env() -> bool:
+    return _is_truthy(os.getenv("ESCRIBA_ENABLED"))
+
+
+def get_escriba_url_env():
+    return os.getenv("ESCRIBA_URL")
+
+
+def get_escriba_api_token_env():
+    return os.getenv("ESCRIBA_API_TOKEN")
+
+
+def get_escriba_timeout_env():
+    return os.getenv("ESCRIBA_TIMEOUT")

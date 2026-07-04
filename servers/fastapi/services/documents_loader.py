@@ -20,6 +20,7 @@ from services.document_conversion_service import (
     DocumentConversionError,
     DocumentConversionService,
 )
+from services.escriba_parse_service import EscribaParseError, EscribaParseService
 from services.liteparse_service import LiteParseError, LiteParseService
 from services.office_document_service import (
     OfficeDocumentError,
@@ -177,6 +178,9 @@ class DocumentsLoader:
         self.document_service: Any = (
             DocumentServiceCls() if DocumentServiceCls is not None else None
         )
+        self.escriba_service: Optional[EscribaParseService] = (
+            EscribaParseService() if EscribaParseService.is_enabled() else None
+        )
 
         self._documents: List[str] = []
         self._images: List[List[str]] = []
@@ -216,7 +220,13 @@ class DocumentsLoader:
                 extension,
             )
 
-            if extension in PDF_EXTENSIONS:
+            escriba_document = None
+            if not load_images:
+                escriba_document = await self._parse_with_escriba(file_path, extension)
+
+            if escriba_document is not None:
+                document = escriba_document
+            elif extension in PDF_EXTENSIONS:
                 document, imgs = await self.load_pdf(
                     file_path, load_text, load_images, temp_dir
                 )
@@ -308,6 +318,33 @@ class DocumentsLoader:
                 timeout_seconds=self.DECOMPOSE_TIMEOUT_SECONDS,
             )
             return self._parse_with_liteparse(converted_path, dpi=300)
+
+    async def _parse_with_escriba(self, file_path: str, extension: str) -> Optional[str]:
+        """Try the Escriba service first when enabled; return None to fall back to
+        the original parsers (service off, unhealthy, or failed on this file)."""
+        if self.escriba_service is None:
+            return None
+        if extension in TEXT_EXTENSIONS:
+            return None
+        if not await self.escriba_service.is_available():
+            LOGGER.warning(
+                "[DocumentsLoader] Escriba enabled but unavailable, using local parsers"
+            )
+            return None
+        try:
+            LOGGER.info("[DocumentsLoader] Escriba parse start file=%s", file_path)
+            return await self.escriba_service.parse_to_markdown(
+                file_path,
+                ocr_enabled=True,
+                ocr_language=self._ocr_language,
+            )
+        except EscribaParseError as exc:
+            LOGGER.warning(
+                "[DocumentsLoader] Escriba parse failed file=%s error=%s; falling back to local parsers",
+                file_path,
+                exc,
+            )
+            return None
 
     def _parse_with_liteparse(self, file_path: str, dpi: int = None) -> str:
         try:
