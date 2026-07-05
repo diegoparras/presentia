@@ -1,4 +1,5 @@
 import math
+import random
 import re
 from typing import Iterable, List, Optional
 
@@ -44,6 +45,37 @@ def get_presentation_title_from_presentation_outline(
         .replace("\n", " ")
         .strip()
     )
+
+
+def sanitize_layout_indices(
+    indices: Iterable[int],
+    total_outlines: int,
+    total_slide_layouts: int,
+) -> List[int]:
+    """Devuelve exactamente ``total_outlines`` índices de layout válidos.
+
+    El modelo que asigna un layout a cada slide a veces devuelve índices fuera
+    del rango real de la plantilla, valores no enteros, o una cantidad distinta
+    de slides. Cualquiera de esos casos hacía reventar ``layout.slides[idx]``
+    con IndexError. Acá se sanea sin cortar la generación: los índices válidos
+    se conservan y los inválidos (o faltantes) se reemplazan por uno al azar
+    dentro de la plantilla.
+
+    Si la plantilla no tiene layouts (``total_slide_layouts <= 0``) devuelve una
+    lista vacía; ese caso patológico lo maneja el llamador.
+    """
+    if total_slide_layouts <= 0:
+        return []
+
+    indices_list = list(indices)
+    result: List[int] = []
+    for position in range(max(total_outlines, 0)):
+        candidate = indices_list[position] if position < len(indices_list) else None
+        if isinstance(candidate, int) and 0 <= candidate < total_slide_layouts:
+            result.append(candidate)
+        else:
+            result.append(random.randint(0, total_slide_layouts - 1))
+    return result
 
 
 def _get_toc_count_for_total_slides(total_slides: int, title_slide: bool) -> int:

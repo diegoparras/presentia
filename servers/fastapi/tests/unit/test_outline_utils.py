@@ -7,7 +7,40 @@ from utils.outline_utils import (
     get_no_of_toc_required_for_n_outlines,
     get_presentation_outline_model_with_toc,
     get_presentation_title_from_presentation_outline,
+    sanitize_layout_indices,
 )
+
+
+def test_sanitize_layout_indices_clamps_out_of_range():
+    # El modelo devolvió un índice 9 pero la plantilla tiene 3 layouts (0-2).
+    result = sanitize_layout_indices([0, 9, 2], total_outlines=3, total_slide_layouts=3)
+    assert len(result) == 3
+    assert all(0 <= i < 3 for i in result)
+    assert result[0] == 0 and result[2] == 2  # los válidos se conservan
+
+
+def test_sanitize_layout_indices_pads_when_too_few():
+    # El modelo devolvió menos índices que slides: se completan válidos.
+    result = sanitize_layout_indices([1], total_outlines=4, total_slide_layouts=2)
+    assert len(result) == 4
+    assert all(0 <= i < 2 for i in result)
+    assert result[0] == 1
+
+
+def test_sanitize_layout_indices_truncates_when_too_many():
+    result = sanitize_layout_indices([0, 1, 0, 1, 0], total_outlines=2, total_slide_layouts=2)
+    assert result == [0, 1]
+
+
+def test_sanitize_layout_indices_handles_negatives_and_non_ints():
+    result = sanitize_layout_indices([-1, "x", None, 1], total_outlines=4, total_slide_layouts=3)
+    assert len(result) == 4
+    assert all(isinstance(i, int) and 0 <= i < 3 for i in result)
+    assert result[3] == 1
+
+
+def test_sanitize_layout_indices_empty_template():
+    assert sanitize_layout_indices([0, 1], total_outlines=2, total_slide_layouts=0) == []
 
 
 def test_get_presentation_title_handles_prefixed_page_heading():
