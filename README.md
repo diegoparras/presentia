@@ -129,6 +129,36 @@ presentia.example.com {
 > runtime and bundles Chromium — it's a heavy build and a multi-GB image. Give the
 > builder a host with generous RAM and disk.
 
+<details>
+<summary><b>⚠️ PPTX/PDF export fails with "Failed to launch browser"</b></summary>
+
+Export renders slides with a **headless Chromium**. On some hosts the container's
+default **seccomp** profile blocks a syscall that recent Chromium needs, so it
+crashes on launch (`Trace/breakpoint trap (core dumped)`) even though generation
+worked. This is a host/runtime issue, not the app — the same image exports fine on
+a permissive Docker.
+
+The fix is to grant Chromium the capability it needs. **On EasyPanel** (the panel
+doesn't expose seccomp, but does expose capabilities):
+
+1. Service **presentia** → **Advanced** → **Cap Add**: `SYS_ADMIN`
+2. **Save** → **Deploy**.
+
+On plain Docker / Compose the equivalent is `--cap-add=SYS_ADMIN` (or
+`--security-opt seccomp=unconfined`). Quick check inside the host:
+
+```bash
+docker run --rm --entrypoint chromium --cap-add SYS_ADMIN \
+  <image> --headless=new --no-sandbox --disable-gpu --dump-dom about:blank
+# prints HTML instead of "core dumped" → the cap is the fix
+```
+
+`SYS_ADMIN` is a broad capability (it widens what the container can do, which
+matters on shared/multi-tenant hosts). For a single-tenant, self-hosted instance
+behind login it's the standard, accepted way to run Chromium in Docker. The more
+hardened alternative is a custom Chrome seccomp profile on the daemon.
+</details>
+
 ---
 
 ## ⚙️ Configuration
