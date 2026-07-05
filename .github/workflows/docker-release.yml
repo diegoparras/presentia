@@ -1,4 +1,14 @@
-name: Docker Release
+name: Publish image
+
+# Publica la imagen de Presentia en GitHub Container Registry:
+#   ghcr.io/diegoparras/presentia:latest   (y el tag de cada release)
+#
+# Se dispara a mano (Actions -> Publish image -> Run workflow) o al publicar
+# un release. No corre en cada push para no rebuildear la imagen (pesada) de
+# más. Tras el PRIMER push, hacé el package público en GitHub para que
+# EasyPanel lo pueda pullear sin credenciales:
+#   github.com/users/diegoparras/packages -> presentia -> Package settings
+#   -> Change visibility -> Public
 
 on:
   workflow_dispatch:
@@ -10,16 +20,15 @@ permissions:
   packages: write
 
 concurrency:
-  group: docker-release-${{ github.event.release.tag_name || github.ref_name || github.run_id }}
+  group: publish-image
   cancel-in-progress: false
 
 env:
-  IMAGE_NAME: ghcr.io/presenton/presenton
-  MOVING_TAG: dev
+  IMAGE_NAME: ghcr.io/diegoparras/presentia
 
 jobs:
   build-and-push:
-    name: Build and push multi-architecture image
+    name: Build and push image
     runs-on: ubuntu-latest
 
     steps:
@@ -28,8 +37,12 @@ jobs:
         with:
           ref: ${{ github.event.release.tag_name || github.ref }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android \
+                      /usr/local/share/boost "${AGENT_TOOLSDIRECTORY}"
+          sudo docker image prune -af || true
+          df -h
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -41,37 +54,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Prepare Docker tags
-        id: docker-tags
-        shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "release" ]]; then
-            IMAGE_TAG="${{ github.event.release.tag_name }}"
-          else
-            IMAGE_TAG="${MOVING_TAG}"
-          fi
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=ref,event=tag
 
-          {
-            echo "tags<<EOF"
-            echo "${IMAGE_NAME}:${IMAGE_TAG}"
-            echo "EOF"
-            echo "verify_tag=${IMAGE_TAG}"
-          } >> "${GITHUB_OUTPUT}"
-
-      - name: Build and push multi-architecture image
-        uses: docker/build-push-action@v7
+      - name: Build and push (linux/amd64)
+        uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
-          tags: ${{ steps.docker-tags.outputs.tags }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
       - name: Verify image
-        env:
-          VERIFY_TAG: ${{ steps.docker-tags.outputs.verify_tag }}
-        run: |
-          docker buildx imagetools inspect "${IMAGE_NAME}:${VERIFY_TAG}" | tee image-inspect.txt
-          grep -q "linux/amd64" image-inspect.txt
-          grep -q "linux/arm64" image-inspect.txt
+        run: docker buildx imagetools inspect "${IMAGE_NAME}:latest"
