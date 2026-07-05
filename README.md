@@ -206,6 +206,42 @@ own metasearch instance instead of a third‑party API.
 | `SEARCHGIRL_API_TOKEN` | — | Bearer token (matches Searchgirl's `SEARCHGIRL_MCP_TOKEN`), optional if the instance is open |
 </details>
 
+<details>
+<summary><b>🔑 Lockatus — single sign‑on (SSO) for the whole suite</b></summary>
+
+Set `AUTH_MODE=federado` and Presentia signs users in through the suite's
+**[Lockatus](https://getescriba.com)** identity hub (OpenID Connect, Authorization
+Code + PKCE, public client — no secret). One login for every suite app. With
+`AUTH_MODE` unset it keeps Presenton's built‑in single‑user login.
+
+| Variable | Default | Description |
+|---|---|---|
+| `AUTH_MODE` | `local` | Set to `federado` to enable Lockatus SSO |
+| `LOCKATUS_ISSUER` | — | Hub URL, reachable by the **same** URL from browser and container (e.g. `http://host.docker.internal:8081` locally, or `https://lockatus.example.com` behind a domain) |
+| `LOCKATUS_CLIENT_ID` | `presentia` | Client id registered in Lockatus |
+| `LOCKATUS_REDIRECT_URI` | — | `https://<your-presentia>/api/v1/auth/sso/callback` |
+| `SESSION_SECRET` | — | Signs federated session cookies (`openssl rand -hex 32`) |
+| `COOKIE_SECURE` | `false` | `true` behind HTTPS |
+
+**Register the client in Lockatus** (once), pointing at Presentia's callback:
+
+```bash
+curl -X PUT "$LOCKATUS_ISSUER/api/admin/apps/presentia/redirect-uris" \
+  -H "Content-Type: application/json" \
+  -d '{"redirect_uris":["https://<your-presentia>/api/v1/auth/sso/callback"]}'
+# then grant a role to your user:
+curl -X PUT "$LOCKATUS_ISSUER/api/admin/users/1/role" \
+  -H "Content-Type: application/json" \
+  -d '{"app":"presentia","role":"admin"}'
+```
+
+> **Issuer reachability is the gotcha.** The token's `iss` must match on both the
+> browser redirect (front‑channel) and the container's token/JWKS calls
+> (back‑channel), so `LOCKATUS_ISSUER` has to resolve to the same URL from both.
+> In the suite's local compose that's `host.docker.internal`; behind EasyPanel or a
+> domain, use Lockatus's **public** URL.
+</details>
+
 ---
 
 ## 🧾 Markdown → deck (Gamma mode)

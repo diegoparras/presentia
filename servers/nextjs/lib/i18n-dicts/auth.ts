@@ -4,6 +4,11 @@ import type { Lang } from "../i18n";
 export const dict: Record<Lang, Record<string, string>> = {
   en: {
     "auth.secureInstance": "Secure instance",
+    "auth.sso.title": "Sign in with the suite",
+    "auth.sso.subtitle": "This instance uses single sign-on. You'll be redirected to Lockatus to authenticate.",
+    "auth.sso.button": "Continue with Lockatus",
+    "auth.sso.error.title": "Sign-in failed",
+    "auth.sso.error.desc": "Could not complete single sign-on. Please try again.",
     "auth.title.setup": "Create your admin login",
     "auth.title.signin": "Sign in to continue",
     "auth.subtitle.setup":
@@ -53,6 +58,11 @@ export const dict: Record<Lang, Record<string, string>> = {
   },
   es: {
     "auth.secureInstance": "Instancia protegida",
+    "auth.sso.title": "Ingresá con la suite",
+    "auth.sso.subtitle": "Esta instancia usa inicio de sesión único. Te vamos a redirigir a Lockatus para autenticarte.",
+    "auth.sso.button": "Entrar con Lockatus",
+    "auth.sso.error.title": "Falló el inicio de sesión",
+    "auth.sso.error.desc": "No se pudo completar el inicio de sesión único. Probá de nuevo.",
     "auth.title.setup": "Creá tu acceso de administrador",
     "auth.title.signin": "Iniciá sesión para continuar",
     "auth.subtitle.setup":
@@ -102,6 +112,11 @@ export const dict: Record<Lang, Record<string, string>> = {
   },
   fr: {
     "auth.secureInstance": "Instance sécurisée",
+    "auth.sso.title": "Connexion via la suite",
+    "auth.sso.subtitle": "Cette instance utilise l'authentification unique. Vous serez redirigé vers Lockatus.",
+    "auth.sso.button": "Continuer avec Lockatus",
+    "auth.sso.error.title": "Échec de la connexion",
+    "auth.sso.error.desc": "Impossible de terminer l'authentification unique. Réessayez.",
     "auth.title.setup": "Créez votre accès administrateur",
     "auth.title.signin": "Connectez-vous pour continuer",
     "auth.subtitle.setup":
@@ -153,6 +168,11 @@ export const dict: Record<Lang, Record<string, string>> = {
   },
   pt: {
     "auth.secureInstance": "Instância protegida",
+    "auth.sso.title": "Entrar com a suíte",
+    "auth.sso.subtitle": "Esta instância usa login único. Você será redirecionado ao Lockatus para autenticar.",
+    "auth.sso.button": "Continuar com Lockatus",
+    "auth.sso.error.title": "Falha no login",
+    "auth.sso.error.desc": "Não foi possível concluir o login único. Tente novamente.",
     "auth.title.setup": "Crie seu acesso de administrador",
     "auth.title.signin": "Faça login para continuar",
     "auth.subtitle.setup":
@@ -203,6 +223,11 @@ export const dict: Record<Lang, Record<string, string>> = {
   },
   it: {
     "auth.secureInstance": "Istanza protetta",
+    "auth.sso.title": "Accedi con la suite",
+    "auth.sso.subtitle": "Questa istanza usa il single sign-on. Verrai reindirizzato a Lockatus per autenticarti.",
+    "auth.sso.button": "Continua con Lockatus",
+    "auth.sso.error.title": "Accesso non riuscito",
+    "auth.sso.error.desc": "Impossibile completare il single sign-on. Riprova.",
     "auth.title.setup": "Crea il tuo accesso amministratore",
     "auth.title.signin": "Accedi per continuare",
     "auth.subtitle.setup":
@@ -252,6 +277,11 @@ export const dict: Record<Lang, Record<string, string>> = {
   },
   zh: {
     "auth.secureInstance": "安全实例",
+    "auth.sso.title": "使用套件登录",
+    "auth.sso.subtitle": "此实例使用单点登录，将跳转到 Lockatus 进行身份验证。",
+    "auth.sso.button": "使用 Lockatus 继续",
+    "auth.sso.error.title": "登录失败",
+    "auth.sso.error.desc": "无法完成单点登录，请重试。",
     "auth.title.setup": "创建管理员账户",
     "auth.title.signin": "登录以继续",
     "auth.subtitle.setup":
@@ -294,6 +324,11 @@ export const dict: Record<Lang, Record<string, string>> = {
   },
   ja: {
     "auth.secureInstance": "保護されたインスタンス",
+    "auth.sso.title": "スイートでサインイン",
+    "auth.sso.subtitle": "このインスタンスはシングルサインオンを使用します。認証のため Lockatus にリダイレクトされます。",
+    "auth.sso.button": "Lockatus で続行",
+    "auth.sso.error.title": "サインインに失敗しました",
+    "auth.sso.error.desc": "シングルサインオンを完了できませんでした。もう一度お試しください。",
     "auth.title.setup": "管理者アカウントを作成",
     "auth.title.signin": "ログインして続行",
     "auth.subtitle.setup":

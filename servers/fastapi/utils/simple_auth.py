@@ -9,7 +9,12 @@ from typing import Optional
 from fastapi import Request
 from starlette.responses import Response
 
-from utils.get_env import get_user_config_path_env, is_disable_auth_enabled
+from utils.get_env import (
+    get_session_secret_env,
+    get_user_config_path_env,
+    is_disable_auth_enabled,
+    is_federation_enabled,
+)
 from utils.user_config_store import read_user_config_file, update_user_config_file
 
 SESSION_COOKIE_NAME = "presenton_session"
@@ -203,6 +208,76 @@ def create_session_token(username: str) -> str:
     return f"{payload_encoded}.{signature_encoded}"
 
 
+def create_federated_session_token(
+    email: str, name: Optional[str] = None, role: Optional[str] = None
+) -> str:
+    """Session token for a user authenticated via Lockatus (federated mode).
+
+    Signed with SESSION_SECRET (shared across the suite) and flagged ``fed`` so
+    validation does not bind to a single local AUTH_USERNAME — federation is
+    multi-user by nature.
+    """
+    secret = (get_session_secret_env() or "").strip()
+    if not secret:
+        raise ValueError("SESSION_SECRET is required for federated sessions")
+
+    issued_at = int(time.time())
+    payload = {
+        "v": 1,
+        "fed": 1,
+        "u": email,
+        "name": name,
+        "role": role,
+        "iat": issued_at,
+        "exp": issued_at + SESSION_TTL_SECONDS,
+    }
+    payload_encoded = _base64url_encode(
+        json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    )
+    signature_encoded = _sign_payload(payload_encoded, secret)
+    return f"{payload_encoded}.{signature_encoded}"
+
+
+def validate_federated_session_token(token: Optional[str]) -> Optional[dict]:
+    if not token:
+        return None
+
+    secret = (get_session_secret_env() or "").strip()
+    if not secret:
+        return None
+
+    try:
+        payload_encoded, signature_encoded = token.split(".", 1)
+    except ValueError:
+        return None
+
+    expected_signature = _sign_payload(payload_encoded, secret)
+    if not hmac.compare_digest(signature_encoded, expected_signature):
+        return None
+
+    try:
+        payload = json.loads(_base64url_decode(payload_encoded))
+    except Exception:
+        return None
+
+    if payload.get("fed") != 1 or payload.get("v") != 1:
+        return None
+
+    username = payload.get("u")
+    expires_at = payload.get("exp")
+    if not isinstance(username, str) or not isinstance(expires_at, int):
+        return None
+
+    if expires_at < int(time.time()):
+        return None
+
+    return {
+        "username": username,
+        "name": payload.get("name"),
+        "role": payload.get("role"),
+    }
+
+
 def validate_session_token(token: Optional[str]) -> Optional[str]:
     if not token:
         return None
@@ -285,6 +360,17 @@ def get_basic_auth_credentials_from_request(
 
 
 def get_auth_status(session_token: Optional[str] = None) -> dict:
+    # Federated mode (Lockatus SSO): no local setup step, identity comes from the
+    # hub. "configured" is always true; auth depends on a valid federated cookie.
+    if is_federation_enabled():
+        session = validate_federated_session_token(session_token)
+        return {
+            "configured": True,
+            "authenticated": bool(session),
+            "username": session["username"] if session else None,
+            "mode": "federated",
+        }
+
     config = _load_user_config()
     configured = bool(config.get("AUTH_USERNAME") and config.get("AUTH_PASSWORD_HASH"))
 
@@ -293,6 +379,7 @@ def get_auth_status(session_token: Optional[str] = None) -> dict:
             "configured": False,
             "authenticated": False,
             "username": None,
+            "mode": "local",
         }
 
     username = validate_session_token(session_token)
@@ -300,6 +387,7 @@ def get_auth_status(session_token: Optional[str] = None) -> dict:
         "configured": True,
         "authenticated": bool(username),
         "username": username,
+        "mode": "local",
     }
 
 

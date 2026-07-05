@@ -212,6 +212,43 @@ terceros.
 | `SEARCHGIRL_API_TOKEN` | — | Bearer token (coincide con el `SEARCHGIRL_MCP_TOKEN` de Searchgirl), opcional si la instancia es abierta |
 </details>
 
+<details>
+<summary><b>🔑 Lockatus — inicio de sesión único (SSO) de toda la suite</b></summary>
+
+Con `AUTH_MODE=federado`, Presentia autentica a los usuarios a través del hub de
+identidad **[Lockatus](https://getescriba.com)** de la suite (OpenID Connect,
+Authorization Code + PKCE, cliente público — sin secret). Un solo login para todas
+las apps. Sin `AUTH_MODE`, mantiene el login single‑user propio de Presenton.
+
+| Variable | Default | Descripción |
+|---|---|---|
+| `AUTH_MODE` | `local` | Poné `federado` para activar el SSO de Lockatus |
+| `LOCKATUS_ISSUER` | — | URL del hub, alcanzable por la **misma** URL desde el browser y el contenedor (ej. `http://host.docker.internal:8081` local, o `https://lockatus.example.com` con dominio) |
+| `LOCKATUS_CLIENT_ID` | `presentia` | client id registrado en Lockatus |
+| `LOCKATUS_REDIRECT_URI` | — | `https://<tu-presentia>/api/v1/auth/sso/callback` |
+| `SESSION_SECRET` | — | Firma las cookies de sesión federada (`openssl rand -hex 32`) |
+| `COOKIE_SECURE` | `false` | `true` detrás de HTTPS |
+
+**Registrá el cliente en Lockatus** (una vez), apuntando al callback de Presentia:
+
+```bash
+curl -X PUT "$LOCKATUS_ISSUER/api/admin/apps/presentia/redirect-uris" \
+  -H "Content-Type: application/json" \
+  -d '{"redirect_uris":["https://<tu-presentia>/api/v1/auth/sso/callback"]}'
+# y asigná un rol a tu usuario:
+curl -X PUT "$LOCKATUS_ISSUER/api/admin/users/1/role" \
+  -H "Content-Type: application/json" \
+  -d '{"app":"presentia","role":"admin"}'
+```
+
+> **El detalle clave es la URL del issuer.** El `iss` del token tiene que coincidir
+> tanto en el redirect del browser (front‑channel) como en las llamadas de
+> token/JWKS del contenedor (back‑channel), así que `LOCKATUS_ISSUER` debe resolver
+> a la misma URL desde los dos lados. En el compose local de la suite eso es
+> `host.docker.internal`; detrás de EasyPanel o un dominio, usá la URL **pública**
+> de Lockatus.
+</details>
+
 ---
 
 ## 🧾 Markdown → deck (modo Gamma)

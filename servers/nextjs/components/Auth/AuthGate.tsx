@@ -12,6 +12,8 @@ type AuthStatus = {
   configured: boolean;
   authenticated: boolean;
   username: string | null;
+  mode?: string;
+  sso_login_url?: string;
 };
 
 const initialStatus: AuthStatus = {
@@ -64,7 +66,8 @@ export default function AuthGate() {
       return;
     }
     const params = new URLSearchParams(window.location.search);
-    if (params.get("reason") === "unauthorized") {
+    const reason = params.get("reason");
+    if (reason === "unauthorized") {
       if (status.configured && !status.authenticated) {
         notify.error(
           t("auth.unauthorized.title"),
@@ -74,6 +77,14 @@ export default function AuthGate() {
             duration: 5000,
           }
         );
+      }
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (reason && reason.startsWith("sso_")) {
+      if (!status.authenticated) {
+        notify.error(t("auth.sso.error.title"), t("auth.sso.error.desc"), {
+          id: "auth-sso-error",
+          duration: 6000,
+        });
       }
       window.history.replaceState({}, "", window.location.pathname);
     }
@@ -98,6 +109,8 @@ export default function AuthGate() {
         configured: Boolean(data.configured),
         authenticated: Boolean(data.authenticated),
         username: data.username ?? null,
+        mode: data.mode,
+        sso_login_url: data.sso_login_url,
       });
     } catch (fetchError) {
       console.error(fetchError);
@@ -241,6 +254,40 @@ export default function AuthGate() {
     );
   }
 
+  if (status.mode === "federated") {
+    const ssoUrl = getApiUrl(status.sso_login_url || "/api/v1/auth/sso/login");
+    return (
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white p-6">
+        <section className="relative z-10 w-full max-w-md rounded-2xl border border-[#E1E1E5] bg-white p-8 text-center shadow-xl sm:p-10">
+          <div className="mx-auto mb-5 flex h-[74px] w-[74px] items-center justify-center rounded-[16px] bg-[#FBEDEA] p-3">
+            <Image
+              src="/presentia-logo.svg"
+              alt=""
+              width={44}
+              height={44}
+              className="h-11 w-11 object-contain"
+            />
+          </div>
+          <p className="font-syne text-[10px] font-semibold uppercase tracking-[0.14em] text-[#c9473c]">
+            {t("auth.secureInstance")}
+          </p>
+          <h1 className="mt-1 font-syne text-2xl font-semibold leading-tight text-black">
+            {t("auth.sso.title")}
+          </h1>
+          <p className="mt-3 font-syne text-sm text-[#000000CC]">
+            {t("auth.sso.subtitle")}
+          </p>
+          <a
+            href={ssoUrl}
+            className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-[58px] bg-[#e25a4e] px-5 py-3 font-syne text-sm font-semibold text-white transition hover:bg-[#c9473c]"
+          >
+            {t("auth.sso.button")}
+          </a>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-white p-6">
       <section className="relative z-10 w-full max-w-xl rounded-2xl border border-[#E1E1E5] bg-white p-7 shadow-xl sm:p-10">
@@ -329,7 +376,7 @@ export default function AuthGate() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-[58px] border border-[#EDEEEF] bg-[#e25a4e] px-5 py-3 font-syne text-xs font-semibold text-white transition hover:bg-[#6d46e6] disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-[58px] border border-[#EDEEEF] bg-[#e25a4e] px-5 py-3 font-syne text-xs font-semibold text-white transition hover:bg-[#c9473c] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting
               ? isSetupMode

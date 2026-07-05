@@ -4,6 +4,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # Permite alcanzar Lockatus en el host (federacion con la suite local)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       # Set PRESENTON_HTTP_HOST_PORT to change the host port.
       - "${PRESENTON_HTTP_HOST_PORT:-5001}:80"
@@ -17,6 +20,14 @@ services:
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
       - MIGRATE_DATABASE_ON_STARTUP=true
       - CAN_CHANGE_KEYS=${CAN_CHANGE_KEYS:-}
+      # Suite Escriba: federación de identidad con Lockatus (SSO OIDC). Opcional;
+      # con AUTH_MODE=local (default) usa el login propio de Presenton.
+      - AUTH_MODE=${AUTH_MODE:-}
+      - LOCKATUS_ISSUER=${LOCKATUS_ISSUER:-}
+      - LOCKATUS_CLIENT_ID=${LOCKATUS_CLIENT_ID:-}
+      - LOCKATUS_REDIRECT_URI=${LOCKATUS_REDIRECT_URI:-}
+      - SESSION_SECRET=${SESSION_SECRET:-}
+      - COOKIE_SECURE=${COOKIE_SECURE:-}
       # Suite Escriba: delega el parsing de documentos al servicio Escriba (opcional,
       # apagado por defecto; ver el servicio "escriba" comentado al final del archivo)
       - ESCRIBA_ENABLED=${ESCRIBA_ENABLED:-}
@@ -131,6 +142,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # Permite alcanzar Lockatus en el host (federacion con la suite local)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     deploy:
       resources:
         reservations:
@@ -149,6 +163,14 @@ services:
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
       - MIGRATE_DATABASE_ON_STARTUP=true
       - CAN_CHANGE_KEYS=${CAN_CHANGE_KEYS:-}
+      # Suite Escriba: federación de identidad con Lockatus (SSO OIDC). Opcional;
+      # con AUTH_MODE=local (default) usa el login propio de Presenton.
+      - AUTH_MODE=${AUTH_MODE:-}
+      - LOCKATUS_ISSUER=${LOCKATUS_ISSUER:-}
+      - LOCKATUS_CLIENT_ID=${LOCKATUS_CLIENT_ID:-}
+      - LOCKATUS_REDIRECT_URI=${LOCKATUS_REDIRECT_URI:-}
+      - SESSION_SECRET=${SESSION_SECRET:-}
+      - COOKIE_SECURE=${COOKIE_SECURE:-}
       # Suite Escriba: delega el parsing de documentos al servicio Escriba (opcional,
       # apagado por defecto; ver el servicio "escriba" comentado al final del archivo)
       - ESCRIBA_ENABLED=${ESCRIBA_ENABLED:-}

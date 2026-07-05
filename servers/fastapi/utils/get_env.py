@@ -11,6 +11,36 @@ def get_can_change_keys_env():
     return os.getenv("CAN_CHANGE_KEYS")
 
 
+# ---- Federación con Lockatus (Suite Escriba) ---------------------------------
+def get_auth_mode_env() -> str:
+    """local (default, login propio de Presenton) | federado (SSO con Lockatus)."""
+    return (os.getenv("AUTH_MODE") or "local").strip().lower()
+
+
+def is_federation_enabled() -> bool:
+    return get_auth_mode_env() == "federado"
+
+
+def get_lockatus_issuer_env():
+    return os.getenv("LOCKATUS_ISSUER")
+
+
+def get_lockatus_client_id_env():
+    return os.getenv("LOCKATUS_CLIENT_ID") or "presentia"
+
+
+def get_lockatus_redirect_uri_env():
+    return os.getenv("LOCKATUS_REDIRECT_URI")
+
+
+def get_session_secret_env():
+    return os.getenv("SESSION_SECRET")
+
+
+def get_cookie_secure_env() -> bool:
+    return _is_truthy(os.getenv("COOKIE_SECURE"))
+
+
 def get_database_url_env():
     return os.getenv("DATABASE_URL")
 
