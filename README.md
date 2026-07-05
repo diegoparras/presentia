@@ -62,6 +62,75 @@ the catalog at once.
 
 ---
 
+## 🛳️ Deployment
+
+The single `Dockerfile` (multi-stage, `EXPOSE 80`) builds the whole app — backend,
+frontend and assets — so any platform that builds from a Dockerfile works. Copy
+[`.env.example`](.env.example) to `.env` and set what you need.
+
+> **The one rule that matters:** everything persistent — presentations, login,
+> config, cost history, **generated images, exports and uploads** — lives under
+> `/app_data`. **Always mount a persistent volume there.** This holds true even
+> with an external Postgres, because images and exports still write to `/app_data`.
+
+<details open>
+<summary><b>EasyPanel</b></summary>
+
+1. **+ Service → App**, **Source → GitHub** → `diegoparras/presentia` (branch `main`), **Build → Dockerfile**.
+2. **(Recommended) + Service → Postgres** in the same project (e.g. `presentia-db`). Note its internal host — services talk to each other by name, e.g. `<project>_presentia-db:5432` (**not** `host.docker.internal`).
+3. In the App's **Environment**:
+   ```env
+   DATABASE_URL=postgresql://user:password@<project>_presentia-db:5432/presentia
+   MIGRATE_DATABASE_ON_STARTUP=true
+   # If you run Ollama in the same project:
+   OLLAMA_URL=http://<project>_ollama:11434
+   ```
+   Use the **plain** `postgresql://` scheme — the app adds the async driver itself. Add `?sslmode=require` only if your Postgres enforces TLS. Leave `DATABASE_URL` empty to use the built-in SQLite instead.
+4. **Mounts → Volume** → mount a persistent volume at **`/app_data`**.
+5. **Domains → Container Port `80`**, add your domain, enable HTTPS.
+6. **Deploy.** On first boot the migrations create the full schema automatically.
+</details>
+
+<details>
+<summary><b>Docker Compose (self-hosted)</b></summary>
+
+```bash
+git clone https://github.com/diegoparras/presentia.git
+cd presentia
+cp .env.example .env          # optional: set Postgres, Ollama, keys…
+docker compose up -d --build production
+```
+
+The compose file already mounts `./app_data` and ships commented service blocks
+for Escriba, Anonimal and a GPU variant.
+</details>
+
+<details>
+<summary><b>Plain Docker / reverse proxy</b></summary>
+
+```bash
+docker build -t presentia .
+docker run -d --name presentia --restart unless-stopped \
+  -p 5001:80 -v presentia_data:/app_data \
+  -e MIGRATE_DATABASE_ON_STARTUP=true \
+  presentia
+```
+
+Put a reverse proxy in front for TLS. Example `Caddyfile`:
+
+```caddy
+presentia.example.com {
+    reverse_proxy localhost:5001
+}
+```
+</details>
+
+> **Build note:** the image compiles Python + Next.js, downloads the export
+> runtime and bundles Chromium — it's a heavy build and a multi-GB image. Give the
+> builder a host with generous RAM and disk.
+
+---
+
 ## ⚙️ Configuration
 
 Everything can be configured **from the Settings UI** — environment variables are

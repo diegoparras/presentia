@@ -63,6 +63,77 @@ los modelos del catálogo de una.
 
 ---
 
+## 🛳️ Deployment
+
+El único `Dockerfile` (multi-stage, `EXPOSE 80`) buildea toda la app — backend,
+frontend y assets — así que sirve cualquier plataforma que buildee desde un
+Dockerfile. Copiá [`.env.example`](../../.env.example) a `.env` y seteá lo que
+necesites.
+
+> **La única regla que importa:** todo lo persistente — presentaciones, login,
+> config, historial de costos, **imágenes generadas, exports y uploads** — vive
+> en `/app_data`. **Montá siempre un volumen persistente ahí.** Vale incluso con
+> Postgres externo, porque las imágenes y los exports siguen escribiéndose en
+> `/app_data`.
+
+<details open>
+<summary><b>EasyPanel</b></summary>
+
+1. **+ Service → App**, **Source → GitHub** → `diegoparras/presentia` (rama `main`), **Build → Dockerfile**.
+2. **(Recomendado) + Service → Postgres** en el mismo proyecto (ej. `presentia-db`). Anotá su host interno — los servicios se alcanzan por nombre, ej. `<proyecto>_presentia-db:5432` (**no** `host.docker.internal`).
+3. En **Environment** de la App:
+   ```env
+   DATABASE_URL=postgresql://usuario:password@<proyecto>_presentia-db:5432/presentia
+   MIGRATE_DATABASE_ON_STARTUP=true
+   # Si corrés Ollama en el mismo proyecto:
+   OLLAMA_URL=http://<proyecto>_ollama:11434
+   ```
+   Usá el esquema `postgresql://` **plano** — la app agrega el driver async sola. Sumá `?sslmode=require` solo si tu Postgres exige TLS. Dejá `DATABASE_URL` vacío para usar el SQLite integrado.
+4. **Mounts → Volume** → montá un volumen persistente en **`/app_data`**.
+5. **Domains → Container Port `80`**, agregá tu dominio, activá HTTPS.
+6. **Deploy.** En el primer arranque las migraciones crean todo el schema solas.
+</details>
+
+<details>
+<summary><b>Docker Compose (self-hosted)</b></summary>
+
+```bash
+git clone https://github.com/diegoparras/presentia.git
+cd presentia
+cp .env.example .env          # opcional: Postgres, Ollama, keys…
+docker compose up -d --build production
+```
+
+El compose ya monta `./app_data` y trae bloques de servicio comentados para
+Escriba, Anonimal y una variante GPU.
+</details>
+
+<details>
+<summary><b>Docker plano / reverse proxy</b></summary>
+
+```bash
+docker build -t presentia .
+docker run -d --name presentia --restart unless-stopped \
+  -p 5001:80 -v presentia_data:/app_data \
+  -e MIGRATE_DATABASE_ON_STARTUP=true \
+  presentia
+```
+
+Poné un reverse proxy adelante para TLS. Ejemplo `Caddyfile`:
+
+```caddy
+presentia.example.com {
+    reverse_proxy localhost:5001
+}
+```
+</details>
+
+> **Nota de build:** la imagen compila Python + Next.js, descarga el runtime de
+> export y trae Chromium — es un build pesado y una imagen de varios GB. Dale al
+> builder un host con RAM y disco holgados.
+
+---
+
 ## ⚙️ Configuración
 
 Todo se configura **desde la UI de Ajustes** — las variables de entorno son para
