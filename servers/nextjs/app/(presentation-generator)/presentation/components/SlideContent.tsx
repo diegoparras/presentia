@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { memo, useEffect, useState } from "react";
 import {
   Loader2,
   PlusIcon,
@@ -19,7 +19,7 @@ import { notify } from "@/components/ui/sonner";
 import { PresentationGenerationApi } from "../../services/api/presentation-generation";
 import ToolTip from "@/components/ToolTip";
 import { RootState } from "@/store/store";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector, useStore } from "react-redux";
 import {
   deletePresentationSlide,
   updateSlide,
@@ -53,9 +53,16 @@ const SlideContent = ({
   const [isEditPopoverOpen, setIsEditPopoverOpen] = useState(false);
   const [isSpeakerPopoverOpen, setIsSpeakerPopoverOpen] = useState(false);
   const [editPrompt, setEditPrompt] = useState("");
-  const { presentationData, isStreaming } = useSelector(
-    (state: RootState) => state.presentationGeneration
+  // Narrow subscriptions: this slide only re-renders when the theme or the
+  // streaming flag changes — not when a sibling slide's content changes.
+  // `slides` (needed only in the delete handler) is read lazily from the store.
+  const theme = useSelector(
+    (state: RootState) => state.presentationGeneration.presentationData?.theme
   );
+  const isStreaming = useSelector(
+    (state: RootState) => state.presentationGeneration.isStreaming
+  );
+  const store = useStore<RootState>();
 
   // Use the centralized group layouts hook
 
@@ -113,7 +120,9 @@ const SlideContent = ({
 
   const onDeleteSlide = async () => {
     try {
-      if ((presentationData?.slides?.length ?? 0) <= 1) {
+      const currentSlides =
+        store.getState().presentationGeneration.presentationData?.slides;
+      if ((currentSlides?.length ?? 0) <= 1) {
         notify.warning(
           t("ed.slide.delBlock"),
           t("ed.slide.delBlockDesc")
@@ -131,7 +140,7 @@ const SlideContent = ({
       // Add current state to past
       dispatch(
         addToHistory({
-          slides: presentationData?.slides,
+          slides: currentSlides,
           actionType: "DELETE_SLIDE",
         })
       );
@@ -191,7 +200,7 @@ const SlideContent = ({
             </div>
           )}
           <div className="relative">
-            <SlideScale slide={slide} theme={presentationData?.theme || null} />
+            <SlideScale slide={slide} theme={theme || null} />
           </div>
           {!showNewSlideSelection && (
             <div className="group-hover:opacity-100 hidden md:block opacity-0 transition-opacity my-4 duration-300">
@@ -396,4 +405,7 @@ const SlideContent = ({
   );
 };
 
-export default SlideContent;
+// Memoized: with narrowed selectors above, an unchanged slide no longer
+// re-renders when a sibling slide changes. Props (slide/booleans) are stable
+// per-slide from the parent map.
+export default memo(SlideContent);
