@@ -392,7 +392,10 @@ async def prepare_presentation(
 
 @PRESENTATION_ROUTER.get("/stream/{id}", response_model=PresentationWithSlides)
 async def stream_presentation(
-    id: uuid.UUID, sql_session: AsyncSession = Depends(get_async_session)
+    id: uuid.UUID,
+    image_style: Optional[str] = None,
+    image_source: Optional[str] = None,
+    sql_session: AsyncSession = Depends(get_async_session),
 ):
     presentation = await sql_session.get(PresentationModel, id)
     if not presentation:
@@ -439,7 +442,14 @@ async def stream_presentation(
             detail="Presentation structure contains an invalid slide layout",
         )
 
-    image_generation_service = ImageGenerationService(get_images_directory())
+    # Suite Escriba: respeta el estilo/proveedor de imagen elegido en el modo
+    # Markdown (llegan como query params; el flujo prompt no los manda y usa el
+    # proveedor configurado, comportamiento igual que antes).
+    image_generation_service = ImageGenerationService(
+        get_images_directory(),
+        style=image_style,
+        source_override=image_source,
+    )
 
     async def inner():
         icon_weight = layout.icon_weight
@@ -736,6 +746,7 @@ async def generate_presentation_handler(
     presentation_id: uuid.UUID,
     async_status: Optional[AsyncPresentationGenerationTaskModel],
     export_cookie_header: Optional[str] = None,
+    prepare_only: bool = False,
     sql_session: AsyncSession = Depends(get_async_session),
 ):
     try:
@@ -994,6 +1005,15 @@ async def generate_presentation_handler(
             async_status.updated_at = datetime.now()
             sql_session.add(async_status)
             await sql_session.commit()
+
+        # Suite Escriba (preview en vivo tipo Gamma): con prepare_only cortamos
+        # acá — la presentación queda lista para stream (outline + layout +
+        # structure persistidos) sin generar las slides. El frontend abre
+        # /presentation/stream/{id} y las va dibujando en vivo.
+        if prepare_only:
+            sql_session.add(presentation)
+            await sql_session.commit()
+            return {"presentation_id": str(presentation_id)}
 
         image_generation_service = ImageGenerationService(
             get_images_directory(),

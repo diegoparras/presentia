@@ -95,3 +95,57 @@ async def generate_presentation_from_markdown(
     except Exception:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Presentation generation failed")
+
+
+class PreparedPresentationResponse(BaseModel):
+    presentation_id: str
+    stream_path: str
+
+
+@MARKDOWN_PRESENTATION_ROUTER.post(
+    "/prepare-from-markdown", response_model=PreparedPresentationResponse
+)
+async def prepare_presentation_from_markdown(
+    request_http: Request,
+    body: GenerateFromMarkdownRequest,
+    sql_session: AsyncSession = Depends(get_async_session),
+):
+    """Prepara el deck (outline + layout + estructura) sin generar las slides y
+    devuelve el id, para que el frontend abra el stream y muestre el preview en
+    vivo (modo Gamma). El estilo/proveedor de imagen se guardan en la
+    presentación para que el stream los use al generar cada slide."""
+    try:
+        cards = split_markdown_into_cards(body.markdown, n_cards=body.n_slides)
+    except MarkdownDeckError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    request = GeneratePresentationRequest(
+        content=body.markdown,
+        slides_markdown=cards,
+        template=body.template,
+        language=body.language,
+        instructions=text_mode_instructions(body.text_mode, body.instructions),
+        image_style=body.image_style,
+        image_source=body.image_source,
+        export_as=body.export_as,
+    )
+    try:
+        (presentation_id,) = await check_if_api_request_is_valid(request, sql_session)
+        result = await generate_presentation_handler(
+            request,
+            presentation_id,
+            None,
+            export_cookie_header=_build_export_cookie_header(request_http),
+            prepare_only=True,
+            sql_session=sql_session,
+        )
+        pid = result["presentation_id"]
+        return PreparedPresentationResponse(
+            presentation_id=pid,
+            stream_path=f"/presentation?id={pid}&type=standard&stream=true",
+        )
+    except HTTPException:
+        raise
+    except Exception:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Presentation preparation failed")

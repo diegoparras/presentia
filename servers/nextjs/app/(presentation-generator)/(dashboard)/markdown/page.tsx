@@ -27,6 +27,8 @@ import { getApiUrl } from "@/utils/api";
 import { useI18n } from "@/lib/i18n";
 import { templates } from "@/app/presentation-templates";
 import PageShell from "../Components/PageShell";
+import { useMarkdownDeckStream } from "./useMarkdownDeckStream";
+import MarkdownLivePreview from "./MarkdownLivePreview";
 
 const ACCENT = "#e25a4e";
 
@@ -103,8 +105,20 @@ const MarkdownPage = () => {
   const [showPreview, setShowPreview] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [presentationId, setPresentationId] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Preview en vivo (modo Gamma): el stream va largando las slides reales.
+  const {
+    slides: liveSlides,
+    status: streamStatus,
+    error: streamError,
+  } = useMarkdownDeckStream({
+    presentationId,
+    imageStyle: imageStyle.trim() || null,
+    imageSource: imageSource || null,
+  });
 
   const cards = useMemo(() => splitCards(markdown), [markdown]);
   const cardsHtml = useMemo(
@@ -178,8 +192,10 @@ const MarkdownPage = () => {
     setError(null);
     setIsGenerating(true);
     try {
+      // Prepara el deck (outline + estructura) y devuelve el id; las slides se
+      // generan en el stream y se van mostrando en vivo (modo Gamma).
       const response = await fetch(
-        getApiUrl("/api/v1/ppt/presentation/generate-from-markdown"),
+        getApiUrl("/api/v1/ppt/presentation/prepare-from-markdown"),
         {
           method: "POST",
           credentials: "include",
@@ -196,20 +212,21 @@ const MarkdownPage = () => {
         }
       );
       const payload = await response.json().catch(() => null);
-      if (!response.ok) {
+      if (!response.ok || !payload?.presentation_id) {
         setError(payload?.detail || t("md.error.failed"));
         return;
       }
-      if (payload?.edit_path) {
-        window.location.href = payload.edit_path;
-        return;
-      }
-      setError(t("md.error.noDeck"));
+      setPresentationId(payload.presentation_id);
     } catch {
       setError(t("md.error.network"));
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const resetPreview = () => {
+    setPresentationId(null);
+    setError(null);
   };
 
   const tools: {
@@ -225,6 +242,23 @@ const MarkdownPage = () => {
     { key: "md.tool.quote", icon: Quote, action: () => prefixLine("> ") },
     { key: "md.tool.newCard", icon: SeparatorHorizontal, action: insertCardBreak },
   ];
+
+  if (presentationId) {
+    return (
+      <PageShell title={t("md.title")} subtitle={t("md.intro")}>
+        <div className="pb-10 font-inter max-w-[1180px]">
+          <MarkdownLivePreview
+            slides={liveSlides}
+            status={streamStatus}
+            error={streamError}
+            presentationId={presentationId}
+            expected={cards.length}
+            onReset={resetPreview}
+          />
+        </div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell title={t("md.title")} subtitle={t("md.intro")}>
