@@ -3,13 +3,21 @@
 import React, { useRef, useEffect, useState, ReactNode } from "react";
 import ReactDOM from "react-dom/client";
 import TiptapText from "./TiptapText";
-import MarkdownInlineText from "./MarkdownInlineText";
-import { useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { Markdown } from "tiptap-markdown";
-import Underline from "@tiptap/extension-underline";
+import { marked } from "marked";
 
-const extensions = [StarterKit, Markdown, Underline];
+/**
+ * Parse inline markdown synchronously when possible. `marked.parseInline`
+ * returns a string unless async extensions are configured; we handle both so
+ * the read-only fast path never needs to spin up a React root per node.
+ */
+const parseInlineMarkdown = (text: string): string => {
+  try {
+    const out = marked.parseInline(text) as unknown;
+    return typeof out === "string" ? out : text;
+  } catch {
+    return text;
+  }
+};
 
 interface TiptapTextReplacerProps {
   children: ReactNode;
@@ -37,14 +45,45 @@ const TiptapTextReplacer: React.FC<TiptapTextReplacerProps> = ({
   const [processedElements, setProcessedElements] = useState(
     new Set<HTMLElement>()
   );
-  // Track created React roots to update content when slideData changes
+  // Track created React roots to update content when slideData changes (edit mode only)
   const rootsRef = useRef<
     Map<HTMLElement, { root: any; dataPath: string;  fallbackText: string }>
   >(new Map());
+  // Read-only fast path: element -> dataPath, so we can re-render markdown in
+  // place without spinning up a React root per text node.
+  const readOnlyNodesRef = useRef<Map<HTMLElement, string>>(new Map());
+
   useEffect(() => {
     if (!containerRef.current) return;
 
     const container = containerRef.current;
+
+    // Read-only surfaces (thumbnails, present mode, export) only need inline
+    // markdown rendered. Do it with a single innerHTML pass — no React roots.
+    const applyReadOnlyMarkdown = () => {
+      const allElements = container.querySelectorAll("*");
+      allElements.forEach((element) => {
+        const htmlElement = element as HTMLElement;
+        if (htmlElement.hasAttribute("data-md-applied")) return;
+        if (isInIgnoredElementTree(htmlElement)) return;
+
+        const trimmedText = getDirectTextContent(htmlElement).trim();
+        if (!trimmedText || trimmedText.length <= 2) return;
+        if (hasTextChildren(htmlElement)) return;
+        if (shouldSkipElement(htmlElement)) return;
+
+        const dataPath = findDataPath(slideData, trimmedText);
+        const content = dataPath.path
+          ? getValueByPath(slideData, dataPath.path) ?? trimmedText
+          : trimmedText;
+
+        htmlElement.setAttribute("data-md-applied", "true");
+        readOnlyNodesRef.current.set(htmlElement, dataPath.path);
+        const html = parseInlineMarkdown(content);
+        if (html !== htmlElement.innerHTML) htmlElement.innerHTML = html;
+      });
+      container.setAttribute("data-markdown-rendered", "true");
+    };
 
     const replaceTextElements = () => {
       // Get all elements in the container
@@ -54,7 +93,7 @@ const TiptapTextReplacer: React.FC<TiptapTextReplacerProps> = ({
         const htmlElement = element as HTMLElement;
 
         // Skip if already processed
-       
+
         if (
           processedElements.has(htmlElement) ||
           htmlElement.classList.contains("tiptap-text-editor") ||
@@ -73,10 +112,10 @@ const TiptapTextReplacer: React.FC<TiptapTextReplacerProps> = ({
 
         // Check if element has meaningful text content
         if (!trimmedText || trimmedText.length <= 2) return;
-        
+
         // Skip elements that contain other elements with text (to avoid double processing)
         if (hasTextChildren(htmlElement)) return;
-        
+
         // Skip certain element types that shouldn't be editable
         if (shouldSkipElement(htmlElement)) return;
 
@@ -90,7 +129,7 @@ const TiptapTextReplacer: React.FC<TiptapTextReplacerProps> = ({
         const tiptapContainer = document.createElement("div");
         tiptapContainer.style.cssText = allStyles || "";
         tiptapContainer.className = Array.from(allClasses).join(" ");
-    
+
         // Replace the element
         if(htmlElement.parentNode) {
         htmlElement.parentNode.replaceChild(tiptapContainer, htmlElement);
@@ -106,59 +145,62 @@ const TiptapTextReplacer: React.FC<TiptapTextReplacerProps> = ({
         rootsRef.current.set(tiptapContainer, {
           root,
           dataPath: dataPath.path,
-        
+
           fallbackText: trimmedText,
         });
         root.render(
-          readOnly ? (
-            <MarkdownInlineText content={initialContent} />
-          ) : (
-            <TiptapText
-              content={initialContent}
-              onContentChange={(content: string) => {
-                if (dataPath && onContentChange) {
-                  onContentChange(content, dataPath.path, slideIndex);
-                }
-              }}
-              placeholder="Enter text..."
-            />
-          )
+          <TiptapText
+            content={initialContent}
+            onContentChange={(content: string) => {
+              if (dataPath && onContentChange) {
+                onContentChange(content, dataPath.path, slideIndex);
+              }
+            }}
+            placeholder="Enter text..."
+          />
         );
       });
-
-      if (readOnly && container) {
-        container.setAttribute("data-markdown-rendered", "true");
-      }
     };
 
-  
+
     // Replace text elements after a short delay to ensure DOM is ready
-    const timer = setTimeout(replaceTextElements, readOnly ? 250 : 1000);
+    const timer = setTimeout(
+      readOnly ? applyReadOnlyMarkdown : replaceTextElements,
+      readOnly ? 250 : 1000
+    );
 
     return () => {
       clearTimeout(timer);
     };
   }, [slideData, slideIndex, readOnly]);
-  
-  // When slideData changes, update existing editors' content using the stored dataPath
+
+  // When slideData changes, update existing content using the stored dataPath
   useEffect(() => {
+    if (readOnly) {
+      if (readOnlyNodesRef.current.size === 0) return;
+      readOnlyNodesRef.current.forEach((dataPath, el) => {
+        if (!el.isConnected) return;
+        const fallback = el.textContent?.trim() ?? "";
+        const newContent = dataPath
+          ? getValueByPath(slideData, dataPath) ?? fallback
+          : fallback;
+        el.innerHTML = parseInlineMarkdown(newContent);
+      });
+      return;
+    }
     if (!rootsRef.current || rootsRef.current.size === 0) return;
     rootsRef.current.forEach(({ root, dataPath,  fallbackText }) => {
       const newContent = dataPath ? getValueByPath(slideData, dataPath) ?? fallbackText : fallbackText;
       root.render(
-        readOnly ? (
-          <MarkdownInlineText content={newContent} />
-        ) : (
-          <TiptapText
-            content={newContent}
-            onContentChange={(content: string) => {
-              if (dataPath && onContentChange) {
-                onContentChange(content, dataPath, slideIndex);
-              }
-            }}
-            placeholder="Enter text..."
-          />
-        )
+        <TiptapText
+          content={newContent}
+          onContentChange={(content: string) => {
+            if (dataPath && onContentChange) {
+              onContentChange(content, dataPath, slideIndex);
+            }
+          }}
+          placeholder="Enter text..."
+        />
       );
     });
   }, [slideData, slideIndex, readOnly]);
