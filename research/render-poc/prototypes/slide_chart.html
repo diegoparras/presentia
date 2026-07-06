@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: 1280px 720px; margin: 0; }
+  html,body { margin:0; padding:0; }
+  * { box-sizing: border-box; }
+  .slide { width:1280px; height:720px; overflow:hidden; background:#ffffff;
+    font-family:"Poppins","DejaVu Sans",sans-serif; padding:56px 72px; color:#111827; }
+  h1 { font-size:44px; margin:0 0 6px; font-weight:700; }
+  .sub { font-size:18px; color:#6b7280; margin:0 0 32px; }
+  .grid { display:grid; grid-template-columns: 1.3fr 1fr; gap:40px; height:520px; }
+  .chartcard { border:1px solid #eceaf3; border-radius:18px; padding:24px;
+    box-shadow:0 8px 24px rgba(16,24,40,.06); background:#fbfaff; }
+  .metrics { display:grid; grid-template-rows: repeat(4, 1fr); gap:16px; }
+  .metric { border:1px solid #eceaf3; border-radius:14px; padding:18px 22px;
+    display:flex; flex-direction:column; justify-content:center;
+    background: linear-gradient(180deg,#ffffff,#f7f5ff); }
+  .metric .v { font-size:34px; font-weight:700; color:#7c51f8; }
+  .metric .l { font-size:14px; color:#6b7280; text-transform:uppercase; letter-spacing:1px; }
+</style>
+</head>
+<body>
+  <div class="slide">
+    <h1>Rendimiento Trimestral</h1>
+    <p class="sub">Ingresos por trimestre y métricas clave · FY2026</p>
+    <div class="grid">
+      <div class="chartcard">
+        <!-- Gráfico congelado a SVG estático (simula Chart.js -> SVG) -->
+        <svg viewBox="0 0 640 460" width="100%" height="100%" font-family="Poppins, sans-serif">
+          <g stroke="#e5e7eb" stroke-width="1">
+            <line x1="60" y1="40"  x2="620" y2="40"/>
+            <line x1="60" y1="140" x2="620" y2="140"/>
+            <line x1="60" y1="240" x2="620" y2="240"/>
+            <line x1="60" y1="340" x2="620" y2="340"/>
+            <line x1="60" y1="400" x2="620" y2="400"/>
+          </g>
+          <g fill="#9ca3af" font-size="13" text-anchor="end">
+            <text x="52" y="404">0</text><text x="52" y="344">25</text>
+            <text x="52" y="244">50</text><text x="52" y="144">75</text><text x="52" y="44">100</text>
+          </g>
+          <defs>
+            <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#7c51f8"/><stop offset="1" stop-color="#a888ff"/>
+            </linearGradient>
+          </defs>
+          <g fill="url(#bar)">
+            <rect x="90"  y="220" width="80" height="180" rx="6"/>
+            <rect x="230" y="150" width="80" height="250" rx="6"/>
+            <rect x="370" y="95"  width="80" height="305" rx="6"/>
+            <rect x="510" y="60"  width="80" height="340" rx="6"/>
+          </g>
+          <polyline points="130,210 270,150 410,110 550,70" fill="none" stroke="#e25a4e" stroke-width="4"/>
+          <g fill="#e25a4e"><circle cx="130" cy="210" r="6"/><circle cx="270" cy="150" r="6"/>
+            <circle cx="410" cy="110" r="6"/><circle cx="550" cy="70" r="6"/></g>
+          <g fill="#374151" font-size="15" text-anchor="middle">
+            <text x="130" y="430">Q1</text><text x="270" y="430">Q2</text>
+            <text x="410" y="430">Q3</text><text x="550" y="430">Q4</text>
+          </g>
+        </svg>
+      </div>
+      <div class="metrics">
+        <div class="metric"><span class="v">$4.2M</span><span class="l">Ingresos</span></div>
+        <div class="metric"><span class="v">+38%</span><span class="l">Crecimiento YoY</span></div>
+        <div class="metric"><span class="v">1,240</span><span class="l">Clientes nuevos</span></div>
+        <div class="metric"><span class="v">92%</span><span class="l">Retención</span></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

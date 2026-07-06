@@ -1,0 +1,82 @@
+{
+  "width": 1280,
+  "height": 720,
+  "blocks": [
+    {
+      "type": "rect",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 10,
+      "fill": "#7c51f8",
+      "radius": 0,
+      "gradient": false,
+      "shadow": false
+    },
+    {
+      "type": "text",
+      "x": 72,
+      "y": 56,
+      "w": 571,
+      "h": 46,
+      "text": "Comparación de Mercado",
+      "fontSize": 40,
+      "bold": true,
+      "color": "#111827",
+      "align": "start"
+    },
+    {
+      "type": "table",
+      "x": 72,
+      "y": 150,
+      "w": 1136,
+      "h": 251,
+      "table": {
+        "headers": [
+          "Empresa",
+          "Ingresos",
+          "Crecimiento",
+          "Cuota"
+        ],
+        "rows": [
+          [
+            "Acme Corp",
+            "$4.2M",
+            "+38%",
+            "24%"
+          ],
+          [
+            "Globex",
+            "$3.1M",
+            "+21%",
+            "18%"
+          ],
+          [
+            "Initech",
+            "$2.4M",
+            "+12%",
+            "14%"
+          ],
+          [
+            "Umbrella",
+            "$1.9M",
+            "+9%",
+            "11%"
+          ]
+        ]
+      }
+    },
+    {
+      "type": "text",
+      "x": 72,
+      "y": 560,
+      "w": 1136,
+      "h": 44,
+      "text": "Acme lidera el mercado con el mayor crecimiento interanual, impulsado por la expansión de su plataforma de datos y nuevas integraciones empresariales.",
+      "fontSize": 19,
+      "bold": false,
+      "color": "#4b5563",
+      "align": "start"
+    }
+  ]
+}

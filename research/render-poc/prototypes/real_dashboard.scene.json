@@ -1,0 +1,162 @@
+{
+  "width": 1280,
+  "height": 720,
+  "blocks": [
+    {
+      "type": "text",
+      "x": 72,
+      "y": 52,
+      "w": 529,
+      "h": 46,
+      "text": "Rendimiento Trimestral",
+      "fontSize": 40,
+      "bold": true,
+      "color": "#111827",
+      "align": "start"
+    },
+    {
+      "type": "text",
+      "x": 72,
+      "y": 108,
+      "w": 462,
+      "h": 22,
+      "text": "Ingresos por trimestre y métricas clave · FY2026",
+      "fontSize": 19,
+      "bold": false,
+      "color": "#6b7280",
+      "align": "start"
+    },
+    {
+      "type": "chart",
+      "x": 72,
+      "y": 170,
+      "w": 700,
+      "h": 470,
+      "chartType": "bar",
+      "data": {
+        "categories": [
+          "Q1",
+          "Q2",
+          "Q3",
+          "Q4"
+        ],
+        "series": [
+          {
+            "name": "Ingresos",
+            "values": [
+              45,
+              63,
+              76,
+              85
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "text",
+      "x": 844,
+      "y": 190,
+      "w": 104,
+      "h": 35,
+      "text": "$4.2M",
+      "fontSize": 30,
+      "bold": true,
+      "color": "#7c51f8",
+      "align": "start"
+    },
+    {
+      "type": "text",
+      "x": 844,
+      "y": 238,
+      "w": 68,
+      "h": 15,
+      "text": "INGRESOS",
+      "fontSize": 13,
+      "bold": false,
+      "color": "#6b7280",
+      "align": "start"
+    },
+    {
+      "type": "text",
+      "x": 844,
+      "y": 330,
+      "w": 97,
+      "h": 35,
+      "text": "+38%",
+      "fontSize": 30,
+      "bold": true,
+      "color": "#7c51f8",
+      "align": "start"
+    },
+    {
+      "type": "text",
+      "x": 844,
+      "y": 378,
+      "w": 119,
+      "h": 15,
+      "text": "CRECIMIENTO YOY",
+      "fontSize": 13,
+      "bold": false,
+      "color": "#6b7280",
+      "align": "start"
+    },
+    {
+      "type": "text",
+      "x": 844,
+      "y": 470,
+      "w": 95,
+      "h": 35,
+      "text": "1,240",
+      "fontSize": 30,
+      "bold": true,
+      "color": "#7c51f8",
+      "align": "start"
+    },
+    {
+      "type": "text",
+      "x": 844,
+      "y": 518,
+      "w": 121,
+      "h": 15,
+      "text": "CLIENTES NUEVOS",
+      "fontSize": 13,
+      "bold": false,
+      "color": "#6b7280",
+      "align": "start"
+    },
+    {
+      "type": "rect",
+      "x": 820,
+      "y": 170,
+      "w": 360,
+      "h": 120,
+      "fill": "#fbfaff",
+      "radius": 14,
+      "gradient": true,
+      "shadow": true
+    },
+    {
+      "type": "rect",
+      "x": 820,
+      "y": 310,
+      "w": 360,
+      "h": 120,
+      "fill": "#fbfaff",
+      "radius": 14,
+      "gradient": true,
+      "shadow": true
+    },
+    {
+      "type": "rect",
+      "x": 820,
+      "y": 450,
+      "w": 360,
+      "h": 120,
+      "fill": "#fbfaff",
+      "radius": 14,
+      "gradient": true,
+      "shadow": true
+    }
+  ]
+}

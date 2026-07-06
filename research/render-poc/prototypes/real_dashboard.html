@@ -1,0 +1,33 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+  @page{size:1280px 720px;margin:0} html,body{margin:0;padding:0} *{box-sizing:border-box}
+  .slide{width:1280px;height:720px;background:#fff;font-family:"DejaVu Sans",sans-serif;color:#111827;position:relative}
+  .t{position:absolute}
+  .card{position:absolute;width:360px;height:120px;border-radius:14px;border:1px solid #eceaf3;
+        background:linear-gradient(180deg,#ffffff,#f4f1fb);box-shadow:0 6px 16px rgba(16,24,40,.06)}
+</style></head><body>
+<div class="slide">
+  <div class="t" data-b="text" style="left:72px;top:52px;font-size:40px;font-weight:700;color:#111827">Rendimiento Trimestral</div>
+  <div class="t" data-b="text" style="left:72px;top:108px;font-size:19px;color:#6b7280">Ingresos por trimestre y métricas clave · FY2026</div>
+
+  <!-- Gráfico: contenedor con la data del schema (así lo emitiría el freeze) -->
+  <div class="t" data-b="chart" style="left:72px;top:170px;width:700px;height:470px"
+       data-charttype="bar"
+       data-chart='{"categories":["Q1","Q2","Q3","Q4"],"series":[{"name":"Ingresos","values":[45,63,76,85]}]}'>
+    <svg width="700" height="470" viewBox="0 0 700 470"><rect width="700" height="470" fill="#fbfaff" rx="18"/>
+      <g fill="#7c51f8"><rect x="120" y="250" width="90" height="150"/><rect x="270" y="180" width="90" height="220"/>
+      <rect x="420" y="120" width="90" height="280"/><rect x="570" y="90" width="90" height="310"/></g></svg>
+  </div>
+
+  <div class="card" style="left:820px;top:170px"></div>
+  <div class="t" data-b="text" style="left:844px;top:190px;font-size:30px;font-weight:700;color:#7c51f8">$4.2M</div>
+  <div class="t" data-b="text" style="left:844px;top:238px;font-size:13px;color:#6b7280">INGRESOS</div>
+
+  <div class="card" style="left:820px;top:310px"></div>
+  <div class="t" data-b="text" style="left:844px;top:330px;font-size:30px;font-weight:700;color:#7c51f8">+38%</div>
+  <div class="t" data-b="text" style="left:844px;top:378px;font-size:13px;color:#6b7280">CRECIMIENTO YOY</div>
+
+  <div class="card" style="left:820px;top:450px"></div>
+  <div class="t" data-b="text" style="left:844px;top:470px;font-size:30px;font-weight:700;color:#7c51f8">1,240</div>
+  <div class="t" data-b="text" style="left:844px;top:518px;font-size:13px;color:#6b7280">CLIENTES NUEVOS</div>
+</div>
+</body></html>

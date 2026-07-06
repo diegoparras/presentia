@@ -1,0 +1,9 @@
+# transient deps / caches / driver outputs — regenerate on demand
+node_modules/
+__pycache__/
+*.pyc
+package-lock.json
+editor_loaded.png
+# render_bench.py writes compare_*.png in cwd; the curated ones live in samples/
+/prototypes/compare_*.png
+*.pdf
