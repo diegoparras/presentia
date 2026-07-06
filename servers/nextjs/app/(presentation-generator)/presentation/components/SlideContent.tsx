@@ -1,5 +1,5 @@
 "use client";
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useEffect, useRef, useState } from "react";
 import {
   Loader2,
   PlusIcon,
@@ -63,6 +63,27 @@ const SlideContent = ({
     (state: RootState) => state.presentationGeneration.isStreaming
   );
   const store = useStore<RootState>();
+
+  // Render-mode virtualization: keep every slide in the DOM (so navigation by
+  // #slide-N, streaming auto-scroll and drag-and-drop keep working) but only
+  // mount the heavy edit tree (Tiptap editors) for slides near the viewport.
+  // Off-screen slides render through the cheap read-only path instead.
+  const slideRef = useRef<HTMLDivElement>(null);
+  const [isNearViewport, setIsNearViewport] = useState(false);
+  useEffect(() => {
+    const el = slideRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      // Fallback: if IO is unavailable, keep the previous always-editable behaviour.
+      setIsNearViewport(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => setIsNearViewport(entries[0]?.isIntersecting ?? false),
+      { rootMargin: "1200px 0px" } // promote to edit mode ~1.5 viewports early
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   // Use the centralized group layouts hook
 
@@ -170,6 +191,7 @@ const SlideContent = ({
   return (
     <>
       <div
+        ref={slideRef}
         id={`slide-${slide.index}`}
         className=" w-full  main-slide flex items-center max-md:mb-4  justify-center relative"
       >
@@ -200,7 +222,16 @@ const SlideContent = ({
             </div>
           )}
           <div className="relative">
-            <SlideScale slide={slide} theme={theme || null} />
+            <SlideScale
+              slide={slide}
+              theme={theme || null}
+              isEditMode={
+                isNearViewport ||
+                isEditPopoverOpen ||
+                isSpeakerPopoverOpen ||
+                showNewSlideSelection
+              }
+            />
           </div>
           {!showNewSlideSelection && (
             <div className="group-hover:opacity-100 hidden md:block opacity-0 transition-opacity my-4 duration-300">
