@@ -2,7 +2,10 @@ from fastapi import HTTPException
 from google import genai
 from openai import OpenAI
 
+from typing import Optional
+
 from constants.llm import (
+    DEAD_OPENROUTER_SLUGS,
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_AZURE_MODEL,
     DEFAULT_BEDROCK_MODEL,
@@ -17,6 +20,7 @@ from constants.llm import (
     DEFAULT_OPENROUTER_MODEL,
     DEFAULT_TOGETHER_MODEL,
     DEFAULT_VERTEX_MODEL,
+    FALLBACK_OPENROUTER_MODEL,
     SUPPORTED_CODEX_MODELS,
 )
 from enums.llm_provider import LLMProvider
@@ -142,7 +146,8 @@ def get_model():
     elif selected_llm == LLMProvider.BEDROCK:
         return get_bedrock_model_env() or DEFAULT_BEDROCK_MODEL
     elif selected_llm == LLMProvider.OPENROUTER:
-        return get_openrouter_model_env() or DEFAULT_OPENROUTER_MODEL
+        model = get_openrouter_model_env() or DEFAULT_OPENROUTER_MODEL
+        return DEAD_OPENROUTER_SLUGS.get(model, model)
     elif selected_llm == LLMProvider.FIREWORKS:
         return get_fireworks_model_env() or DEFAULT_FIREWORKS_MODEL
     elif selected_llm == LLMProvider.TOGETHER:
@@ -191,3 +196,17 @@ def get_llm_client() -> OpenAI:
 def get_large_model() -> str:
     """Resolved model name for the configured LLM provider (same as runtime `get_model`)."""
     return get_model()
+
+
+def get_fallback_model(current_model: Optional[str] = None) -> Optional[str]:
+    """Modelo conocido-bueno para reintentar si el elegido no devuelve contenido.
+
+    Solo aplica a OpenRouter (una sola key habilita el catálogo, así que el
+    fallback no requiere credenciales extra). Devuelve None si no hay uno
+    distinto al actual — para no reintentar el mismo modelo en loop.
+    """
+    if get_llm_provider() != LLMProvider.OPENROUTER:
+        return None
+    if current_model == FALLBACK_OPENROUTER_MODEL:
+        return None
+    return FALLBACK_OPENROUTER_MODEL

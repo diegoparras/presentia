@@ -33,6 +33,7 @@ MODEL_PRICES: dict = {
     "o3-mini": (1.10, 4.40),
     # Google (aprox.)
     "gemini-2.0-flash": (0.10, 0.40),
+    "gemini-2.5-flash-lite": (0.10, 0.40),
     "gemini-2.5-flash": (0.30, 2.50),
     "gemini-2.5-pro": (1.25, 10.00),
     "gemini-1.5-flash": (0.075, 0.30),

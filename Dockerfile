@@ -24,9 +24,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --python /opt/venv/bin/python \
     "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
 ENV HF_HOME=/root/.cache/huggingface \
-    PRESENTON_FASTEMBED_ICON_CACHE_DIR=/root/.cache/presenton/fastembed-icons
+    PRESENTON_FASTEMBED_ICON_CACHE_DIR=/root/.cache/presenton/fastembed-icons \
+    FASTEMBED_CACHE_PATH=/root/.cache/fastembed
 # Warm FastEmbed caches into the image (not a BuildKit cache mount, or HF weights would be missing).
-RUN /opt/venv/bin/python scripts/warm_fastembed_cache.py
+# FASTEMBED_CACHE_PATH pins Mem0's default embedder (BAAI/bge-small) to a stable, copyable dir
+# instead of an ephemeral /tmp, so it never re-downloads at runtime.
+RUN mkdir -p /root/.cache/fastembed \
+    && /opt/venv/bin/python scripts/warm_fastembed_cache.py
 
 
 FROM node:20-bookworm-slim AS nextjs-builder
@@ -87,6 +91,7 @@ ENV APP_DATA_DIRECTORY=/app_data \
     PRESENTON_APP_ROOT=/app \
     HF_HOME=/root/.cache/huggingface \
     PRESENTON_FASTEMBED_ICON_CACHE_DIR=/root/.cache/presenton/fastembed-icons \
+    FASTEMBED_CACHE_PATH=/root/.cache/fastembed \
     PATH="/opt/venv/bin:${PATH}" \
     NODE_ENV=production \
     START_OLLAMA=false \
@@ -120,6 +125,7 @@ COPY --from=fastapi-builder /opt/venv /opt/venv
 COPY --from=fastapi-builder /app/servers/fastapi /app/servers/fastapi
 COPY --from=fastapi-builder /root/.cache/huggingface /root/.cache/huggingface
 COPY --from=fastapi-builder /root/.cache/presenton/fastembed-icons /root/.cache/presenton/fastembed-icons
+COPY --from=fastapi-builder /root/.cache/fastembed /root/.cache/fastembed
 
 COPY --from=assets-builder /app/package.json /app/package.json
 COPY --from=assets-builder /app/document-extraction-liteparse /app/document-extraction-liteparse

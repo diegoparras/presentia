@@ -13,12 +13,28 @@ from llmai.shared import (
     UserMessage,
     normalize_content_parts,
 )
+from llmai.shared.errors import (
+    LLMAuthenticationError,
+    LLMConfigurationError,
+    LLMConnectionError,
+    LLMError,
+    LLMRateLimitError,
+)
 
 from utils.llm_config import get_extra_body
 from utils.schema_utils import get_schema_validation_errors
 
 
 LOGGER = logging.getLogger(__name__)
+
+# Errores del LLM que NO se arreglan reintentando con otro modelo: se propagan
+# tal cual para que el handler los traduzca (credenciales, cuota, red, config).
+_NON_RETRYABLE_LLM_ERRORS = (
+    LLMAuthenticationError,
+    LLMConfigurationError,
+    LLMConnectionError,
+    LLMRateLimitError,
+)
 
 
 def get_generate_kwargs(
@@ -82,6 +98,47 @@ def structured_validation_feedback_user_message(
     )
 
 
+async def _generate_structured_once(
+    client: Any,
+    model: str,
+    working_messages: Sequence[Message],
+    response_format: ResponseFormat,
+) -> Optional[dict]:
+    """Tres intentos de parseo con un modelo dado.
+
+    Devuelve el dict parseado, o None si el proveedor no devolvió contenido
+    (respuesta vacía / slug inexistente / sin soporte de salida estructurada).
+    Los errores no recuperables (auth, cuota, red, config) se propagan.
+    """
+    for attempt in range(3):
+        try:
+            response = await asyncio.to_thread(
+                client.generate,
+                **get_generate_kwargs(
+                    model=model,
+                    messages=working_messages,
+                    response_format=response_format,
+                ),
+            )
+        except _NON_RETRYABLE_LLM_ERRORS:
+            raise
+        except LLMError:
+            # p. ej. "No content returned from LLM": el proveedor respondió sin
+            # choices. Tratamos como vacío para poder caer al fallback.
+            response = None
+
+        content = (
+            extract_structured_content(response.content)
+            if response is not None
+            else None
+        )
+        if content is not None:
+            return content
+        if attempt < 2:
+            await asyncio.sleep(0.5 * (attempt + 1))
+    return None
+
+
 async def generate_structured_with_schema_retries(
     client: Any,
     model: str,
@@ -101,26 +158,37 @@ async def generate_structured_with_schema_retries(
     working_messages: list[Message] = list(messages)
 
     for validation_attempt in range(max_validation_loops):
-        content: Optional[dict] = None
-        for attempt in range(3):
-            response = await asyncio.to_thread(
-                client.generate,
-                **get_generate_kwargs(
-                    model=model,
-                    messages=working_messages,
-                    response_format=response_format,
-                ),
-            )
-            content = extract_structured_content(response.content)
-            if content is not None:
-                break
-            if attempt < 2:
-                await asyncio.sleep(0.5 * (attempt + 1))
+        content = await _generate_structured_once(
+            client, model, working_messages, response_format
+        )
+
+        if content is None:
+            # El modelo elegido no devolvió nada: reintentamos una vez con un
+            # modelo conocido-bueno (fallback) para que un slug malo no tumbe
+            # toda la generación. Si igual falla, error accionable.
+            from utils.llm_provider import get_fallback_model
+
+            fallback = get_fallback_model(model)
+            if fallback:
+                LOGGER.warning(
+                    "El modelo '%s' no devolvió contenido; reintentando con fallback '%s'",
+                    model,
+                    fallback,
+                )
+                model = fallback
+                content = await _generate_structured_once(
+                    client, model, working_messages, response_format
+                )
 
         if content is None:
             raise HTTPException(
                 status_code=400,
-                detail="LLM did not return any content",
+                detail=(
+                    f"El modelo '{model}' no devolvió contenido. Revisá tu selección "
+                    "en /models: el slug puede no existir en el proveedor (por ejemplo "
+                    "un modelo dado de baja en OpenRouter) o no soportar salida "
+                    "estructurada (JSON)."
+                ),
             )
 
         if not validate_schema:

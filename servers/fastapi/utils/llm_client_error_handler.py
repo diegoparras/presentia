@@ -12,7 +12,17 @@ def handle_llm_client_exceptions(e: Exception) -> HTTPException:
     if isinstance(e, HTTPException):
         return e
     if isinstance(e, LLMAIBaseError):
-        return HTTPException(status_code=e.status_code, detail=e.message)
+        detail = e.message or ""
+        # El proveedor respondió sin contenido: casi siempre es un modelo mal
+        # elegido (slug dado de baja o sin soporte del formato pedido). Damos
+        # un mensaje accionable en lugar del "No content returned" críptico.
+        if "no content returned" in detail.lower():
+            detail = (
+                "El modelo configurado no devolvió contenido. Revisá tu selección "
+                "de modelo en /models: el slug puede no existir (por ejemplo un "
+                "modelo dado de baja en OpenRouter) o no soportar el formato pedido."
+            )
+        return HTTPException(status_code=e.status_code, detail=detail)
     if isinstance(e, OpenAIAPIError):
         return HTTPException(
             status_code=getattr(e, "status_code", None) or 500,

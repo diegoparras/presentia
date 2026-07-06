@@ -40,7 +40,7 @@ OPENROUTER_IDS = {
     "gpt-4o-mini": "openai/gpt-4o-mini",
     "gemini-2.5-pro": "google/gemini-2.5-pro",
     "gemini-2.5-flash": "google/gemini-2.5-flash",
-    "gemini-2.0-flash": "google/gemini-2.0-flash-001",
+    "gemini-2.5-flash-lite": "google/gemini-2.5-flash-lite",
     "deepseek-chat": "deepseek/deepseek-chat",
 }
 
@@ -55,7 +55,7 @@ TEXT_MODELS = [
     ("gpt-4o-mini", "openai", "GPT-4o mini", 2, "Muy barato para borradores"),
     ("gemini-2.5-pro", "google", "Gemini 2.5 Pro", 4, "Calidad alta de Google"),
     ("gemini-2.5-flash", "google", "Gemini 2.5 Flash", 3, "Veloz con buen nivel"),
-    ("gemini-2.0-flash", "google", "Gemini 2.0 Flash", 2, "El más barato de Google"),
+    ("gemini-2.5-flash-lite", "google", "Gemini 2.5 Flash Lite", 2, "El más rápido y barato de Google"),
     ("deepseek-chat", "deepseek", "DeepSeek Chat", 3, "Gran relación precio-calidad"),
     ("__ollama__", "ollama", "Ollama (modelo local)", 3, "Gratis, corre en tu servidor"),
 ]

@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 import logging
 import os
@@ -81,6 +82,23 @@ def _bootstrap_auth_from_env() -> None:
         logger.exception("Failed to bootstrap auth from environment: %s", exc)
 
 
+async def _prewarm_icon_finder() -> None:
+    """Cargar el buscador de íconos (modelo ONNX + vectorstore) en el arranque,
+    no en el primer request.
+
+    El modelo va horneado en la imagen, así que esto es cuestión de segundos y
+    evita el pico de latencia (y la posible descarga) en la primera generación.
+    Nunca es fatal: si falla, la búsqueda de íconos se degrada a vacío.
+    """
+    try:
+        from services.icon_finder_service import ICON_FINDER_SERVICE
+
+        ok = await asyncio.to_thread(ICON_FINDER_SERVICE.ensure_initialized)
+        logger.info("Icon finder pre-cargado (listo=%s).", ok)
+    except Exception as exc:  # pragma: no cover - defensivo, nunca fatal.
+        logger.warning("No se pudo pre-cargar el buscador de íconos: %s", exc)
+
+
 @asynccontextmanager
 async def app_lifespan(_: FastAPI):
     """
@@ -98,6 +116,7 @@ async def app_lifespan(_: FastAPI):
     if get_can_change_keys_env() != "false":
         update_env_with_user_config()
     await check_llm_and_image_provider_api_or_model_availability()
+    await _prewarm_icon_finder()
     yield
     # Shutdown: release all database connections to prevent stale/leaked pools.
     await dispose_engines()

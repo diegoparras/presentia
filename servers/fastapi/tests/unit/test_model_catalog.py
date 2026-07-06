@@ -1,4 +1,5 @@
 from constants.model_catalog import (
+    OPENROUTER_IDS,
     build_image_model_catalog,
     build_text_model_catalog,
 )
@@ -89,6 +90,26 @@ def test_openrouter_key_unlocks_catalog(monkeypatch):
     # Ollama es local: OpenRouter no lo habilita
     assert models["__ollama__"]["available"] is False
     assert models["__ollama__"]["via"] is None
+
+
+def test_dead_gemini_slug_is_gone(monkeypatch):
+    # google/gemini-2.0-flash-001 fue dado de baja en OpenRouter: no debe quedar
+    # ningún slug muerto en el catálogo (rompía la generación con "No content").
+    assert "gemini-2.0-flash" not in OPENROUTER_IDS
+    assert "google/gemini-2.0-flash-001" not in OPENROUTER_IDS.values()
+
+
+def test_flash_lite_replaces_it_and_is_selectable(monkeypatch):
+    _clear(monkeypatch)
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test")
+
+    models = {m["id"]: m for m in build_text_model_catalog()}
+    assert "gemini-2.5-flash-lite" in models
+    assert (
+        models["gemini-2.5-flash-lite"]["openrouter_id"]
+        == "google/gemini-2.5-flash-lite"
+    )
+    assert models["gemini-2.5-flash-lite"]["available"] is True
 
 
 def test_direct_key_wins_over_openrouter(monkeypatch):
