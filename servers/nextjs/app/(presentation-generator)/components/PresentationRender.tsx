@@ -117,4 +117,4 @@ const SlideScale = ({
   );
 };
 
-export default SlideScale;
+export default React.memo(SlideScale);

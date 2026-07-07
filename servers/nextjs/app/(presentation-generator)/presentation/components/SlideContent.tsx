@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { memo, useEffect, useRef, useState } from "react";
 import {
   Loader2,
   PlusIcon,
@@ -19,7 +19,7 @@ import { notify } from "@/components/ui/sonner";
 import { PresentationGenerationApi } from "../../services/api/presentation-generation";
 import ToolTip from "@/components/ToolTip";
 import { RootState } from "@/store/store";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch, useSelector, useStore } from "react-redux";
 import {
   deletePresentationSlide,
   updateSlide,
@@ -53,9 +53,37 @@ const SlideContent = ({
   const [isEditPopoverOpen, setIsEditPopoverOpen] = useState(false);
   const [isSpeakerPopoverOpen, setIsSpeakerPopoverOpen] = useState(false);
   const [editPrompt, setEditPrompt] = useState("");
-  const { presentationData, isStreaming } = useSelector(
-    (state: RootState) => state.presentationGeneration
+  // Narrow subscriptions: this slide only re-renders when the theme or the
+  // streaming flag changes — not when a sibling slide's content changes.
+  // `slides` (needed only in the delete handler) is read lazily from the store.
+  const theme = useSelector(
+    (state: RootState) => state.presentationGeneration.presentationData?.theme
   );
+  const isStreaming = useSelector(
+    (state: RootState) => state.presentationGeneration.isStreaming
+  );
+  const store = useStore<RootState>();
+
+  // Render-mode virtualization: keep every slide in the DOM (so navigation by
+  // #slide-N, streaming auto-scroll and drag-and-drop keep working) but only
+  // mount the heavy edit tree (Tiptap editors) for slides near the viewport.
+  // Off-screen slides render through the cheap read-only path instead.
+  const slideRef = useRef<HTMLDivElement>(null);
+  const [isNearViewport, setIsNearViewport] = useState(false);
+  useEffect(() => {
+    const el = slideRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      // Fallback: if IO is unavailable, keep the previous always-editable behaviour.
+      setIsNearViewport(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => setIsNearViewport(entries[0]?.isIntersecting ?? false),
+      { rootMargin: "1200px 0px" } // promote to edit mode ~1.5 viewports early
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   // Use the centralized group layouts hook
 
@@ -113,7 +141,9 @@ const SlideContent = ({
 
   const onDeleteSlide = async () => {
     try {
-      if ((presentationData?.slides?.length ?? 0) <= 1) {
+      const currentSlides =
+        store.getState().presentationGeneration.presentationData?.slides;
+      if ((currentSlides?.length ?? 0) <= 1) {
         notify.warning(
           t("ed.slide.delBlock"),
           t("ed.slide.delBlockDesc")
@@ -131,7 +161,7 @@ const SlideContent = ({
       // Add current state to past
       dispatch(
         addToHistory({
-          slides: presentationData?.slides,
+          slides: currentSlides,
           actionType: "DELETE_SLIDE",
         })
       );
@@ -161,6 +191,7 @@ const SlideContent = ({
   return (
     <>
       <div
+        ref={slideRef}
         id={`slide-${slide.index}`}
         className=" w-full  main-slide flex items-center max-md:mb-4  justify-center relative"
       >
@@ -191,7 +222,16 @@ const SlideContent = ({
             </div>
           )}
           <div className="relative">
-            <SlideScale slide={slide} theme={presentationData?.theme || null} />
+            <SlideScale
+              slide={slide}
+              theme={theme || null}
+              isEditMode={
+                isNearViewport ||
+                isEditPopoverOpen ||
+                isSpeakerPopoverOpen ||
+                showNewSlideSelection
+              }
+            />
           </div>
           {!showNewSlideSelection && (
             <div className="group-hover:opacity-100 hidden md:block opacity-0 transition-opacity my-4 duration-300">
@@ -396,4 +436,7 @@ const SlideContent = ({
   );
 };
 
-export default SlideContent;
+// Memoized: with narrowed selectors above, an unchanged slide no longer
+// re-renders when a sibling slide changes. Props (slide/booleans) are stable
+// per-slide from the parent map.
+export default memo(SlideContent);

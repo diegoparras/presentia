@@ -14,7 +14,7 @@ import { Loader2 } from "lucide-react";
 
 
 
-export const V1ContentRender = ({ slide, isEditMode, theme }: { slide: any, isEditMode: boolean, theme?: any, enableEditMode?: boolean }) => {
+const V1ContentRenderComponent = ({ slide, isEditMode, theme }: { slide: any, isEditMode: boolean, theme?: any, enableEditMode?: boolean }) => {
     const dispatch = useDispatch();
     const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -153,3 +153,7 @@ export const V1ContentRender = ({ slide, isEditMode, theme }: { slide: any, isEd
         </SlideErrorBoundary>
     );
 };
+
+// Memoize so an unchanged slide does not re-render when a sibling slide changes.
+// Props (slide/theme) come from Redux with stable references when untouched.
+export const V1ContentRender = React.memo(V1ContentRenderComponent);

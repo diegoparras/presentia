@@ -235,7 +235,8 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
                 key={slide.id}
                 className={index === currentSlide ? " w-full h-full flex items-center justify-center" : "hidden w-full h-full"}
               >
-                <V1ContentRender slide={slide} isEditMode={true} />
+                {/* Present mode is display-only: use the cheap read-only render path. */}
+                <V1ContentRender slide={slide} isEditMode={false} />
               </div>
             ))}
           </div>
