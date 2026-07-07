@@ -34,6 +34,14 @@ def is_dalle3_selected() -> bool:
     return ImageProvider.DALLE3 == get_selected_image_provider()
 
 
+def is_openai_selected() -> bool:
+    return ImageProvider.OPENAI == get_selected_image_provider()
+
+
+def is_google_selected() -> bool:
+    return ImageProvider.GOOGLE == get_selected_image_provider()
+
+
 def is_gpt_image_1_5_selected() -> bool:
     return ImageProvider.GPT_IMAGE_1_5 == get_selected_image_provider()
 

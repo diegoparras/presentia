@@ -297,6 +297,11 @@ def get_image_provider_env():
     return os.getenv("IMAGE_PROVIDER")
 
 
+def get_image_model_env():
+    """User-chosen image model for provider-level providers (openai / google)."""
+    return os.getenv("IMAGE_MODEL")
+
+
 def get_pixabay_api_key_env():
     return os.getenv("PIXABAY_API_KEY")
 
