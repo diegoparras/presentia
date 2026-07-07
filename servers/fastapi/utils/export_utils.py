@@ -8,6 +8,7 @@ from pathvalidate import sanitize_filename
 
 from models.presentation_and_path import PresentationAndPath
 from utils.filename_utils import safe_export_basename
+from utils.get_env import get_temp_directory_env
 from services.export_task_service import EXPORT_TASK_SERVICE
 from utils.runtime_limits import log_memory
 
@@ -56,6 +57,33 @@ async def export_presentation(
         presentation_id, cookie_header
     )
     name = (title or "").strip() or str(uuid.uuid4())
+
+    # Flag-gated browser-free engine (Fase 3): freeze -> WeasyPrint PDF / native
+    # PPTX. Falls back to the bundled Chromium exporter on any failure.
+    from services import freeze_export_service as freeze_engine
+
+    if freeze_engine.is_enabled():
+        try:
+            import asyncio
+
+            out_dir = os.path.join(
+                get_temp_directory_env() or "/tmp", "presenton-freeze-export"
+            )
+            out_path = await asyncio.to_thread(
+                freeze_engine.export,
+                presentation_id,
+                safe_export_basename(sanitize_filename(name)),
+                export_as,
+                out_dir,
+                _get_next_public_url().rstrip("/"),
+                fastapi_url or "",
+            )
+            return PresentationAndPath(presentation_id=presentation_id, path=out_path)
+        except Exception as exc:  # noqa: BLE001 - fall back to the default engine
+            LOGGER.warning(
+                "freeze export failed, falling back to bundled engine: %s", exc
+            )
+
     export_result = await EXPORT_TASK_SERVICE.export_from_url(
         url=export_url,
         title=safe_export_basename(sanitize_filename(name)),
