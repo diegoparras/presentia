@@ -14,6 +14,11 @@ on:
   workflow_dispatch:
   release:
     types: [published]
+  # Publicar tambien al pushear una rama release/* (p.ej. release/0.9.0), asi se
+  # puede cortar la imagen sin depender de crear un Release a mano.
+  push:
+    branches:
+      - "release/**"
 
 permissions:
   contents: read
@@ -62,6 +67,7 @@ jobs:
           tags: |
             type=raw,value=latest
             type=ref,event=tag
+            type=match,pattern=release/(\d+\.\d+\.\d+),group=1
 
       - name: Build and push (linux/amd64)
         uses: docker/build-push-action@v6
