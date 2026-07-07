@@ -162,12 +162,15 @@
 
       const posBase = `position:absolute;left:${x}px;top:${y}px;width:${w}px;height:${h}px`;
 
-      // Charts / vector art -> keep as SVG at its box.
+      // Charts / vector art -> keep as SVG at its box for the PDF, and tag it so
+      // the driver can capture a crisp PNG (for the PPTX, which has no SVG type).
       if (tag === "svg") {
+        const fid = "fz" + scene.blocks.length + "_" + Math.round(x) + "_" + Math.round(y);
+        el.setAttribute("data-freeze-id", fid);
         boxes.push(
           `<div style="${posBase};overflow:hidden">${freezeSvg(el)}</div>`
         );
-        scene.blocks.push({ type: "svg", x, y, w, h });
+        scene.blocks.push({ type: "svg", x, y, w, h, freezeId: fid });
         return;
       }
 

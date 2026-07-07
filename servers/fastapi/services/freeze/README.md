@@ -14,7 +14,7 @@ JSON del slide + tema
    frozen.json  =  [{ html, scene }, ...]   (una entrada por slide)
         │
         ├─▶ weasy_pdf.py   → PDF vectorial (WeasyPrint, sin navegador)
-        └─▶ build_pptx.py  → PPTX nativo editable (python-pptx)   [pendiente de integrar]
+        └─▶ build_pptx.py  → PPTX con texto/formas/imágenes NATIVOS editables (python-pptx)
 ```
 
 ## Por qué funciona
@@ -40,7 +40,27 @@ NODE_PATH=<node_modules_con_puppeteer-core> \
 
 # 2) PDF vectorial (sin navegador)
 python3 weasy_pdf.py frozen.json out.pdf
+
+# 3) PPTX con texto/formas nativos editables (charts como imagen)
+python3 build_pptx.py frozen.json out.pptx
 ```
+
+## PPTX: nativo vs el export actual
+
+El export actual rasteriza **cada slide entero** a una imagen (no editable). Acá,
+cada bloque de la escena IR se emite como objeto **nativo de PowerPoint**:
+
+| Bloque | PPTX |
+|---|---|
+| texto | textbox nativo (fuente, tamaño, negrita, color, alineación) — **editable** |
+| rect / card | autoshape (rect / rounded-rect) con relleno — **editable** |
+| imagen local | picture nativa |
+| chart / arte SVG | PNG nítido capturado en la pasada de freeze |
+
+Medido en el deck de 41 slides: **222 objetos nativos-editables** (155 formas +
+67 textboxes) + 54 charts-imagen; PPTX válido de 124 KB (round-trip con
+python-pptx OK). La reconstrucción de charts a **gráfico nativo editable**
+(datos → chart de PowerPoint) es un follow-up por template.
 
 ## Medido en este entorno (deck real de 41 slides, 54 charts SVG)
 
@@ -55,8 +75,11 @@ Chromium PDF de referencia: 0.57–1.7 s **por slide**. → 4–10× más rápid
 
 - **Embeber fuentes** (`@font-face`) en el HTML congelado: hoy WeasyPrint cae a la
   fuente por defecto y el texto reflowa levemente (métricas distintas). Con las
-  fuentes embebidas el PDF queda pixel-perfect.
-- **PPTX nativo**: `build_pptx.py` (PoC) consume `scene`; falta subir cobertura por
-  template e integrarlo al flujo de export.
+  fuentes embebidas el PDF queda pixel-perfect. Idem `font.name` ya se guarda en el
+  PPTX (PowerPoint usa la fuente correcta si está instalada).
+- **Charts nativos en PPTX**: reconstruir datos (categorías/series) → gráfico nativo
+  editable de PowerPoint, por template (hoy van como imagen nítida).
+- **Imágenes remotas**: al integrar al backend, las imágenes viven en `/app_data`
+  (disco), así que se embeben nativas; en el modo standalone sin red se saltan.
 - **Integración**: exponer como modo de export en `export_task_service.py` detrás de
   un flag, manteniendo el PPTX-imagen/Chromium actual como fallback.

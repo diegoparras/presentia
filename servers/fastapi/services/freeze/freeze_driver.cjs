@@ -51,6 +51,21 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await page.evaluate(EXTRACTOR);
   const slides = await page.evaluate(() => window.__freezeSlides());
 
+  // Capture a crisp PNG for every SVG block (charts + vector art) during this
+  // single browser pass, so the PPTX builder stays browser-free.
+  for (const slide of slides) {
+    for (const block of slide.scene.blocks) {
+      if (block.type !== "svg" || !block.freezeId) continue;
+      const handle = await page.$(`[data-freeze-id="${block.freezeId}"]`);
+      if (!handle) continue;
+      try {
+        block.png = await handle.screenshot({ encoding: "base64", omitBackground: true });
+      } catch (e) {
+        // leave block.png unset; PPTX falls back to a placeholder rect
+      }
+    }
+  }
+
   fs.writeFileSync(outJson, JSON.stringify(slides));
   const svg = slides.reduce((a, s) => a + s.scene.blocks.filter((b) => b.type === "svg").length, 0);
   console.log(`froze ${slides.length} slides (${svg} charts) -> ${outJson}`);
