@@ -1,0 +1,22 @@
+# Bloque para el docker-compose.yml de la suite. GPU opcional (descomentar).
+services:
+  augur:
+    build: ./augur
+    environment:
+      AUGUR_ENGINE: tabfm
+      AUGUR_DEVICE: auto
+      AUGUR_N_ESTIMATORS: "8"
+      # AUGUR_TOKEN: "cambiame"
+    volumes:
+      - augur_weights:/weights   # cache de pesos de HuggingFace (se bajan 1 vez)
+    ports:
+      - "8000:8000"
+    # Para GPU:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: [gpu]
+
+volumes:
+  augur_weights:
