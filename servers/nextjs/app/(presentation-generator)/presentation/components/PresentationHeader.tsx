@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/dialog";
 import ThemeSelector from "./ThemeSelector";
 import PublishButton from "./PublishButton";
+import CollabPanel from "./CollabPanel";
 import { DEFAULT_THEMES } from "../../(dashboard)/theme/components/ThemePanel/constants";
 import ThemeApi from "../../services/api/theme";
 import { Theme } from "../../services/api/types";
@@ -628,6 +629,8 @@ const PresentationHeader = ({
               </button>
             </ToolTip>
           </div>
+
+          <CollabPanel presentationId={presentation_id} currentSlide={currentSlide} />
 
           <PublishButton presentation_id={presentation_id} />
 
