@@ -1,9 +1,23 @@
 "use client"
 
-import React, { useEffect, useRef } from "react"
+import React from "react"
 import * as z from "zod"
-import Chart from "chart.js/auto"
-import type { ChartConfiguration, ChartOptions, Plugin } from "chart.js"
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  LabelList,
+} from "recharts"
 
 const layoutId = "tableorChart"
 const layoutName = "Table Or Chart"
@@ -117,269 +131,73 @@ interface SlideLayoutProps {
   data?: Partial<SlideData>
 }
 
-const resolveCssValue = (element: HTMLElement, value: string, fallback: string) => {
-  const match = value.match(/^var\((--[^,\s)]+)\s*,?\s*([^)]+)?\)$/)
-  if (!match) return value
+const AXIS_TEXT = "var(--background-text, #6B7280)"
+const LABEL_TEXT = "var(--background-text, #111827)"
+const GRID_COLOR = "#E5E7EB"
+const FONT = "var(--heading-font-family, Albert Sans)"
 
-  const resolved = getComputedStyle(element).getPropertyValue(match[1]).trim()
-  return resolved || match[2]?.trim() || fallback
-}
-
-const chartTextColor = (element: HTMLElement) =>
-  resolveCssValue(element, "var(--background-text, #6B7280)", "#6B7280")
-
-const chartLabelColor = (element: HTMLElement) =>
-  resolveCssValue(element, "var(--background-text, #111827)", "#111827")
-
-const chartFont = (element: HTMLElement) =>
-  resolveCssValue(element, "var(--heading-font-family,Albert Sans)", "Albert Sans").replace(/^['"]|['"]$/g, "")
-
-const chartColor = (element: HTMLElement, index: number) => {
+// Theme colors are passed to Recharts as var() strings and painted straight
+// into the SVG, so the deck renders without a canvas / headless browser.
+const graphVar = (index: number) => {
   const slot = index % 10
-  const fallback = CHART_COLORS[slot % CHART_COLORS.length]
-  return resolveCssValue(element, `var(--graph-${slot}, ${fallback})`, fallback)
+  return `var(--graph-${slot}, ${CHART_COLORS[slot % CHART_COLORS.length]})`
 }
-
-const valueLabelPlugin = (
-  showLabels: boolean,
-  chartType: SwiftChartType,
-  labelColor: string,
-  fontFamily: string
-): Plugin => ({
-  id: `swiftValueLabels-${chartType}-${showLabels ? "on" : "off"}`,
-  afterDatasetsDraw(chart) {
-    if (!showLabels) return
-
-    const ctx = chart.ctx
-    const area = chart.chartArea
-    ctx.save()
-    ctx.fillStyle = labelColor
-    ctx.font = `600 12px ${fontFamily}`
-    ctx.textBaseline = "middle"
-
-    chart.data.datasets.forEach((dataset: any, datasetIndex) => {
-      const meta = chart.getDatasetMeta(datasetIndex)
-
-      meta.data.forEach((element: any, index) => {
-        const raw = Array.isArray(dataset.data) ? dataset.data[index] : 0
-        const value = Number(raw)
-        if (!Number.isFinite(value)) return
-
-        if (chartType === "horizontalBar") {
-          const point = element.tooltipPosition()
-          ctx.textAlign = "left"
-          ctx.fillText(String(value), Math.min(point.x + 8, area.right - 4), point.y)
-          return
-        }
-
-        if (chartType === "pie") {
-          const label = chart.data.labels?.[index] ?? ""
-          const arc = element.getProps(["x", "y", "startAngle", "endAngle", "innerRadius", "outerRadius"], true)
-          const angle = (arc.startAngle + arc.endAngle) / 2
-          const radius = arc.innerRadius + (arc.outerRadius - arc.innerRadius) * 0.62
-          ctx.textAlign = "center"
-          ctx.fillText(String(label), arc.x + Math.cos(angle) * radius, arc.y + Math.sin(angle) * radius)
-          return
-        }
-
-        const point = element.tooltipPosition()
-        ctx.textAlign = "center"
-        const labelY = chartType === "line" && point.y - 14 < area.top + 8
-          ? point.y + 16
-          : Math.max(area.top + 8, point.y - 14)
-        ctx.fillText(String(value), point.x, Math.min(area.bottom - 8, labelY))
-      })
-    })
-
-    ctx.restore()
-  },
-})
 
 const SwiftChart: React.FC<{
   type: SwiftChartType
   data: ChartDatum[]
   showLabels: boolean
 }> = ({ type, data, showLabels }) => {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const [themeVersion, setThemeVersion] = React.useState(0)
+  const rows = data.map((d) => ({ label: d.label, value: d.value }))
+  const axisTick = { fill: AXIS_TEXT, fontSize: 12, fontWeight: 600, fontFamily: FONT } as const
+  const labelStyle = { fill: LABEL_TEXT, fontSize: 12, fontWeight: 600, fontFamily: FONT } as const
+  const legendEl = <Legend wrapperStyle={{ fontFamily: FONT, fontWeight: 600, color: AXIS_TEXT }} />
 
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+  if (type === "pie") {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie data={rows} dataKey="value" nameKey="label" outerRadius="82%" isAnimationActive={false}
+               labelLine={false} label={showLabels ? ({ name }: any) => name : undefined}>
+            {rows.map((_, i) => <Cell key={i} fill={graphVar(i)} />)}
+          </Pie>
+          <Tooltip />{legendEl}
+        </PieChart>
+      </ResponsiveContainer>
+    )
+  }
 
-    let frame: number | null = null
-    const scheduleThemeRefresh = () => {
-      if (frame !== null) {
-        cancelAnimationFrame(frame)
-      }
+  if (type === "line") {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={rows} margin={{ top: 15, right: 20, bottom: 4, left: 0 }}>
+          <CartesianGrid stroke={GRID_COLOR} strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="label" tick={axisTick} tickLine={false} stroke={AXIS_TEXT} />
+          <YAxis tick={axisTick} tickLine={false} stroke={AXIS_TEXT} />
+          <Tooltip />{legendEl}
+          <Line type="monotone" dataKey="value" stroke={graphVar(0)} strokeWidth={3} dot={{ r: 3 }} isAnimationActive={false}>
+            {showLabels && <LabelList dataKey="value" position="top" style={labelStyle} />}
+          </Line>
+        </LineChart>
+      </ResponsiveContainer>
+    )
+  }
 
-      frame = requestAnimationFrame(() => {
-        frame = null
-        setThemeVersion((version) => version + 1)
-      })
-    }
-
-    const observer = new MutationObserver(scheduleThemeRefresh)
-    let node: HTMLElement | null = canvas.parentElement
-    while (node) {
-      observer.observe(node, {
-        attributeFilter: ["class", "data-theme", "style"],
-        attributes: true,
-      })
-      node = node.parentElement
-    }
-
-    return () => {
-      if (frame !== null) {
-        cancelAnimationFrame(frame)
-      }
-      observer.disconnect()
-    }
-  }, [])
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const textColor = chartTextColor(canvas)
-    const labelColor = chartLabelColor(canvas)
-    const fontFamily = chartFont(canvas)
-    const labels = data.map((item) => item.label)
-    const values = data.map((item) => item.value)
-    const colors = data.map((_, index) => chartColor(canvas, index))
-    const primaryColor = chartColor(canvas, 0)
-    const isHorizontal = type === "horizontalBar"
-
-    const commonOptions: ChartOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      color: textColor,
-      font: {
-        family: fontFamily,
-      },
-      layout: {
-        padding: {
-          top: 10,
-          right: 20,
-          bottom: 10,
-          left: isHorizontal ? 20 : 0,
-        },
-      },
-      plugins: {
-        legend: {
-          display: true,
-          labels: {
-            color: textColor,
-            font: {
-              family: fontFamily,
-              weight: 600,
-            },
-          },
-        },
-        tooltip: {
-          enabled: true,
-        },
-      },
-    }
-
-    const axisOptions = {
-      grid: {
-        color: "#E5E7EB",
-        borderDash: [3, 3],
-      },
-      ticks: {
-        color: textColor,
-        font: {
-          family: fontFamily,
-          weight: 600,
-        },
-      },
-    }
-
-    const config: ChartConfiguration =
-      type === "pie"
-        ? {
-            type: "pie",
-            data: {
-              labels,
-              datasets: [
-                {
-                  label: "value",
-                  data: values,
-                  backgroundColor: colors,
-                  borderWidth: 0,
-                  hoverBorderWidth: 0,
-                },
-              ],
-            },
-            options: {
-              ...commonOptions,
-              layout: {
-                padding: 10,
-              },
-              radius: 120,
-            } as ChartOptions,
-            plugins: [valueLabelPlugin(showLabels, type, textColor, fontFamily)],
-          }
-        : {
-            type: type === "line" ? "line" : "bar",
-            data: {
-              labels,
-              datasets: [
-                {
-                  label: "value",
-                  data: values,
-                  backgroundColor:
-                    type === "line"
-                      ? primaryColor
-                      : colors,
-                  borderColor: primaryColor,
-                  borderRadius: type === "bar" ? 6 : type === "horizontalBar" ? 6 : undefined,
-                  borderWidth: type === "line" ? 3 : 0,
-                  fill: false,
-                  pointRadius: type === "line" ? 3 : 0,
-                  tension: type === "line" ? 0.35 : 0,
-                },
-              ],
-            },
-            options: {
-              ...commonOptions,
-              indexAxis: isHorizontal ? "y" : "x",
-              scales: {
-                x: isHorizontal
-                  ? {
-                      ...axisOptions,
-                      type: "linear",
-                      beginAtZero: true,
-                    }
-                  : {
-                      ...axisOptions,
-                      type: "category",
-                    },
-                y: isHorizontal
-                  ? {
-                      ...axisOptions,
-                      type: "category",
-                    }
-                  : {
-                      ...axisOptions,
-                      type: "linear",
-                      beginAtZero: true,
-                    },
-              },
-            } as ChartOptions,
-            plugins: [valueLabelPlugin(showLabels, type, labelColor, fontFamily)],
-          }
-
-    const chart = new Chart(canvas, config)
-
-    return () => {
-      chart.destroy()
-    }
-  }, [data, showLabels, themeVersion, type])
-
-  return <canvas ref={canvasRef} className="h-full w-full" />
+  const horizontal = type === "horizontalBar"
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={rows} layout={horizontal ? "vertical" : "horizontal"} margin={{ top: 10, right: 20, bottom: 4, left: horizontal ? 20 : 0 }}>
+        <CartesianGrid stroke={GRID_COLOR} strokeDasharray="3 3" vertical={horizontal} horizontal={!horizontal} />
+        <XAxis {...(horizontal ? { type: "number" as const } : { dataKey: "label" })} tick={axisTick} tickLine={false} stroke={AXIS_TEXT} />
+        <YAxis {...(horizontal ? { type: "category" as const, dataKey: "label", width: 80 } : {})} tick={axisTick} tickLine={false} stroke={AXIS_TEXT} />
+        <Tooltip />{legendEl}
+        <Bar dataKey="value" radius={horizontal ? [0, 6, 6, 0] : [6, 6, 0, 0]} maxBarSize={48} isAnimationActive={false}>
+          {rows.map((_, i) => <Cell key={i} fill={graphVar(i)} />)}
+          {showLabels && <LabelList dataKey="value" position={horizontal ? "right" : "top"} style={labelStyle} />}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
+  )
 }
 
 const TableOrChart: React.FC<SlideLayoutProps> = ({ data: slideData }) => {

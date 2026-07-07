@@ -1,9 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import Chart from "chart.js/auto";
-import type { ChartConfiguration, ChartOptions } from "chart.js";
 import * as z from "zod";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  LabelList,
+} from "recharts";
 import { RemoteSvgIcon } from "@/app/hooks/useRemoteSvgIcon";
 
 export const slideLayoutId = "title-description-with-chart-and-kpi-cards-slide";
@@ -238,405 +249,17 @@ const DONUT_COLORS = [
   "var(--graph-9,#93AAA2)",
 ];
 const KPI_ICON_BG = "var(--graph-3,#063C73)";
+const GRAPH_TWO = "var(--graph-2,#8A9A96)";
 const AXIS_TEXT = "var(--background-text,#566061)";
 const GRID_LINE = "var(--stroke,#D7DCDA)";
 const BODY_FONT = "var(--body-font-family,'Bricolage Grotesque')";
 
-function cssVarParts(value: string) {
-  const match = value.match(/^var\((--[^,\s)]+)\s*,?\s*([^)]+)?\)$/);
-  if (!match) return null;
+// ---- Recharts SVG renderer (replaces the former Chart.js/canvas one). The
+// var(--graph-N) strings are painted straight into the SVG, so the theme is
+// resolved by the browser at paint time and the deck can be frozen/exported
+// without a headless browser rasterizing a canvas. ----
 
-  return {
-    name: match[1],
-    fallback: match[2]?.trim(),
-  };
-}
-
-function resolveToken(element: HTMLElement, value: string, fallback: string) {
-  const parts = cssVarParts(value);
-  if (!parts) return value;
-
-  const resolved = getComputedStyle(element)
-    .getPropertyValue(parts.name)
-    .trim();
-  return resolved || parts.fallback || fallback;
-}
-
-function resolveColor(element: HTMLElement, value: string) {
-  return resolveToken(element, value, "#566061");
-}
-
-function resolveFont(element: HTMLElement) {
-  return resolveToken(element, BODY_FONT, "Bricolage Grotesque").replace(/^['"]|['"]$/g, "");
-}
-
-function formatCurrency(value: string | number) {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? `$${numeric}` : String(value);
-}
-
-function colorLuminance(color: string) {
-  const weights = [0.2126, 0.7152, 0.0722];
-  const hex = color.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
-  if (hex) {
-    const raw = hex[1].length === 3
-      ? hex[1].split("").map((char) => char + char).join("")
-      : hex[1];
-    const int = Number.parseInt(raw, 16);
-    const rgb = [(int >> 16) & 255, (int >> 8) & 255, int & 255];
-    return rgb
-      .map((value) => {
-        const channel = value / 255;
-        return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-      })
-      .reduce((sum, channel, index) => sum + channel * (weights[index] ?? 0), 0);
-  }
-
-  const rgb = color.trim().match(/^rgba?\(([^)]+)\)$/i);
-  if (rgb) {
-    const channels = rgb[1].split(",").slice(0, 3).map((part) => Number(part.trim()));
-    if (channels.every(Number.isFinite)) {
-      return channels
-        .map((value) => {
-          const channel = value / 255;
-          return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
-        })
-        .reduce((sum, channel, index) => sum + channel * (weights[index] ?? 0), 0);
-    }
-  }
-
-  return 0;
-}
-
-function readableTextColor(color: unknown) {
-  const resolved = Array.isArray(color) ? color[0] : color;
-  if (typeof resolved !== "string") return "#ffffff";
-  return colorLuminance(resolved) > 0.52 ? "#17342D" : "#ffffff";
-}
-
-function productBaseOptions(axisColor: string, fontFamily: string): ChartOptions {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    animation: false,
-    resizeDelay: 0,
-    color: axisColor,
-    font: {
-      family: fontFamily,
-    },
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        enabled: false,
-      },
-    },
-  };
-}
-
-function productCategoryScale(axisColor: string, gridColor: string, fontFamily: string, display = true) {
-  return {
-    type: "category",
-    display,
-    offset: true,
-    grid: {
-      color: gridColor,
-      display: false,
-      drawTicks: false,
-    },
-    border: {
-      display: false,
-    },
-    ticks: {
-      color: axisColor,
-      font: {
-        family: fontFamily,
-        size: 10,
-      },
-      maxRotation: 0,
-      padding: 8,
-    },
-  };
-}
-
-function productLinearScale(axisColor: string, gridColor: string, fontFamily: string, display = true, currency = false) {
-  return {
-    type: "linear",
-    beginAtZero: true,
-    grace: "8%",
-    display,
-    grid: {
-      color: gridColor,
-      display: true,
-      drawTicks: false,
-    },
-    border: {
-      display: false,
-    },
-    ticks: {
-      color: axisColor,
-      font: {
-        family: fontFamily,
-        size: 10,
-      },
-      padding: 8,
-      callback(value: string | number) {
-        return currency ? formatCurrency(value) : String(value);
-      },
-    },
-  };
-}
-
-function productLabelPlugin(mode: "grouped-bars" | "donut" | "none", axisColor: string, fontFamily: string) {
-  return {
-    id: `productOverviewLabels-${mode}`,
-    afterDatasetsDraw(chart: any) {
-      if (mode === "none") return;
-
-      const ctx = chart.ctx as CanvasRenderingContext2D;
-      ctx.save();
-
-      if (mode === "grouped-bars") {
-        ctx.fillStyle = axisColor;
-        ctx.font = `600 9px ${fontFamily}`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-
-        chart.data.datasets.forEach((dataset: any, datasetIndex: number) => {
-          const meta = chart.getDatasetMeta(datasetIndex);
-          meta.data.forEach((element: any, index: number) => {
-            const value = Number(dataset.data[index]) || 0;
-            const position = element.tooltipPosition();
-            ctx.fillText(String(value), position.x, position.y - 10);
-          });
-        });
-      }
-
-      if (mode === "donut") {
-        const dataset = chart.data.datasets[0];
-        const meta = chart.getDatasetMeta(0);
-        const values = dataset?.data ?? [];
-        const total = values.reduce((sum: number, value: number) => sum + Math.abs(Number(value) || 0), 0);
-        if (!total) {
-          ctx.restore();
-          return;
-        }
-
-        ctx.font = `700 11px ${fontFamily}`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.shadowColor = "rgba(0,0,0,0.14)";
-        ctx.shadowBlur = 1;
-        ctx.shadowOffsetY = 1;
-
-        meta.data.forEach((element: any, index: number) => {
-          const value = Number(values[index]) || 0;
-          if (!value) return;
-          const arc = element.getProps(["x", "y", "startAngle", "endAngle", "innerRadius", "outerRadius"], true);
-          const angle = (arc.startAngle + arc.endAngle) / 2;
-          const radius = arc.innerRadius + (arc.outerRadius - arc.innerRadius) * 0.58;
-          const x = arc.x + Math.cos(angle) * radius;
-          const y = arc.y + Math.sin(angle) * radius;
-          const fill = Array.isArray(dataset.backgroundColor) ? dataset.backgroundColor[index] : dataset.backgroundColor;
-
-          ctx.fillStyle = readableTextColor(fill);
-          ctx.fillText(`${Math.round((value / total) * 100)}%`, x, y);
-        });
-      }
-
-      ctx.restore();
-    },
-  };
-}
-
-function productChartConfig({
-  canvas,
-  donutData,
-  groupedBars,
-  miniBars,
-  trendLines,
-  variant,
-  xAxisName,
-  yAxisName,
-}: {
-  canvas: HTMLCanvasElement;
-  donutData: NonNullable<SchemaType["donutData"]>;
-  groupedBars: NonNullable<SchemaType["groupedBars"]>;
-  miniBars: NonNullable<SchemaType["miniBars"]>;
-  trendLines: NonNullable<SchemaType["trendLines"]>;
-  variant: NonNullable<SchemaType["chartStyle"]>;
-  xAxisName?: string;
-  yAxisName?: string;
-}): ChartConfiguration {
-  const axisColor = resolveColor(canvas, AXIS_TEXT);
-  const gridColor = resolveColor(canvas, GRID_LINE);
-  const fontFamily = resolveFont(canvas);
-  const miniDark = resolveColor(canvas, MINI_BAR_DARK);
-  const miniLight = resolveColor(canvas, MINI_BAR_LIGHT);
-  const graphTwo = resolveColor(canvas, "var(--graph-2,#8A9A96)");
-  const donutColors = DONUT_COLORS.map((color) => resolveColor(canvas, color));
-  const options = productBaseOptions(axisColor, fontFamily);
-
-  if (variant === "donut") {
-    return {
-      type: "doughnut",
-      data: {
-        labels: donutData.map((item) => item.name),
-        datasets: [
-          {
-            data: donutData.map((item) => item.value),
-            backgroundColor: donutData.map((_, index) => donutColors[index % donutColors.length]),
-            borderColor: "transparent",
-            borderWidth: 0,
-            hoverBorderWidth: 0,
-            spacing: 0,
-          },
-        ],
-      },
-      options: {
-        ...options,
-        cutout: "58%",
-        layout: {
-          padding: 8,
-        },
-      },
-      plugins: [productLabelPlugin("donut", axisColor, fontFamily)],
-    } as ChartConfiguration;
-  }
-
-  if (variant === "grouped-bars") {
-    return {
-      type: "bar",
-      data: {
-        labels: groupedBars.map((item) => item.label),
-        datasets: [
-          {
-            data: groupedBars.map((item) => item.optionA),
-            backgroundColor: miniDark,
-            borderRadius: 4,
-            borderWidth: 0,
-            barPercentage: 0.75,
-            categoryPercentage: 0.65,
-          },
-          {
-            data: groupedBars.map((item) => item.optionB),
-            backgroundColor: graphTwo,
-            borderRadius: 4,
-            borderWidth: 0,
-            barPercentage: 0.75,
-            categoryPercentage: 0.65,
-          },
-        ],
-      },
-      options: {
-        ...options,
-        layout: {
-          padding: { top: 12, right: 6, left: 0, bottom: 0 },
-        },
-        scales: {
-          x: productCategoryScale(axisColor, gridColor, fontFamily, true),
-          y: productLinearScale(axisColor, gridColor, fontFamily, true),
-        },
-      },
-      plugins: [productLabelPlugin("grouped-bars", axisColor, fontFamily)],
-    } as ChartConfiguration;
-  }
-
-  if (variant === "dual-line") {
-    return {
-      type: "line",
-      data: {
-        labels: trendLines.map((item) => item.label),
-        datasets: [
-          {
-            data: trendLines.map((item) => item.optionA),
-            borderColor: miniDark,
-            backgroundColor: miniDark,
-            borderWidth: 2,
-            clip: false,
-            pointRadius: 0,
-            tension: 0.35,
-          },
-          {
-            data: trendLines.map((item) => item.optionB),
-            borderColor: graphTwo,
-            backgroundColor: graphTwo,
-            borderWidth: 2,
-            clip: false,
-            pointRadius: 0,
-            tension: 0.35,
-          },
-        ],
-      },
-      options: {
-        ...options,
-        layout: {
-          padding: { top: 12, right: 10, left: 0, bottom: 18 },
-        },
-        scales: {
-          x: {
-            ...productCategoryScale(axisColor, gridColor, fontFamily, true),
-            title: {
-              color: axisColor,
-              display: Boolean(xAxisName),
-              font: { family: fontFamily, size: 10 },
-              padding: 0,
-              text: xAxisName,
-            },
-          },
-          y: {
-            ...productLinearScale(axisColor, gridColor, fontFamily, true),
-            suggestedMin: -4,
-            suggestedMax: 104,
-            title: {
-              color: axisColor,
-              display: Boolean(yAxisName),
-              font: { family: fontFamily, size: 10 },
-              padding: 0,
-              text: yAxisName,
-            },
-          },
-        },
-      },
-    } as ChartConfiguration;
-  }
-
-  return {
-    type: "bar",
-    data: {
-      labels: miniBars.map((item) => item.label),
-      datasets: [
-        {
-          data: miniBars.map((item) => item.secondary),
-          backgroundColor: miniLight,
-          borderRadius: 5,
-          borderWidth: 0,
-          barPercentage: 0.72,
-          categoryPercentage: 0.8,
-        },
-        {
-          data: miniBars.map((item) => item.primary),
-          backgroundColor: miniDark,
-          borderRadius: 5,
-          borderWidth: 0,
-          barPercentage: 0.72,
-          categoryPercentage: 0.8,
-        },
-      ],
-    },
-    options: {
-      ...options,
-      layout: {
-        padding: { top: 0, right: 8, left: 0, bottom: 0 },
-      },
-      scales: {
-        x: productCategoryScale(axisColor, gridColor, fontFamily, false),
-        y: productLinearScale(axisColor, gridColor, fontFamily, true, true),
-      },
-    },
-  } as ChartConfiguration;
-}
+const axisTick = { fill: AXIS_TEXT, fontSize: 10, fontFamily: BODY_FONT } as const;
 
 function ProductOverviewChart({
   donutData,
@@ -655,62 +278,80 @@ function ProductOverviewChart({
   xAxisName?: string;
   yAxisName?: string;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    let frame: number | null = null;
-    let chart: Chart | null = null;
-
-    const renderChart = () => {
-      chart?.destroy();
-      chart = new Chart(canvas, productChartConfig({
-        canvas,
-        donutData,
-        groupedBars,
-        miniBars,
-        trendLines,
-        variant,
-        xAxisName,
-        yAxisName,
-      }));
+  if (variant === "donut") {
+    const renderPct = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+      const RAD = Math.PI / 180;
+      const r = innerRadius + (outerRadius - innerRadius) * 0.5;
+      const x = cx + r * Math.cos(-midAngle * RAD);
+      const y = cy + r * Math.sin(-midAngle * RAD);
+      return (
+        <text x={x} y={y} fill="#ffffff" fontSize={11} fontWeight={700} fontFamily={BODY_FONT}
+              textAnchor="middle" dominantBaseline="central">
+          {`${Math.round((percent || 0) * 100)}%`}
+        </text>
+      );
     };
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie data={donutData} dataKey="value" nameKey="name" innerRadius="58%" outerRadius="94%"
+               isAnimationActive={false} labelLine={false} label={renderPct} stroke="none">
+            {donutData.map((_, i) => <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} />)}
+          </Pie>
+        </PieChart>
+      </ResponsiveContainer>
+    );
+  }
 
-    const scheduleRender = () => {
-      if (frame !== null) {
-        cancelAnimationFrame(frame);
-      }
-      frame = requestAnimationFrame(() => {
-        frame = null;
-        renderChart();
-      });
-    };
+  if (variant === "grouped-bars") {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={groupedBars} margin={{ top: 14, right: 6, left: 0, bottom: 0 }} barGap={2}>
+          <CartesianGrid stroke={GRID_LINE} vertical={false} />
+          <XAxis dataKey="label" tick={axisTick} axisLine={false} tickLine={false} />
+          <YAxis tick={axisTick} axisLine={false} tickLine={false} width={28} />
+          <Bar dataKey="optionA" fill={MINI_BAR_DARK} radius={[4, 4, 0, 0]} maxBarSize={26} isAnimationActive={false}>
+            <LabelList dataKey="optionA" position="top" style={{ fill: AXIS_TEXT, fontSize: 9, fontWeight: 600, fontFamily: BODY_FONT }} />
+          </Bar>
+          <Bar dataKey="optionB" fill={GRAPH_TWO} radius={[4, 4, 0, 0]} maxBarSize={26} isAnimationActive={false}>
+            <LabelList dataKey="optionB" position="top" style={{ fill: AXIS_TEXT, fontSize: 9, fontWeight: 600, fontFamily: BODY_FONT }} />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  }
 
-    renderChart();
+  if (variant === "dual-line") {
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={trendLines} margin={{ top: 12, right: 12, left: 0, bottom: 18 }}>
+          <CartesianGrid stroke={GRID_LINE} vertical={false} />
+          <XAxis dataKey="label" tick={axisTick} axisLine={false} tickLine={false}
+                 label={xAxisName ? { value: xAxisName, position: "insideBottom", offset: -10, style: { fill: AXIS_TEXT, fontSize: 10, fontFamily: BODY_FONT } } : undefined} />
+          <YAxis domain={[-4, 104]} tick={axisTick} axisLine={false} tickLine={false} width={28}
+                 label={yAxisName ? { value: yAxisName, angle: -90, position: "insideLeft", style: { fill: AXIS_TEXT, fontSize: 10, fontFamily: BODY_FONT, textAnchor: "middle" } } : undefined} />
+          <Line dataKey="optionA" type="monotone" stroke={MINI_BAR_DARK} strokeWidth={2} dot={false} isAnimationActive={false} />
+          <Line dataKey="optionB" type="monotone" stroke={GRAPH_TWO} strokeWidth={2} dot={false} isAnimationActive={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    );
+  }
 
-    const observer = new MutationObserver(scheduleRender);
-    let node: HTMLElement | null = canvas.parentElement;
-    while (node) {
-      observer.observe(node, {
-        attributeFilter: ["class", "data-theme", "style"],
-        attributes: true,
-      });
-      node = node.parentElement;
-    }
-
-    return () => {
-      if (frame !== null) {
-        cancelAnimationFrame(frame);
-      }
-      observer.disconnect();
-      chart?.destroy();
-    };
-  }, [donutData, groupedBars, miniBars, trendLines, variant, xAxisName, yAxisName]);
-
-  return <canvas ref={canvasRef} className="block h-full w-full" />;
+  // mini-bars: dual-series grouped bars, hidden x-axis, currency y-axis.
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={miniBars} margin={{ top: 0, right: 8, left: 0, bottom: 0 }} barGap={2}>
+        <CartesianGrid stroke={GRID_LINE} vertical={false} />
+        <XAxis dataKey="label" hide />
+        <YAxis tick={axisTick} axisLine={false} tickLine={false} width={44}
+               tickFormatter={(v) => `$${v}`} />
+        <Bar dataKey="secondary" fill={MINI_BAR_LIGHT} radius={[5, 5, 0, 0]} maxBarSize={16} isAnimationActive={false} />
+        <Bar dataKey="primary" fill={MINI_BAR_DARK} radius={[5, 5, 0, 0]} maxBarSize={16} isAnimationActive={false} />
+      </BarChart>
+    </ResponsiveContainer>
+  );
 }
+
 
 const PulseIcon = () => (
   <svg viewBox="0 0 24 24" className="h-[22px] w-[22px]" aria-hidden="true">
