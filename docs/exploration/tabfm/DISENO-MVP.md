@@ -168,7 +168,7 @@ promesa "grounded, sin alucinar", ahora predictiva.
 
 | Hito | Estado | Entrega |
 |---|---|---|
-| **M0 — Spike cerrado** | ⏳ bloqueado (HF egress) | correr `bench.py` con red a HF: latencia CPU/GPU, límite de filas, tamaño de pesos. |
+| **M0 — Spike cerrado** | ✅ hecho (CPU) — ver `RESULTS.md` | motor real medido: fit instantáneo, **predict ~13 s/miembro en CPU → GPU obligatoria**, pesos ~16 GB, OOF de `validate()` confirmado. Falta la medición en **GPU**. |
 | **M1 — Motor** | ✅ hecho (`augur/`) | FastAPI + `TabFMEngine` + `/predict` `/importance` `/anomalies` `/validate` `/health`. Dockerfile. 15 tests verdes. |
 | **M2 — Suite** | ✅ costura hecha | adaptador `AugurService` (`AUGUR_*`, degradación elegante) + guard extendido (scores de Augur = tercera fuente permitida) + instrucciones de insights inyectadas. 18 tests. Falta el *slide/layout* dedicado "Factores clave" (necesita app corriendo + trabajo de template). |
 | **M3 — App** | pendiente | UI mínima (subí CSV → predicción + drivers + export). |

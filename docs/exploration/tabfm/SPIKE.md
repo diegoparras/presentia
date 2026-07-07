@@ -5,11 +5,12 @@ self-hosted de predicción tabular para la Escriba Suite.
 
 ## TL;DR
 
-TabFM es **viable como base de producto** en licencia y arquitectura. El único punto
-que **no pude medir en esta sesión** es la latencia real: la política de egress de la
-organización bloquea `huggingface.co` (donde viven los pesos), así que el modelo no se
-pudo cargar aquí. La medición de runtime queda pendiente de correr en un entorno con
-salida a HuggingFace (script listo: [`bench.py`](./bench.py)).
+TabFM es **viable como base de producto** en licencia y arquitectura. **M0 cerrado**
+(2026-07-07): tras habilitar egress a HuggingFace se midió el motor real — ver
+[`RESULTS.md`](./RESULTS.md). Titular: en **CPU la predicción es prohibitiva** (~100 s
+para 100 filas con el ensemble default), **GPU es obligatoria**; `n_estimators` es la
+palanca velocidad↔calidad; los pesos pesan **~16 GB**; y se confirmó el manejo del OOF en
+`validate()`. Faltó una dependencia (`safetensors`), ya agregada al Dockerfile de Augur.
 
 ## Qué se validó (sin bajar pesos)
 

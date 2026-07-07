@@ -13,10 +13,11 @@ COPY pyproject.toml README.md ./
 COPY augur ./augur
 RUN pip install .
 
-# Motor real TabFM (Apache 2.0). Los pesos NO se hornean en la imagen: se
-# descargan a /weights en la primera predicción — montá un volumen ahí para
+# Motor real TabFM (Apache 2.0). Los pesos (~16 GB) NO se hornean en la imagen:
+# se descargan a /weights en la primera predicción — montá un volumen ahí para
 # cachearlos y para entornos sin egress a huggingface.co, pre-descargalos.
-RUN pip install "tabfm[pytorch] @ git+https://github.com/google-research/tabfm.git"
+# `safetensors` es requerido por el backend PyTorch y el extra no lo trae.
+RUN pip install "tabfm[pytorch] @ git+https://github.com/google-research/tabfm.git" safetensors
 
 EXPOSE 8000
 VOLUME ["/weights"]

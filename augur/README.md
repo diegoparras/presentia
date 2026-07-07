@@ -46,9 +46,10 @@ curl -X POST http://localhost:8000/v1/predict -H "Content-Type: application/json
 pip install -e .[dev]
 AUGUR_ENGINE=fake uvicorn augur.main:app --reload
 
-# Con el motor real TabFM (baja pesos de HuggingFace la primera vez):
-pip install "tabfm[pytorch] @ git+https://github.com/google-research/tabfm.git"
-AUGUR_ENGINE=tabfm uvicorn augur.main:app
+# Con el motor real TabFM (baja ~16 GB de pesos de HuggingFace la primera vez;
+# safetensors es requerido por el backend PyTorch y el extra no lo trae):
+pip install "tabfm[pytorch] @ git+https://github.com/google-research/tabfm.git" safetensors
+AUGUR_ENGINE=tabfm uvicorn augur.main:app   # GPU muy recomendada: en CPU predict es lento
 
 # Docker:
 docker build -t augur . && docker run -p 8000:8000 -v augur_weights:/weights augur
