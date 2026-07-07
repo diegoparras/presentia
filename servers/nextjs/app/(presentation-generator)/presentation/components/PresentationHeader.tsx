@@ -21,6 +21,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { PresentationGenerationApi } from "../../services/api/presentation-generation";
+import { getApiUrl } from "@/utils/api";
+import { getHeader } from "../../services/api/header";
 import { useDispatch, useSelector } from "react-redux";
 
 import { RootState } from "@/store/store";
@@ -55,10 +57,10 @@ const MAX_EXPORT_TITLE_LENGTH = 40;
 
 const buildSafeExportFileName = (
   rawTitle: string | null | undefined,
-  extension: "pdf" | "pptx"
+  extension: "pdf" | "pptx" | "mp4"
 ) => {
   const normalizedTitle = (rawTitle || "presentation").trim();
-  const titleWithoutExtension = normalizedTitle.replace(/\.(pdf|pptx)$/i, "");
+  const titleWithoutExtension = normalizedTitle.replace(/\.(pdf|pptx|mp4)$/i, "");
 
   let safeBase = titleWithoutExtension
     // Replace all punctuation/special chars (including dots) with dashes
@@ -329,6 +331,55 @@ const PresentationHeader = ({
       setIsExporting(false);
     }
   };
+  // Video (MP4) export goes through the FastAPI freeze pipeline (frames -> ffmpeg),
+  // not the bundled Chromium exporter, so it calls the dedicated backend endpoint
+  // and downloads the served /app_data/exports URL it returns.
+  const handleExportVideo = async () => {
+    if (isStreaming) return;
+    let exportToastId: string | number | undefined;
+    try {
+      trackEvent(MixpanelEvent.Presentation_Export_Started, {
+        pathname,
+        presentation_id,
+        format: "video",
+        slide_count: presentationData?.slides?.length || 0,
+      });
+      exportToastId = notify.loading(
+        "Generando video…",
+        "Renderizando las slides a MP4 (puede tardar un momento)"
+      );
+      setIsExporting(true);
+      await PresentationGenerationApi.updatePresentationContent(presentationData);
+      const response = await fetch(
+        getApiUrl("/api/v1/ppt/presentation/export-file"),
+        {
+          method: "POST",
+          headers: getHeader(),
+          body: JSON.stringify({
+            presentation_id,
+            export_as: "video",
+          }),
+        }
+      );
+      if (!response.ok) {
+        throw new Error("Failed to export video");
+      }
+      const { url } = await response.json();
+      if (!url) throw new Error("No video URL returned");
+      const safeName = buildSafeExportFileName(presentationData?.title, "mp4");
+      downloadLink(url, safeName);
+      notify.success("Video listo", "Se descargó el MP4.", { id: exportToastId });
+    } catch (err) {
+      console.error(err);
+      notify.error(
+        "No se pudo exportar el video",
+        "Verificá que el servidor tenga ffmpeg y el motor de freeze disponible.",
+        exportToastId !== undefined ? { id: exportToastId } : undefined
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  };
   const handleReGenerate = () => {
     setIsRegenerateConfirmOpen(false);
     dispatch(clearPresentationData());
@@ -381,6 +432,19 @@ const PresentationHeader = ({
           }`}
         >
           PPTX
+          <ArrowUpRight className="w-3.5 h-3.5" />
+        </Button>
+        <Button
+          onClick={() => {
+            handleExportVideo();
+            setOpen(false);
+          }}
+          variant="ghost"
+          className={`w-full flex px-0 justify-start text-xs text-black hover:bg-transparent  ${
+            mobile ? "bg-white py-6" : ""
+          }`}
+        >
+          Video (MP4)
           <ArrowUpRight className="w-3.5 h-3.5" />
         </Button>
       </div>

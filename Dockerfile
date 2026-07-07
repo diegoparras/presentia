@@ -100,7 +100,7 @@ ENV APP_DATA_DIRECTORY=/app_data \
     FREEZE_CHROME_PATH=/usr/bin/chromium
 
 RUN set -eux; \
-    packages="ca-certificates curl nginx fontconfig imagemagick zstd chromium \
+    packages="ca-certificates curl nginx fontconfig imagemagick zstd chromium ffmpeg \
       findutils fonts-noto-core fonts-noto-extra fonts-noto-mono fonts-noto-cjk fonts-noto-color-emoji xdg-utils \
       libpangoft2-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 libharfbuzz0b \
       libasound2t64 libatk-bridge2.0-0t64 libatk1.0-0t64 libatspi2.0-0t64 \

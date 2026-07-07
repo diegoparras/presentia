@@ -48,7 +48,7 @@ async def generate_presentation_from_data(
         description="Template to use; Report ships chart-capable layouts",
     ),
     instructions: Optional[str] = Form(default=None),
-    export_as: Literal["pptx", "pdf"] = Form(default="pptx"),
+    export_as: Literal["pptx", "pdf", "video"] = Form(default="pptx"),
     sql_session: AsyncSession = Depends(get_async_session),
 ):
     # 1. Persist the upload and parse it into the canonical dataset

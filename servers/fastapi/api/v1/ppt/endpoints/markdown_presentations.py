@@ -55,7 +55,7 @@ class GenerateFromMarkdownRequest(BaseModel):
     image_source: Optional[str] = Field(
         default=None, description="Image provider override, or 'none'"
     )
-    export_as: Literal["pptx", "pdf"] = Field(default="pptx")
+    export_as: Literal["pptx", "pdf", "video"] = Field(default="pptx")
 
 
 @MARKDOWN_PRESENTATION_ROUTER.post(

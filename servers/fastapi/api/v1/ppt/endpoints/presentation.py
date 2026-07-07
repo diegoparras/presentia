@@ -8,6 +8,7 @@ from typing import Annotated, List, Literal, Optional, Tuple
 import dirtyjson
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Path, Request
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -1401,3 +1402,54 @@ async def derive_presentation_from_existing_one(
         **presentation_and_path.model_dump(),
         edit_path=f"/presentation?id={new_presentation.id}",
     )
+
+
+class ExportFileRequest(BaseModel):
+    presentation_id: uuid.UUID
+    export_as: Literal["pdf", "pptx", "video"] = "pdf"
+
+
+class ExportFileResponse(BaseModel):
+    url: str
+
+
+@PRESENTATION_ROUTER.post("/export-file", response_model=ExportFileResponse)
+async def export_presentation_to_file(
+    request_http: Request,
+    data: Annotated[ExportFileRequest, Body()],
+    sql_session: AsyncSession = Depends(get_async_session),
+):
+    """Export an already-saved presentation to a file (pdf/pptx/video) and return a
+    browser-downloadable URL served from /app_data/exports. Used by the editor's
+    export menu; video is produced by the freeze pipeline (ffmpeg)."""
+    import shutil
+    from utils.get_env import get_app_data_directory_env
+    from utils.asset_directory_utils import absolute_fastapi_asset_url
+
+    presentation = await sql_session.get(PresentationModel, data.presentation_id)
+    if not presentation:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+
+    presentation_and_path = await export_presentation(
+        presentation.id,
+        presentation.title or str(uuid.uuid4()),
+        data.export_as,
+        cookie_header=_build_export_cookie_header(request_http),
+    )
+
+    src = presentation_and_path.path
+    if not src or not os.path.isfile(src):
+        raise HTTPException(status_code=500, detail="Export produced no file")
+
+    # Publish into the served exports directory so the browser can download it.
+    app_data = get_app_data_directory_env()
+    if not app_data:
+        raise HTTPException(status_code=500, detail="APP_DATA_DIRECTORY is not configured")
+    exports_dir = os.path.join(app_data, "exports")
+    os.makedirs(exports_dir, exist_ok=True)
+    basename = os.path.basename(src)
+    dst = os.path.join(exports_dir, basename)
+    if os.path.abspath(src) != os.path.abspath(dst):
+        shutil.copyfile(src, dst)
+
+    return ExportFileResponse(url=absolute_fastapi_asset_url(f"/app_data/exports/{basename}"))

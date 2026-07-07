@@ -44,7 +44,7 @@ def _build_presentation_export_url(
 async def export_presentation(
     presentation_id: uuid.UUID,
     title: str,
-    export_as: Literal["pptx", "pdf"],
+    export_as: Literal["pptx", "pdf", "video"],
     cookie_header: str | None = None,
 ) -> PresentationAndPath:
     log_memory(
@@ -62,7 +62,12 @@ async def export_presentation(
     # PPTX. Falls back to the bundled Chromium exporter on any failure.
     from services import freeze_export_service as freeze_engine
 
-    if freeze_engine.is_enabled():
+    # Video export exists only in the freeze pipeline (PDF frames -> ffmpeg); the
+    # bundled Chromium exporter has no video path, so force freeze and surface any
+    # error instead of silently falling back to a format that can't produce mp4.
+    is_video = export_as in ("video", "mp4")
+
+    if freeze_engine.is_enabled() or is_video:
         try:
             import asyncio
 
@@ -80,6 +85,10 @@ async def export_presentation(
             )
             return PresentationAndPath(presentation_id=presentation_id, path=out_path)
         except Exception as exc:  # noqa: BLE001 - fall back to the default engine
+            if is_video:
+                # No bundled fallback can produce mp4 — report the real failure.
+                LOGGER.error("video export failed: %s", exc)
+                raise
             LOGGER.warning(
                 "freeze export failed, falling back to bundled engine: %s", exc
             )

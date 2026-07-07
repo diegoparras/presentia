@@ -63,7 +63,7 @@ class GeneratePresentationRequest(BaseModel):
             "images for this deck."
         ),
     )
-    export_as: Literal["pptx", "pdf"] = Field(
+    export_as: Literal["pptx", "pdf", "video"] = Field(
         default="pptx", description="Export format"
     )
     trigger_webhook: bool = Field(

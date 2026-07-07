@@ -52,6 +52,18 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
 
   const activeSlide = slides[currentSlide];
 
+  // Directional slide transition: remount the slide wrapper on change so the
+  // entrance animation replays, sliding in from the direction of travel.
+  const prevSlideRef = useRef(currentSlide);
+  const [animClass, setAnimClass] = useState("presentia-anim-fade");
+  useEffect(() => {
+    const prev = prevSlideRef.current;
+    if (currentSlide > prev) setAnimClass("presentia-anim-next");
+    else if (currentSlide < prev) setAnimClass("presentia-anim-prev");
+    else setAnimClass("presentia-anim-fade");
+    prevSlideRef.current = currentSlide;
+  }, [currentSlide]);
+
   const bumpChromeVisibility = useCallback(() => {
     setChromeVisible(true);
     if (hideChromeTimerRef.current) clearTimeout(hideChromeTimerRef.current);
@@ -248,13 +260,17 @@ const PresentationMode: React.FC<PresentationModeProps> = ({
           className={`min-h-0 w-full flex-1 overflow-hidden ${isFullscreen ? "rounded-none" : "rounded-sm"}`}
         >
           {activeSlide ? (
-            <SlideScale
+            <div
               key={activeSlide.id ?? `slide-${currentSlide}`}
-              slide={activeSlide}
-              theme={theme ?? undefined}
-              isEditMode={false}
-              presentMode
-            />
+              className={`h-full w-full ${animClass}`}
+            >
+              <SlideScale
+                slide={activeSlide}
+                theme={theme ?? undefined}
+                isEditMode={false}
+                presentMode
+              />
+            </div>
           ) : null}
         </div>
       </div>

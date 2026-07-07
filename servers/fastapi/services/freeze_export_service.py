@@ -74,10 +74,19 @@ def export(
         slides = _freeze(presentation_id, frozen_json, base_url, fastapi_url)
         if not slides:
             raise RuntimeError("freeze produced no slides")
-        ext = "pdf" if export_as == "pdf" else "pptx"
+        if export_as in ("video", "mp4"):
+            ext = "mp4"
+        elif export_as == "pdf":
+            ext = "pdf"
+        else:
+            ext = "pptx"
         out_path = os.path.join(out_dir, f"{title or presentation_id}.{ext}")
         if export_as == "pdf":
             build_pdf(slides, out_path)
+        elif export_as in ("video", "mp4"):
+            from services.freeze.video import build_video
+
+            build_video(slides, out_path)
         else:
             build_pptx(slides, out_path)
     LOGGER.info("freeze.export done id=%s -> %s", presentation_id, out_path)
