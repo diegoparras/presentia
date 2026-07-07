@@ -248,6 +248,22 @@ export const getLLMConfigValidationError = (
           return "OpenAI-compatible image API requires base URL, API key, and model.";
         }
         break;
+      case "openai":
+        if (!isProvided(llmConfig.OPENAI_API_KEY)) {
+          return "OpenAI API key is required for image generation.";
+        }
+        if (!isProvided(llmConfig.IMAGE_MODEL?.trim())) {
+          return "Choose an image model for OpenAI.";
+        }
+        break;
+      case "google":
+        if (!isProvided(llmConfig.GOOGLE_API_KEY)) {
+          return "Google API key is required for image generation.";
+        }
+        if (!isProvided(llmConfig.IMAGE_MODEL?.trim())) {
+          return "Choose an image model for Google.";
+        }
+        break;
       default:
         return "Select a valid image provider.";
     }
