@@ -33,3 +33,6 @@ servers/fastapi/dist/
 servers/fastapi/fastembed_cache/
 servers/fastapi/*.egg-info/
 .codex/
+
+# MCP local config (contiene tokens — no commitear)
+.mcp.json
