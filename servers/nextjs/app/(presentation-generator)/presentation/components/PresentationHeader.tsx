@@ -43,6 +43,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import ThemeSelector from "./ThemeSelector";
+import PublishButton from "./PublishButton";
 import { DEFAULT_THEMES } from "../../(dashboard)/theme/components/ThemePanel/constants";
 import ThemeApi from "../../services/api/theme";
 import { Theme } from "../../services/api/types";
@@ -563,6 +564,8 @@ const PresentationHeader = ({
               </button>
             </ToolTip>
           </div>
+
+          <PublishButton presentation_id={presentation_id} />
 
           <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
