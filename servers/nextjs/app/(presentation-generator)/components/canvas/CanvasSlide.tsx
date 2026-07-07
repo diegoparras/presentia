@@ -7,9 +7,12 @@ import {
   CANVAS_W,
   CANVAS_H,
   CanvasBlock,
+  CanvasChartType,
   CanvasContent,
   defaultBlock,
+  parseDelimited,
 } from "./canvasTypes";
+import CanvasChart from "./CanvasChart";
 import {
   Type,
   Square,
@@ -18,6 +21,7 @@ import {
   ArrowUp,
   ArrowDown,
   Table as TableIcon,
+  BarChart3,
   Sparkles,
   Video,
   Star,
@@ -150,6 +154,18 @@ const CanvasSlide: React.FC<Props> = ({ slide, isEditMode }) => {
     patch(id, { rows: b.rows.map((r) => [...r, ""]) }, true);
   };
 
+  const setChartType = (id: string, chartType: CanvasChartType) => {
+    patch(id, { chartType }, true);
+  };
+
+  // Import CSV / paste from Sheets (TSV) into a chart or table block's rows.
+  const importData = (id: string) => {
+    const text = window.prompt("Pegá datos CSV o desde Google Sheets (una fila por línea):") || "";
+    if (!text.trim()) return;
+    const rows = parseDelimited(text);
+    if (rows.length) patch(id, { rows }, true);
+  };
+
   const removeBlock = (id: string) => {
     commit(blocks.filter((b) => b.id !== id));
     setSelectedId(null);
@@ -205,6 +221,51 @@ const CanvasSlide: React.FC<Props> = ({ slide, isEditMode }) => {
     dragRef.current = { id: b.id, b: { ...b }, mode, handle, startX: e.clientX, startY: e.clientY };
   };
 
+  // Shared editable grid — used by table blocks and by the chart data editor.
+  const renderGrid = (b: CanvasBlock, editable: boolean) => {
+    const rows = b.rows && b.rows.length ? b.rows : [[""]];
+    return (
+      <table
+        className="h-full w-full border-collapse"
+        style={{ fontSize: b.fontSize || 18, color: b.color || "#111827", fontFamily: b.fontFamily || "var(--body-font-family,inherit)" }}
+      >
+        <tbody>
+          {rows.map((row, ri) => (
+            <tr key={ri}>
+              {row.map((cell, ci) => {
+                const isHeader = ri === 0;
+                return (
+                  <td
+                    key={ci}
+                    contentEditable={editable}
+                    suppressContentEditableWarning
+                    onBlur={(e) => {
+                      if (!editable) return;
+                      const next = rows.map((r) => [...r]);
+                      next[ri][ci] = e.currentTarget.innerText;
+                      patch(b.id, { rows: next }, true);
+                    }}
+                    style={{
+                      border: "1px solid rgba(0,0,0,0.12)",
+                      padding: "4px 8px",
+                      background: isHeader ? (b.headerFill || "#5141e5") : (b.fill || "#ffffff"),
+                      color: isHeader ? "#ffffff" : (b.color || "#111827"),
+                      fontWeight: isHeader ? 700 : 400,
+                      outline: "none",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    {cell}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  };
+
   const renderBlockInner = (b: CanvasBlock) => {
     if (b.type === "image") {
       return b.src ? (
@@ -230,46 +291,19 @@ const CanvasSlide: React.FC<Props> = ({ slide, isEditMode }) => {
       );
     }
     if (b.type === "table") {
-      const rows = b.rows && b.rows.length ? b.rows : [[""]];
+      return renderGrid(b, isEditMode && editingId === b.id);
+    }
+    if (b.type === "chart") {
+      // While editing, show the data grid; otherwise render the live SVG chart.
+      if (isEditMode && editingId === b.id) {
+        return <div className="h-full w-full overflow-auto bg-white/95 p-1">{renderGrid(b, true)}</div>;
+      }
       return (
-        <table
-          className="h-full w-full border-collapse"
-          style={{ fontSize: b.fontSize || 18, color: b.color || "#111827", fontFamily: b.fontFamily || "var(--body-font-family,inherit)" }}
-        >
-          <tbody>
-            {rows.map((row, ri) => (
-              <tr key={ri}>
-                {row.map((cell, ci) => {
-                  const isHeader = ri === 0;
-                  return (
-                    <td
-                      key={ci}
-                      contentEditable={isEditMode && editingId === b.id}
-                      suppressContentEditableWarning
-                      onBlur={(e) => {
-                        if (!(isEditMode && editingId === b.id)) return;
-                        const next = rows.map((r) => [...r]);
-                        next[ri][ci] = e.currentTarget.innerText;
-                        patch(b.id, { rows: next }, true);
-                      }}
-                      style={{
-                        border: "1px solid rgba(0,0,0,0.12)",
-                        padding: "4px 8px",
-                        background: isHeader ? (b.headerFill || "#5141e5") : (b.fill || "#ffffff"),
-                        color: isHeader ? "#ffffff" : (b.color || "#111827"),
-                        fontWeight: isHeader ? 700 : 400,
-                        outline: "none",
-                        verticalAlign: "middle",
-                      }}
-                    >
-                      {cell}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="relative h-full w-full">
+          <CanvasChart block={b} />
+          {/* Overlay so the block drags cleanly instead of Recharts capturing the pointer. */}
+          {isEditMode && <div className="absolute inset-0" style={{ cursor: "move" }} />}
+        </div>
       );
     }
     if (b.type === "embed") {
@@ -333,6 +367,7 @@ const CanvasSlide: React.FC<Props> = ({ slide, isEditMode }) => {
           <button onClick={() => addBlock("image")} className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Imagen"><ImageIcon className="h-4 w-4" /> Imagen</button>
           <button onClick={() => addBlock("icon")} className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Ícono"><Sparkles className="h-4 w-4" /> Ícono</button>
           <button onClick={() => addBlock("table")} className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Tabla"><TableIcon className="h-4 w-4" /> Tabla</button>
+          <button onClick={() => addBlock("chart")} className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Gráfico"><BarChart3 className="h-4 w-4" /> Gráfico</button>
           <button onClick={() => addBlock("embed")} className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Embed (video/web)"><Video className="h-4 w-4" /> Embed</button>
           {selected && (
             <>
@@ -345,6 +380,29 @@ const CanvasSlide: React.FC<Props> = ({ slide, isEditMode }) => {
                   <button onClick={() => setEditingId(editingId === selected.id ? null : selected.id)} className={`flex h-8 items-center gap-1 rounded-md px-2 text-xs ${editingId === selected.id ? "bg-[#5141e5]/10 text-[#5141e5]" : "text-neutral-700 hover:bg-neutral-100"}`} title="Editar celdas"><Type className="h-4 w-4" /> {editingId === selected.id ? "Listo" : "Editar"}</button>
                   <button onClick={() => tableAddRow(selected.id)} className="flex h-8 items-center justify-center rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Agregar fila">+ Fila</button>
                   <button onClick={() => tableAddCol(selected.id)} className="flex h-8 items-center justify-center rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Agregar columna">+ Col</button>
+                </>
+              )}
+              {selected.type === "chart" && (
+                <>
+                  {(["bar", "line", "area", "pie"] as CanvasChartType[]).map((ct) => (
+                    <button
+                      key={ct}
+                      onClick={() => setChartType(selected.id, ct)}
+                      className={`flex h-8 items-center justify-center rounded-md px-2 text-xs ${(selected.chartType || "bar") === ct ? "bg-[#5141e5]/10 text-[#5141e5]" : "text-neutral-700 hover:bg-neutral-100"}`}
+                      title={ct}
+                    >
+                      {ct === "bar" ? "Barras" : ct === "line" ? "Línea" : ct === "area" ? "Área" : "Torta"}
+                    </button>
+                  ))}
+                  <span className="mx-1 h-5 w-px bg-neutral-200" />
+                  <button onClick={() => setEditingId(editingId === selected.id ? null : selected.id)} className={`flex h-8 items-center gap-1 rounded-md px-2 text-xs ${editingId === selected.id ? "bg-[#5141e5]/10 text-[#5141e5]" : "text-neutral-700 hover:bg-neutral-100"}`} title="Editar datos"><TableIcon className="h-4 w-4" /> {editingId === selected.id ? "Ver gráfico" : "Datos"}</button>
+                  {editingId === selected.id && (
+                    <>
+                      <button onClick={() => tableAddRow(selected.id)} className="flex h-8 items-center justify-center rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Agregar fila">+ Fila</button>
+                      <button onClick={() => tableAddCol(selected.id)} className="flex h-8 items-center justify-center rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Agregar serie">+ Serie</button>
+                    </>
+                  )}
+                  <button onClick={() => importData(selected.id)} className="flex h-8 items-center justify-center rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Importar CSV / pegar de Sheets">CSV</button>
                 </>
               )}
               <span className="mx-1 h-5 w-px bg-neutral-200" />

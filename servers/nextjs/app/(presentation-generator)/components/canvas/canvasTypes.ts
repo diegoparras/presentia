@@ -13,7 +13,10 @@ export type CanvasBlockType =
   | "shape"
   | "icon"
   | "table"
-  | "embed";
+  | "embed"
+  | "chart";
+
+export type CanvasChartType = "bar" | "line" | "area" | "pie";
 
 export interface CanvasBlock {
   id: string;
@@ -44,9 +47,15 @@ export interface CanvasBlock {
   // icon (lucide icon name, e.g. "Star")
   icon?: string;
 
-  // table: rows[r][c] strings; first row is header
+  // table / chart share the same tabular model: rows[r][c] strings, first row is header.
+  // For a chart, column 0 is the category label and columns 1..n are numeric series.
   rows?: string[][];
   headerFill?: string;
+
+  // chart
+  chartType?: CanvasChartType;
+  showLegend?: boolean;
+  showGrid?: boolean;
 
   // embed (iframe src — YouTube, Sheets, any URL)
   embedSrc?: string;
@@ -97,5 +106,50 @@ export function defaultBlock(type: CanvasBlockType, z: number): CanvasBlock {
   if (type === "embed") {
     return { ...base, w: 560, h: 315, embedSrc: "" };
   }
+  if (type === "chart") {
+    return {
+      ...base,
+      w: 520,
+      h: 320,
+      chartType: "bar",
+      showLegend: true,
+      showGrid: true,
+      rows: [
+        ["Categoría", "Serie 1"],
+        ["Ene", "12"],
+        ["Feb", "19"],
+        ["Mar", "8"],
+        ["Abr", "15"],
+      ],
+    };
+  }
   return { ...base, w: 360, h: 240, src: "" };
+}
+
+// Parse the shared rows model into Recharts-ready data + the list of numeric series keys.
+export function rowsToChartData(rows?: string[][]): {
+  data: Array<Record<string, string | number>>;
+  series: string[];
+} {
+  if (!rows || rows.length < 2) return { data: [], series: [] };
+  const header = rows[0] || [];
+  const series = header.slice(1).map((s, i) => s?.trim() || `Serie ${i + 1}`);
+  const labelKey = header[0]?.trim() || "name";
+  const data = rows.slice(1).map((r) => {
+    const obj: Record<string, string | number> = { [labelKey]: r[0] ?? "" };
+    series.forEach((s, i) => {
+      const raw = (r[i + 1] ?? "").toString().replace(/[^0-9.\-]/g, "");
+      const n = parseFloat(raw);
+      obj[s] = Number.isFinite(n) ? n : 0;
+    });
+    return obj;
+  });
+  return { data, series };
+}
+
+// Parse pasted CSV/TSV (Google Sheets copies as TSV) into the rows model.
+export function parseDelimited(text: string): string[][] {
+  const lines = text.replace(/\r/g, "").split("\n").filter((l) => l.length > 0);
+  const delim = lines.some((l) => l.includes("\t")) ? "\t" : ",";
+  return lines.map((l) => l.split(delim).map((c) => c.trim()));
 }
