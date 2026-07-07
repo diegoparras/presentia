@@ -10,9 +10,50 @@ import {
   CanvasContent,
   defaultBlock,
 } from "./canvasTypes";
-import { Type, Square, Image as ImageIcon, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  Type,
+  Square,
+  Image as ImageIcon,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  Table as TableIcon,
+  Sparkles,
+  Video,
+  Star,
+  Heart,
+  Check,
+  Rocket,
+  Zap,
+  Target,
+  TrendingUp,
+  Award,
+  Lightbulb,
+  ShieldCheck,
+  Users,
+  Globe,
+  Clock,
+} from "lucide-react";
 
 type Props = { slide: any; isEditMode: boolean; theme?: any };
+
+// Curated icon palette for canvas icon blocks (keeps the bundle small vs. all of lucide).
+const ICON_SET: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
+  Star,
+  Heart,
+  Check,
+  Rocket,
+  Zap,
+  Target,
+  TrendingUp,
+  Award,
+  Lightbulb,
+  ShieldCheck,
+  Users,
+  Globe,
+  Clock,
+};
+const ICON_NAMES = Object.keys(ICON_SET);
 
 const HANDLES = [
   { k: "nw", cx: 0, cy: 0 },
@@ -20,6 +61,16 @@ const HANDLES = [
   { k: "sw", cx: 0, cy: 1 },
   { k: "se", cx: 1, cy: 1 },
 ];
+
+// Normalize common share URLs into embeddable iframe URLs.
+function toEmbedUrl(raw: string): string {
+  const url = raw.trim();
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{6,})/);
+  if (yt) return `https://www.youtube.com/embed/${yt[1]}`;
+  const vimeo = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+  return url;
+}
 
 function readBlocks(slide: any): CanvasBlock[] {
   const c = (slide?.content || {}) as CanvasContent;
@@ -70,8 +121,33 @@ const CanvasSlide: React.FC<Props> = ({ slide, isEditMode }) => {
       if (!url) return;
       block = { ...block, src: url };
     }
+    if (type === "embed") {
+      const url = window.prompt("URL a insertar (YouTube, Google Sheets, web…):") || "";
+      if (!url) return;
+      block = { ...block, embedSrc: toEmbedUrl(url) };
+    }
     commit([...blocks, block]);
     setSelectedId(block.id);
+  };
+
+  const cycleIcon = (id: string) => {
+    const b = blocks.find((x) => x.id === id);
+    if (!b) return;
+    const i = ICON_NAMES.indexOf(b.icon || "Star");
+    patch(id, { icon: ICON_NAMES[(i + 1) % ICON_NAMES.length] }, true);
+  };
+
+  const tableAddRow = (id: string) => {
+    const b = blocks.find((x) => x.id === id);
+    if (!b || !b.rows) return;
+    const cols = b.rows[0]?.length || 1;
+    patch(id, { rows: [...b.rows, Array(cols).fill("")] }, true);
+  };
+
+  const tableAddCol = (id: string) => {
+    const b = blocks.find((x) => x.id === id);
+    if (!b || !b.rows) return;
+    patch(id, { rows: b.rows.map((r) => [...r, ""]) }, true);
   };
 
   const removeBlock = (id: string) => {
@@ -145,6 +221,75 @@ const CanvasSlide: React.FC<Props> = ({ slide, isEditMode }) => {
         />
       );
     }
+    if (b.type === "icon") {
+      const Ico = ICON_SET[b.icon || "Star"] || Star;
+      return (
+        <div className="flex h-full w-full items-center justify-center">
+          <Ico className="h-full w-full" style={{ color: b.color || "#5141e5" }} />
+        </div>
+      );
+    }
+    if (b.type === "table") {
+      const rows = b.rows && b.rows.length ? b.rows : [[""]];
+      return (
+        <table
+          className="h-full w-full border-collapse"
+          style={{ fontSize: b.fontSize || 18, color: b.color || "#111827", fontFamily: b.fontFamily || "var(--body-font-family,inherit)" }}
+        >
+          <tbody>
+            {rows.map((row, ri) => (
+              <tr key={ri}>
+                {row.map((cell, ci) => {
+                  const isHeader = ri === 0;
+                  return (
+                    <td
+                      key={ci}
+                      contentEditable={isEditMode && editingId === b.id}
+                      suppressContentEditableWarning
+                      onBlur={(e) => {
+                        if (!(isEditMode && editingId === b.id)) return;
+                        const next = rows.map((r) => [...r]);
+                        next[ri][ci] = e.currentTarget.innerText;
+                        patch(b.id, { rows: next }, true);
+                      }}
+                      style={{
+                        border: "1px solid rgba(0,0,0,0.12)",
+                        padding: "4px 8px",
+                        background: isHeader ? (b.headerFill || "#5141e5") : (b.fill || "#ffffff"),
+                        color: isHeader ? "#ffffff" : (b.color || "#111827"),
+                        fontWeight: isHeader ? 700 : 400,
+                        outline: "none",
+                        verticalAlign: "middle",
+                      }}
+                    >
+                      {cell}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      );
+    }
+    if (b.type === "embed") {
+      if (!b.embedSrc) {
+        return <div className="flex h-full w-full items-center justify-center bg-neutral-100 text-xs text-neutral-400">embed</div>;
+      }
+      return (
+        <div className="relative h-full w-full">
+          <iframe
+            src={b.embedSrc}
+            className="h-full w-full"
+            style={{ border: 0 }}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+            allowFullScreen
+          />
+          {/* In edit mode, a transparent overlay lets the block be selected/dragged instead of the iframe eating the pointer. */}
+          {isEditMode && <div className="absolute inset-0" style={{ cursor: "move" }} />}
+        </div>
+      );
+    }
     // text
     const style: React.CSSProperties = {
       color: b.color || "var(--background-text,#111827)",
@@ -186,8 +331,22 @@ const CanvasSlide: React.FC<Props> = ({ slide, isEditMode }) => {
           <button onClick={() => addBlock("text")} className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Texto"><Type className="h-4 w-4" /> Texto</button>
           <button onClick={() => addBlock("shape")} className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Forma"><Square className="h-4 w-4" /> Forma</button>
           <button onClick={() => addBlock("image")} className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Imagen"><ImageIcon className="h-4 w-4" /> Imagen</button>
+          <button onClick={() => addBlock("icon")} className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Ícono"><Sparkles className="h-4 w-4" /> Ícono</button>
+          <button onClick={() => addBlock("table")} className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Tabla"><TableIcon className="h-4 w-4" /> Tabla</button>
+          <button onClick={() => addBlock("embed")} className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Embed (video/web)"><Video className="h-4 w-4" /> Embed</button>
           {selected && (
             <>
+              <span className="mx-1 h-5 w-px bg-neutral-200" />
+              {selected.type === "icon" && (
+                <button onClick={() => cycleIcon(selected.id)} className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Cambiar ícono"><Sparkles className="h-4 w-4" /> {selected.icon || "Star"}</button>
+              )}
+              {selected.type === "table" && (
+                <>
+                  <button onClick={() => setEditingId(editingId === selected.id ? null : selected.id)} className={`flex h-8 items-center gap-1 rounded-md px-2 text-xs ${editingId === selected.id ? "bg-[#5141e5]/10 text-[#5141e5]" : "text-neutral-700 hover:bg-neutral-100"}`} title="Editar celdas"><Type className="h-4 w-4" /> {editingId === selected.id ? "Listo" : "Editar"}</button>
+                  <button onClick={() => tableAddRow(selected.id)} className="flex h-8 items-center justify-center rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Agregar fila">+ Fila</button>
+                  <button onClick={() => tableAddCol(selected.id)} className="flex h-8 items-center justify-center rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Agregar columna">+ Col</button>
+                </>
+              )}
               <span className="mx-1 h-5 w-px bg-neutral-200" />
               <button onClick={() => restack(selected.id, 1)} className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-700 hover:bg-neutral-100" title="Traer al frente"><ArrowUp className="h-4 w-4" /></button>
               <button onClick={() => restack(selected.id, -1)} className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-700 hover:bg-neutral-100" title="Enviar al fondo"><ArrowDown className="h-4 w-4" /></button>

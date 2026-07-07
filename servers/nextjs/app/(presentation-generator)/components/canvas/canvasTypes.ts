@@ -7,7 +7,13 @@ export const CANVAS_W = 1280;
 export const CANVAS_H = 720;
 export const CANVAS_LAYOUT_ID = "canvas:free";
 
-export type CanvasBlockType = "text" | "image" | "shape";
+export type CanvasBlockType =
+  | "text"
+  | "image"
+  | "shape"
+  | "icon"
+  | "table"
+  | "embed";
 
 export interface CanvasBlock {
   id: string;
@@ -34,6 +40,16 @@ export interface CanvasBlock {
   shape?: "rect" | "ellipse";
   fill?: string;
   radius?: number;
+
+  // icon (lucide icon name, e.g. "Star")
+  icon?: string;
+
+  // table: rows[r][c] strings; first row is header
+  rows?: string[][];
+  headerFill?: string;
+
+  // embed (iframe src — YouTube, Sheets, any URL)
+  embedSrc?: string;
 }
 
 export interface CanvasContent {
@@ -58,6 +74,28 @@ export function defaultBlock(type: CanvasBlockType, z: number): CanvasBlock {
   }
   if (type === "shape") {
     return { ...base, w: 240, h: 160, shape: "rect", fill: "#5141e5", radius: 8 };
+  }
+  if (type === "icon") {
+    return { ...base, w: 96, h: 96, icon: "Star", color: "#5141e5" };
+  }
+  if (type === "table") {
+    return {
+      ...base,
+      w: 480,
+      h: 180,
+      rows: [
+        ["Columna 1", "Columna 2", "Columna 3"],
+        ["", "", ""],
+        ["", "", ""],
+      ],
+      color: "#111827",
+      fontSize: 18,
+      fill: "#ffffff",
+      headerFill: "#5141e5",
+    };
+  }
+  if (type === "embed") {
+    return { ...base, w: 560, h: 315, embedSrc: "" };
   }
   return { ...base, w: 360, h: 240, src: "" };
 }
