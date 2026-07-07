@@ -95,11 +95,14 @@ ENV APP_DATA_DIRECTORY=/app_data \
     PATH="/opt/venv/bin:${PATH}" \
     NODE_ENV=production \
     START_OLLAMA=false \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
+    FREEZE_NODE_PATH=/app/freeze-node/node_modules \
+    FREEZE_CHROME_PATH=/usr/bin/chromium
 
 RUN set -eux; \
     packages="ca-certificates curl nginx fontconfig imagemagick zstd chromium \
       findutils fonts-noto-core fonts-noto-extra fonts-noto-mono fonts-noto-cjk fonts-noto-color-emoji xdg-utils \
+      libpangoft2-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 libharfbuzz0b \
       libasound2t64 libatk-bridge2.0-0t64 libatk1.0-0t64 libatspi2.0-0t64 \
       libcairo2 libcups2t64 libdbus-1-3 libdrm2 libexpat1 libgbm1 \
       libglib2.0-0t64 libgtk-3-0t64 libnspr4 libnss3 libpango-1.0-0 \
@@ -116,6 +119,15 @@ RUN set -eux; \
 RUN find /usr/share/fonts -type f ! -iname 'Noto*' -delete \
     && find /usr/share/fonts -type d -empty -delete \
     && fc-cache -fsv
+
+# puppeteer-core for the browser-free export freeze pass (Fase 3). It ships no
+# browser of its own — it drives the chromium already installed above. Only used
+# when PRESENTIA_EXPORT_ENGINE=freeze; the default engine needs nothing here.
+RUN mkdir -p /app/freeze-node \
+    && cd /app/freeze-node \
+    && npm init -y >/dev/null 2>&1 \
+    && npm install puppeteer-core@23 --omit=optional --no-fund --no-audit --no-package-lock \
+    && npm cache clean --force || true
 
 RUN mkdir -p /app/scripts /app/servers/fastapi /app/servers/nextjs
 RUN mkdir -p /app_data/exports /app_data/images /app_data/uploads /app_data/fonts /app_data/pptx-to-html \
