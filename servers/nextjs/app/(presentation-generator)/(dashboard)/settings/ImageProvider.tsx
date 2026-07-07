@@ -315,7 +315,8 @@ const ImageProvider = ({ llmConfig, setLlmConfig }: { llmConfig: LLMConfig, setL
 
                                             // Show API key input for other providers
                                             return (
-                                                <div className=" w-[205px]">
+                                                <div className="flex flex-wrap items-start gap-4">
+                                                    <div className=" w-[205px]">
                                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                                         {provider.apiKeyFieldLabel}
                                                     </label>
@@ -340,7 +341,34 @@ const ImageProvider = ({ llmConfig, setLlmConfig }: { llmConfig: LLMConfig, setL
                                                             {showApiKey ? <Eye className='w-4 h-4 text-gray-500' /> : <EyeOff className='w-4 h-4 text-gray-500' />}
                                                         </button>
                                                     </div>
-
+                                                    </div>
+                                                    {provider.modelField && (
+                                                        <div className="w-[205px]">
+                                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                                {provider.modelFieldLabel || "Modelo"}
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                list={`image-model-suggestions-${provider.value}`}
+                                                                placeholder="p. ej. gpt-image-1.5"
+                                                                className="w-full px-4 py-2.5 h-12 outline-none border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
+                                                                value={getFieldValue(provider.modelField)}
+                                                                onChange={(e) =>
+                                                                    updateFieldValue(
+                                                                        provider.modelField as string,
+                                                                        e.target.value
+                                                                    )
+                                                                }
+                                                            />
+                                                            {provider.modelSuggestions && (
+                                                                <datalist id={`image-model-suggestions-${provider.value}`}>
+                                                                    {provider.modelSuggestions.map((m) => (
+                                                                        <option key={m} value={m} />
+                                                                    ))}
+                                                                </datalist>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })()}

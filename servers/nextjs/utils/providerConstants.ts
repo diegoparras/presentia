@@ -15,6 +15,12 @@ export interface ImageProviderOption {
   apiKeyField?: string;
   apiKeyFieldLabel?: string;
   getApiKeyUrl?: string;
+  // Provider-level entries let the user choose the model instead of hardcoding
+  // it. `modelField` is the config key the chosen model is saved under; when set
+  // the settings UI shows a model input (free text + suggestions).
+  modelField?: string;
+  modelFieldLabel?: string;
+  modelSuggestions?: string[];
 }
 
 export interface LLMProviderOption {
@@ -159,6 +165,32 @@ export const IMAGE_PROVIDERS: Record<string, ImageProviderOption> = {
     apiKeyFieldLabel: "Google API Key",
     getApiKeyUrl: "https://www.google.com/search?q=how+to+get+google+AI+studio+api+key&sxsrf=ANbL-n5_hUGaEiG9v6k9VxZWyv0mqO0Jew%3A1776339625724",
   },
+  openai: {
+    value: "openai",
+    label: "OpenAI",
+    description: "Choose any OpenAI image model",
+    icon: "/providers/openai.png",
+    requiresApiKey: true,
+    apiKeyField: "OPENAI_API_KEY",
+    apiKeyFieldLabel: "OpenAI API Key",
+    getApiKeyUrl: "https://www.google.com/search?q=how+to+get+openai+api+key&ie=UTF-8",
+    modelField: "IMAGE_MODEL",
+    modelFieldLabel: "Modelo de imagen",
+    modelSuggestions: ["gpt-image-1.5", "gpt-image-1", "dall-e-3"],
+  },
+  google: {
+    value: "google",
+    label: "Google",
+    description: "Choose any Google (Gemini) image model",
+    icon: "/providers/gemini-color.svg",
+    requiresApiKey: true,
+    apiKeyField: "GOOGLE_API_KEY",
+    apiKeyFieldLabel: "Google API Key",
+    getApiKeyUrl: "https://www.google.com/search?q=how+to+get+google+AI+studio+api+key",
+    modelField: "IMAGE_MODEL",
+    modelFieldLabel: "Modelo de imagen",
+    modelSuggestions: ["gemini-2.5-flash-image", "gemini-3-pro-image-preview"],
+  },
   comfyui: {
     value: "comfyui",
     label: "ComfyUI",
@@ -179,13 +211,15 @@ export const IMAGE_PROVIDERS: Record<string, ImageProviderOption> = {
   },
   openai_compatible: {
     value: "openai_compatible",
-    label: "Custom",
+    label: "Custom (OpenAI-compatible)",
     description:
-      "OpenAI-compatible /v1/images endpoint (LiteLLM, Azure, vLLM, etc.)",
+      "Cualquier endpoint /v1/images compatible con OpenAI (OpenRouter, LiteLLM, Azure, vLLM, local…)",
     icon: "/providers/custom.svg",
     requiresApiKey: false,
     apiKeyField: "OPENAI_COMPAT_IMAGE_BASE_URL",
-    apiKeyFieldLabel: "OpenAI-compatible base URL",
+    apiKeyFieldLabel: "Base URL (OpenAI-compatible)",
+    modelField: "OPENAI_COMPAT_IMAGE_MODEL",
+    modelFieldLabel: "Modelo",
   },
 };
 

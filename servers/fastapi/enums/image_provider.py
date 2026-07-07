@@ -11,3 +11,7 @@ class ImageProvider(Enum):
     COMFYUI = "comfyui"
     OPEN_WEBUI = "open_webui"
     OPENAI_COMPATIBLE = "openai_compatible"
+    # Provider-level entries: the concrete model is chosen by the user via
+    # IMAGE_MODEL, instead of being baked into the provider (dall-e-3, etc.).
+    OPENAI = "openai"
+    GOOGLE = "google"

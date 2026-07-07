@@ -60,6 +60,7 @@ from utils.get_env import (
     get_pexels_api_key_env,
     get_user_config_path_env,
     get_image_provider_env,
+    get_image_model_env,
     get_pixabay_api_key_env,
     get_extended_reasoning_env,
     get_web_grounding_env,
@@ -149,6 +150,7 @@ from utils.set_env import (
     set_openai_model_env,
     set_pexels_api_key_env,
     set_image_provider_env,
+    set_image_model_env,
     set_pixabay_api_key_env,
     set_web_grounding_env,
     set_web_search_provider_env,
@@ -259,6 +261,7 @@ def get_user_config():
         DEEPSEEK_API_KEY=existing_config.DEEPSEEK_API_KEY or get_deepseek_api_key_env(),
         DEEPSEEK_MODEL=existing_config.DEEPSEEK_MODEL or get_deepseek_model_env(),
         IMAGE_PROVIDER=existing_config.IMAGE_PROVIDER or get_image_provider_env(),
+        IMAGE_MODEL=existing_config.IMAGE_MODEL or get_image_model_env(),
         DISABLE_IMAGE_GENERATION=(
             existing_config.DISABLE_IMAGE_GENERATION
             if existing_config.DISABLE_IMAGE_GENERATION is not None
@@ -429,6 +432,8 @@ def update_env_with_user_config():
         set_disable_image_generation_env(str(user_config.DISABLE_IMAGE_GENERATION))
     if user_config.IMAGE_PROVIDER:
         set_image_provider_env(user_config.IMAGE_PROVIDER)
+    if user_config.IMAGE_MODEL:
+        set_image_model_env(user_config.IMAGE_MODEL)
     if user_config.PIXABAY_API_KEY:
         set_pixabay_api_key_env(user_config.PIXABAY_API_KEY)
     if user_config.PEXELS_API_KEY:

@@ -221,6 +221,10 @@ def set_image_provider_env(value):
     os.environ["IMAGE_PROVIDER"] = value
 
 
+def set_image_model_env(value):
+    os.environ["IMAGE_MODEL"] = value
+
+
 def set_pixabay_api_key_env(value):
     os.environ["PIXABAY_API_KEY"] = value
 

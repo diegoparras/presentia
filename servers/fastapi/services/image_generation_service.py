@@ -19,6 +19,7 @@ from utils.get_env import (
     get_openai_compat_image_base_url_env,
     get_openai_compat_image_api_key_env,
     get_openai_compat_image_model_env,
+    get_image_model_env,
 )
 from utils.get_env import get_pixabay_api_key_env
 from utils.get_env import get_comfyui_url_env
@@ -31,6 +32,8 @@ from utils.image_provider import (
     is_gemini_flash_selected,
     is_nanobanana_pro_selected,
     is_dalle3_selected,
+    is_openai_selected,
+    is_google_selected,
     is_comfyui_selected,
     is_open_webui_selected,
     is_openai_compatible_selected,
@@ -95,6 +98,10 @@ class ImageGenerationService:
             return self.generate_image_openai_dalle3
         elif is_gpt_image_1_5_selected():
             return self.generate_image_openai_gpt_image_1_5
+        elif is_openai_selected():
+            return self.generate_image_openai_generic
+        elif is_google_selected():
+            return self.generate_image_google_generic
         elif is_comfyui_selected():
             return self.generate_image_comfyui
         elif is_open_webui_selected():
@@ -200,6 +207,14 @@ class ImageGenerationService:
             "gpt-image-1.5",
             get_gpt_image_1_5_quality_env() or "medium",
         )
+
+    async def generate_image_openai_generic(
+        self, prompt: str, output_directory: str
+    ) -> str:
+        """OpenAI image generation with a user-chosen model (IMAGE_MODEL)."""
+        model = get_image_model_env() or "gpt-image-1.5"
+        quality = get_gpt_image_1_5_quality_env() or "medium"
+        return await self.generate_image_openai(prompt, output_directory, model, quality)
 
     async def generate_image_open_webui(
         self, prompt: str, output_directory: str
@@ -353,6 +368,13 @@ class ImageGenerationService:
         return await self._generate_image_google(
             prompt, output_directory, "gemini-3-pro-image-preview"
         )
+
+    async def generate_image_google_generic(
+        self, prompt: str, output_directory: str
+    ) -> str:
+        """Google image generation with a user-chosen model (IMAGE_MODEL)."""
+        model = get_image_model_env() or "gemini-2.5-flash-image"
+        return await self._generate_image_google(prompt, output_directory, model)
 
     async def get_image_from_pexels(
         self, prompt: str, api_key: str | None = None, limit: int = 1
