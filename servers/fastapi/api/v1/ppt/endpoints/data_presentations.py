@@ -23,6 +23,7 @@ from api.v1.ppt.endpoints.presentation import (
 from models.generate_presentation_request import GeneratePresentationRequest
 from models.presentation_and_path import PresentationPathAndEditPath
 from services.anonimal_service import AnonimalService, AnonimalError
+from services.augur_service import attach_insights
 from services.database import get_async_session
 from services.dataset_service import DatasetError, parse_dataset_file
 from services.temp_file_service import TEMP_FILE_SERVICE
@@ -49,6 +50,13 @@ async def generate_presentation_from_data(
     ),
     instructions: Optional[str] = Form(default=None),
     export_as: Literal["pptx", "pdf"] = Form(default="pptx"),
+    insights_target: Optional[str] = Form(
+        default=None,
+        description=(
+            "Column to explain with Augur (feature-importance 'drivers'). "
+            "Only used when the Augur sidecar is enabled; ignored otherwise."
+        ),
+    ),
     sql_session: AsyncSession = Depends(get_async_session),
 ):
     # 1. Persist the upload and parse it into the canonical dataset
@@ -78,6 +86,12 @@ async def generate_presentation_from_data(
                     "the dataset. Generation was stopped."
                 ),
             ) from exc
+
+    # 2b. With Augur active and a target column given, attach model-derived
+    #     insights (feature importance). Degrades gracefully: on any failure the
+    #     dataset is returned untouched and the deck is generated as before.
+    if insights_target:
+        dataset = await attach_insights(dataset, insights_target)
 
     # 3. Delegate to the standard generation flow with the dataset attached
     request = GeneratePresentationRequest(

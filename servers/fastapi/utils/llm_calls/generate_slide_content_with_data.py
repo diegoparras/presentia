@@ -18,6 +18,7 @@ from models.presentation_outline_model import SlideOutlineModel
 from utils.chart_data_guard import (
     allowed_values_from_dataset,
     build_dataset_instructions,
+    build_insights_instructions,
     build_violation_feedback,
     find_disallowed_numbers,
     schema_contains_chart,
@@ -69,7 +70,13 @@ async def get_slide_content_with_dataset_guard(
 
     table_md = dataset.get("table_md") or ""
     base_instructions = "\n\n".join(
-        part for part in [instructions, build_dataset_instructions(table_md)] if part
+        part
+        for part in [
+            instructions,
+            build_dataset_instructions(table_md),
+            build_insights_instructions(dataset),
+        ]
+        if part
     )
     allowed = allowed_values_from_dataset(dataset)
 

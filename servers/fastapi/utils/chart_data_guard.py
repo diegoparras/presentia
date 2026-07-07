@@ -40,8 +40,31 @@ def _rounded_variants(value: float) -> Set[float]:
     }
 
 
+def _augur_values(dataset: Dict[str, Any]) -> Set[float]:
+    """Verifiable figures produced by the Augur tabular model (importance
+    scores, predictions). A third allowed source next to raw cells and
+    whole-column aggregates: the model computes them, the LLM cannot invent
+    them. Absent/malformed augur data contributes nothing."""
+    allowed: Set[float] = set()
+    augur = dataset.get("augur") if isinstance(dataset, dict) else None
+    if not isinstance(augur, dict):
+        return allowed
+    for item in augur.get("importance") or []:
+        if not isinstance(item, dict):
+            continue
+        for key in ("score", "std"):
+            value = item.get(key)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                allowed |= _rounded_variants(float(value))
+    for value in augur.get("values") or []:
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            allowed |= _rounded_variants(float(value))
+    return allowed
+
+
 def allowed_values_from_dataset(dataset: Dict[str, Any]) -> Set[float]:
-    """Raw numeric cells plus whole-column aggregates, in rounded variants."""
+    """Raw numeric cells, whole-column aggregates, and any Augur-derived
+    figures, in rounded variants."""
     allowed: Set[float] = set()
     rows: List[dict] = dataset.get("rows") or []
     columns = dataset.get("columns") or []
@@ -63,6 +86,7 @@ def allowed_values_from_dataset(dataset: Dict[str, Any]) -> Set[float]:
             allowed |= _rounded_variants(float(len(numeric_values)))
 
     allowed |= _rounded_variants(float(len(rows)))
+    allowed |= _augur_values(dataset)
     return allowed
 
 
@@ -121,6 +145,29 @@ def build_dataset_instructions(table_md: str) -> str:
         "should match the dataset labels.\n\n"
         "# Dataset:\n"
         f"{table_md}\n"
+    )
+
+
+def build_insights_instructions(dataset: Dict[str, Any]) -> str:
+    """Optional instructions block exposing Augur's model-derived figures to the
+    LLM. Empty string when the dataset carries no Augur insights, so callers can
+    always concatenate it unconditionally."""
+    augur = dataset.get("augur") if isinstance(dataset, dict) else None
+    importance = (augur or {}).get("importance") if isinstance(augur, dict) else None
+    if not importance:
+        return ""
+    lines = "\n".join(
+        f"- {item.get('feature')}: {float(item.get('score', 0)):.4g}"
+        for item in importance[:15]
+        if isinstance(item, dict) and item.get("feature") is not None
+    )
+    return (
+        "# Model Insights (from Augur — verifiable, may be charted):\n"
+        "A tabular model computed the following feature-importance scores over "
+        "the dataset (higher = more predictive of the target). You MAY build a "
+        "'key drivers' chart from these exact scores; they are pre-approved data "
+        "just like the dataset values. Do NOT alter the numbers.\n"
+        f"{lines}\n"
     )
 
 

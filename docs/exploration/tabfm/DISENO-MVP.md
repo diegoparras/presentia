@@ -166,13 +166,13 @@ promesa "grounded, sin alucinar", ahora predictiva.
 
 ## 8. Alcance MVP (hitos)
 
-| Hito | Entrega |
-|---|---|
-| **M0 — Spike cerrado** | correr `bench.py` con red a HF: latencia CPU/GPU, límite de filas, tamaño de pesos. |
-| **M1 — Motor** | FastAPI + `TabFMEngine` + `/predict` `/importance` `/health`. Dockerfile. Tests. |
-| **M2 — Suite** | adaptador `AUGUR_*` en Presentia + slide "Factores clave" pasando por el guard. |
-| **M3 — App** | UI mínima (subí CSV → predicción + drivers + export). |
-| **M4 — Vertical** | envoltura de un caso concreto (cobranzas/churn) como producto vendible. |
+| Hito | Estado | Entrega |
+|---|---|---|
+| **M0 — Spike cerrado** | ⏳ bloqueado (HF egress) | correr `bench.py` con red a HF: latencia CPU/GPU, límite de filas, tamaño de pesos. |
+| **M1 — Motor** | ✅ hecho (`augur/`) | FastAPI + `TabFMEngine` + `/predict` `/importance` `/anomalies` `/validate` `/health`. Dockerfile. 15 tests verdes. |
+| **M2 — Suite** | ✅ costura hecha | adaptador `AugurService` (`AUGUR_*`, degradación elegante) + guard extendido (scores de Augur = tercera fuente permitida) + instrucciones de insights inyectadas. 18 tests. Falta el *slide/layout* dedicado "Factores clave" (necesita app corriendo + trabajo de template). |
+| **M3 — App** | pendiente | UI mínima (subí CSV → predicción + drivers + export). |
+| **M4 — Vertical** | pendiente | envoltura de un caso concreto (cobranzas/churn) como producto vendible. |
 
 ## 9. Riesgos
 

@@ -478,3 +478,24 @@ def get_anonimal_engine_env():
 
 def get_anonimal_timeout_env():
     return os.getenv("ANONIMAL_TIMEOUT")
+
+
+# Augur tabular-prediction sidecar (Suite Escriba integration, optional)
+def is_augur_enabled_env() -> bool:
+    return _is_truthy(os.getenv("AUGUR_ENABLED"))
+
+
+def get_augur_url_env():
+    return os.getenv("AUGUR_URL")
+
+
+def get_augur_token_env():
+    return os.getenv("AUGUR_TOKEN")
+
+
+def get_augur_timeout_env():
+    return os.getenv("AUGUR_TIMEOUT")
+
+
+def get_augur_n_estimators_env():
+    return os.getenv("AUGUR_N_ESTIMATORS")
