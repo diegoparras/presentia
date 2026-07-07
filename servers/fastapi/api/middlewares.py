@@ -22,6 +22,8 @@ class UserConfigEnvUpdateMiddleware(BaseHTTPMiddleware):
 class SessionAuthMiddleware(BaseHTTPMiddleware):
     _EXEMPT_PREFIXES = (
         "/api/v1/auth/",
+        # Public sharing (Fase 4): unguessable-token read-only access.
+        "/api/v1/ppt/public/",
     )
     _PROTECTED_NON_API_PATHS = {
         "/docs",

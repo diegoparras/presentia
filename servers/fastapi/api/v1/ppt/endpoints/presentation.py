@@ -226,6 +226,69 @@ async def get_presentation(
     )
 
 
+@PRESENTATION_ROUTER.post("/{id}/publish")
+async def publish_presentation(
+    id: uuid.UUID,
+    public_mode: Annotated[Literal["deck", "web"], Body(embed=True)] = "deck",
+    sql_session: AsyncSession = Depends(get_async_session),
+):
+    """Opt in to public sharing: flip is_public and mint an unguessable token."""
+    import secrets
+
+    presentation = await sql_session.get(PresentationModel, id)
+    if not presentation:
+        raise HTTPException(404, "Presentation not found")
+    if not presentation.share_token:
+        presentation.share_token = secrets.token_urlsafe(16)
+    presentation.is_public = True
+    presentation.public_mode = public_mode
+    sql_session.add(presentation)
+    await sql_session.commit()
+    return {
+        "is_public": True,
+        "share_token": presentation.share_token,
+        "public_mode": presentation.public_mode,
+    }
+
+
+@PRESENTATION_ROUTER.post("/{id}/unpublish")
+async def unpublish_presentation(
+    id: uuid.UUID, sql_session: AsyncSession = Depends(get_async_session)
+):
+    """Revoke public access (keeps the token so re-publishing reuses the link)."""
+    presentation = await sql_session.get(PresentationModel, id)
+    if not presentation:
+        raise HTTPException(404, "Presentation not found")
+    presentation.is_public = False
+    sql_session.add(presentation)
+    await sql_session.commit()
+    return {"is_public": False}
+
+
+@PRESENTATION_ROUTER.get("/public/{token}", response_model=PresentationWithSlides)
+async def get_public_presentation(
+    token: str, sql_session: AsyncSession = Depends(get_async_session)
+):
+    """Read-only fetch by share token; auth-exempt (see middlewares._EXEMPT_PREFIXES)."""
+    presentation = await sql_session.scalar(
+        select(PresentationModel).where(PresentationModel.share_token == token)
+    )
+    if not presentation or not presentation.is_public:
+        raise HTTPException(404, "Presentation not found")
+    slides_result = await sql_session.scalars(
+        select(SlideModel)
+        .where(SlideModel.presentation == presentation.id)
+        .order_by(SlideModel.index)
+    )
+    slides = list(slides_result)
+    fonts = await _resolve_presentation_fonts(presentation, slides, sql_session)
+    return PresentationWithSlides(
+        **presentation.model_dump(),
+        slides=slides,
+        fonts=fonts,
+    )
+
+
 @PRESENTATION_ROUTER.delete("/{id}", status_code=204)
 async def delete_presentation(
     id: uuid.UUID, sql_session: AsyncSession = Depends(get_async_session)
