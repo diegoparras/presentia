@@ -6,6 +6,8 @@ import SlideErrorBoundary from "../components/SlideErrorBoundary";
 import TiptapTextReplacer from "../components/TiptapTextReplacer";
 import { validate as uuidValidate } from 'uuid';
 import { getLayoutByLayoutId } from "@/app/presentation-templates";
+import CanvasSlide from "./canvas/CanvasSlide";
+import { isCanvasSlide } from "./canvas/canvasTypes";
 import { useCustomTemplateDetails } from "@/app/hooks/useCustomTemplates";
 import { updateSlideContent } from "@/store/slices/presentationGeneration";
 import { useDispatch } from "react-redux";
@@ -58,6 +60,15 @@ const V1ContentRenderComponent = ({ slide, isEditMode, theme }: { slide: any, is
             return template?.component ?? null;
         }
     }, [isCustomTemplate, customTemplate, slideLayout, slideLayoutGroup]);
+
+    // Free-canvas slides render their own block editor instead of a template.
+    if (isCanvasSlide(slideLayout)) {
+        return (
+            <SlideErrorBoundary label={`Slide ${(safeSlide.index ?? 0) + 1}`}>
+                <CanvasSlide slide={safeSlide} isEditMode={isEditMode} theme={theme} />
+            </SlideErrorBoundary>
+        );
+    }
 
     // Show loading state for custom templates
     if (isCustomTemplate && customLoading) {

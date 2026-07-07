@@ -1,0 +1,252 @@
+"use client";
+
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { useDispatch } from "react-redux";
+import { updateSlide } from "@/store/slices/presentationGeneration";
+import {
+  CANVAS_W,
+  CANVAS_H,
+  CanvasBlock,
+  CanvasContent,
+  defaultBlock,
+} from "./canvasTypes";
+import { Type, Square, Image as ImageIcon, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+
+type Props = { slide: any; isEditMode: boolean; theme?: any };
+
+const HANDLES = [
+  { k: "nw", cx: 0, cy: 0 },
+  { k: "ne", cx: 1, cy: 0 },
+  { k: "sw", cx: 0, cy: 1 },
+  { k: "se", cx: 1, cy: 1 },
+];
+
+function readBlocks(slide: any): CanvasBlock[] {
+  const c = (slide?.content || {}) as CanvasContent;
+  return Array.isArray(c.blocks) ? c.blocks : [];
+}
+
+const CanvasSlide: React.FC<Props> = ({ slide, isEditMode }) => {
+  const dispatch = useDispatch();
+  const canvasRef = useRef<HTMLDivElement | null>(null);
+  const [blocks, setBlocks] = useState<CanvasBlock[]>(() => readBlocks(slide));
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const dragRef = useRef<any>(null);
+
+  useEffect(() => {
+    setBlocks(readBlocks(slide));
+  }, [slide?.id, slide?.index]);
+
+  const background = (slide?.content?.background as string) || "var(--background-color,#ffffff)";
+
+  // px on screen -> canvas units (accounts for the SlideScale transform).
+  const scale = () => {
+    const el = canvasRef.current;
+    if (!el) return 1;
+    return (el.getBoundingClientRect().width || CANVAS_W) / CANVAS_W;
+  };
+
+  const commit = useCallback(
+    (next: CanvasBlock[]) => {
+      setBlocks(next);
+      const index = slide?.index ?? 0;
+      dispatch(updateSlide({ index, slide: { ...slide, content: { ...(slide.content || {}), blocks: next } } }));
+    },
+    [dispatch, slide]
+  );
+
+  const patch = (id: string, p: Partial<CanvasBlock>, persist = false) => {
+    const next = blocks.map((b) => (b.id === id ? { ...b, ...p } : b));
+    if (persist) commit(next);
+    else setBlocks(next);
+  };
+
+  const addBlock = (type: CanvasBlock["type"]) => {
+    const z = (blocks.reduce((m, b) => Math.max(m, b.z), 0) || 0) + 1;
+    let block = defaultBlock(type, z);
+    if (type === "image") {
+      const url = window.prompt("URL de la imagen:") || "";
+      if (!url) return;
+      block = { ...block, src: url };
+    }
+    commit([...blocks, block]);
+    setSelectedId(block.id);
+  };
+
+  const removeBlock = (id: string) => {
+    commit(blocks.filter((b) => b.id !== id));
+    setSelectedId(null);
+  };
+
+  const restack = (id: string, dir: 1 | -1) => {
+    const sorted = [...blocks].sort((a, b) => a.z - b.z);
+    const i = sorted.findIndex((b) => b.id === id);
+    const j = i + dir;
+    if (j < 0 || j >= sorted.length) return;
+    const zi = sorted[i].z, zj = sorted[j].z;
+    commit(blocks.map((b) => (b.id === sorted[i].id ? { ...b, z: zj } : b.id === sorted[j].id ? { ...b, z: zi } : b)));
+  };
+
+  // Drag / resize via pointer events on window.
+  useEffect(() => {
+    if (!isEditMode) return;
+    const onMove = (e: PointerEvent) => {
+      const d = dragRef.current;
+      if (!d) return;
+      const s = scale();
+      const dx = (e.clientX - d.startX) / s;
+      const dy = (e.clientY - d.startY) / s;
+      if (d.mode === "move") {
+        patch(d.id, { x: Math.round(d.b.x + dx), y: Math.round(d.b.y + dy) });
+      } else {
+        let { x, y, w, h } = d.b;
+        if (d.handle.includes("e")) w = Math.max(24, d.b.w + dx);
+        if (d.handle.includes("s")) h = Math.max(24, d.b.h + dy);
+        if (d.handle.includes("w")) { w = Math.max(24, d.b.w - dx); x = d.b.x + dx; }
+        if (d.handle.includes("n")) { h = Math.max(24, d.b.h - dy); y = d.b.y + dy; }
+        patch(d.id, { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) });
+      }
+    };
+    const onUp = () => {
+      if (dragRef.current) {
+        dragRef.current = null;
+        commit(blocks);
+      }
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [isEditMode, blocks]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const startDrag = (e: React.PointerEvent, b: CanvasBlock, mode: "move" | "resize", handle = "") => {
+    if (!isEditMode || editingId === b.id) return;
+    e.stopPropagation();
+    setSelectedId(b.id);
+    dragRef.current = { id: b.id, b: { ...b }, mode, handle, startX: e.clientX, startY: e.clientY };
+  };
+
+  const renderBlockInner = (b: CanvasBlock) => {
+    if (b.type === "image") {
+      return b.src ? (
+        <img src={b.src} alt="" className="h-full w-full object-cover" draggable={false} />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-neutral-100 text-xs text-neutral-400">imagen</div>
+      );
+    }
+    if (b.type === "shape") {
+      return (
+        <div
+          className="h-full w-full"
+          style={{ background: b.fill || "#5141e5", borderRadius: b.shape === "ellipse" ? "50%" : (b.radius ?? 8) }}
+        />
+      );
+    }
+    // text
+    const style: React.CSSProperties = {
+      color: b.color || "var(--background-text,#111827)",
+      fontSize: b.fontSize || 32,
+      fontWeight: b.bold ? 700 : 400,
+      textAlign: b.align || "left",
+      fontFamily: b.fontFamily || "var(--body-font-family,inherit)",
+      width: "100%",
+      height: "100%",
+      outline: "none",
+      overflow: "hidden",
+    };
+    if (isEditMode && editingId === b.id) {
+      return (
+        <div
+          contentEditable
+          suppressContentEditableWarning
+          style={style}
+          onBlur={(e) => {
+            patch(b.id, { text: e.currentTarget.innerText }, true);
+            setEditingId(null);
+          }}
+          ref={(el) => { el?.focus(); }}
+        >
+          {b.text}
+        </div>
+      );
+    }
+    return <div style={style}>{b.text}</div>;
+  };
+
+  const selected = blocks.find((b) => b.id === selectedId) || null;
+
+  return (
+    <div className="relative h-[720px] w-[1280px] overflow-hidden" style={{ background }}>
+      {/* Editing toolbar */}
+      {isEditMode && (
+        <div className="absolute left-3 top-3 z-[60] flex items-center gap-1 rounded-xl border border-neutral-200 bg-white p-1 shadow-lg">
+          <button onClick={() => addBlock("text")} className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Texto"><Type className="h-4 w-4" /> Texto</button>
+          <button onClick={() => addBlock("shape")} className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Forma"><Square className="h-4 w-4" /> Forma</button>
+          <button onClick={() => addBlock("image")} className="flex h-8 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Imagen"><ImageIcon className="h-4 w-4" /> Imagen</button>
+          {selected && (
+            <>
+              <span className="mx-1 h-5 w-px bg-neutral-200" />
+              <button onClick={() => restack(selected.id, 1)} className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-700 hover:bg-neutral-100" title="Traer al frente"><ArrowUp className="h-4 w-4" /></button>
+              <button onClick={() => restack(selected.id, -1)} className="flex h-8 w-8 items-center justify-center rounded-md text-neutral-700 hover:bg-neutral-100" title="Enviar al fondo"><ArrowDown className="h-4 w-4" /></button>
+              <button onClick={() => removeBlock(selected.id)} className="flex h-8 w-8 items-center justify-center rounded-md text-red-500 hover:bg-red-50" title="Borrar"><Trash2 className="h-4 w-4" /></button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Canvas surface */}
+      <div ref={canvasRef} className="absolute inset-0" onPointerDown={() => isEditMode && setSelectedId(null)}>
+        {[...blocks].sort((a, b) => a.z - b.z).map((b) => (
+          <div
+            key={b.id}
+            onPointerDown={(e) => startDrag(e, b, "move")}
+            onDoubleClick={(e) => { if (isEditMode && b.type === "text") { e.stopPropagation(); setEditingId(b.id); } }}
+            style={{
+              position: "absolute",
+              left: b.x,
+              top: b.y,
+              width: b.w,
+              height: b.h,
+              transform: b.rotation ? `rotate(${b.rotation}deg)` : undefined,
+              cursor: isEditMode ? (editingId === b.id ? "text" : "move") : "default",
+              outline: isEditMode && selectedId === b.id ? "2px solid #5141e5" : "none",
+            }}
+          >
+            {renderBlockInner(b)}
+            {isEditMode && selectedId === b.id && editingId !== b.id &&
+              HANDLES.map((h) => (
+                <div
+                  key={h.k}
+                  onPointerDown={(e) => startDrag(e, b, "resize", h.k)}
+                  style={{
+                    position: "absolute",
+                    left: h.cx ? "100%" : 0,
+                    top: h.cy ? "100%" : 0,
+                    width: 12,
+                    height: 12,
+                    marginLeft: -6,
+                    marginTop: -6,
+                    background: "#fff",
+                    border: "2px solid #5141e5",
+                    borderRadius: 3,
+                    cursor: `${h.k}-resize`,
+                  }}
+                />
+              ))}
+          </div>
+        ))}
+      </div>
+
+      {isEditMode && blocks.length === 0 && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-neutral-400">
+          Canvas vacío — agregá bloques desde la barra
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default CanvasSlide;

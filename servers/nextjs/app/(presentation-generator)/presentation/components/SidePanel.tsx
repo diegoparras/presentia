@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
-import { Plus } from "lucide-react";
+import { Plus, LayoutTemplate } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import {
@@ -62,6 +62,27 @@ const SidePanel = ({
   const handleAddSlideClick = () => {
     if (!presentationData?.slides?.length || isStreaming) return;
     setShowNewSlideSelection(true);
+  };
+
+  // Insert a blank free-canvas slide (block editor) at the end.
+  const handleAddCanvas = () => {
+    if (!presentationData?.slides || isStreaming) return;
+    const id =
+      typeof crypto !== "undefined" && (crypto as any).randomUUID
+        ? (crypto as any).randomUUID().replace(/-/g, "")
+        : `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`.slice(0, 32).padEnd(32, "0");
+    const newSlide: any = {
+      id,
+      layout: "canvas:free",
+      layout_group: "canvas",
+      content: { blocks: [], background: "#ffffff" },
+      index: presentationData.slides.length,
+      speaker_note: "",
+      properties: {},
+    };
+    const slides = [...presentationData.slides, newSlide].map((s: any, i: number) => ({ ...s, index: i }));
+    dispatch(setPresentationData({ ...presentationData, slides }));
+    onSlideClick(slides.length - 1);
   };
 
   const sensors = useSensors(
@@ -208,16 +229,27 @@ const SidePanel = ({
           </DndContext>
           <Separator orientation="horizontal" className=" " />
 
-          <button
-            type="button"
-            onClick={handleAddSlideClick}
-            className="py-4 gap-2 flex flex-col duration-300 items-center justify-center rounded-lg cursor-pointer mx-auto"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-normal text-[#000000]">
-              {t("ed.side.addSlide")}
-            </span>
-          </button>
+          <div className="flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={handleAddSlideClick}
+              className="py-4 gap-2 flex flex-col duration-300 items-center justify-center rounded-lg cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-normal text-[#000000]">
+                {t("ed.side.addSlide")}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={handleAddCanvas}
+              title="Slide en blanco con editor de bloques libre"
+              className="py-4 gap-2 flex flex-col duration-300 items-center justify-center rounded-lg cursor-pointer text-[#5141e5]"
+            >
+              <LayoutTemplate className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-normal">Canvas</span>
+            </button>
+          </div>
         </div>
       </div>
       {newSlideModal}
