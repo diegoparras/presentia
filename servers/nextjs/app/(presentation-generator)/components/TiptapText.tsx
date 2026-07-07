@@ -14,6 +14,7 @@ import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
 import { FontSize } from "./fontSizeExtension";
 import ThemeApi from "../services/api/theme";
+import { getApiUrl } from "@/utils/api";
 import {
   Bold,
   Italic,
@@ -27,7 +28,19 @@ import {
   Subscript as SubIcon,
   Superscript as SupIcon,
   Upload,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
+
+const AI_ACTIONS: { key: string; label: string; needsTarget?: boolean }[] = [
+  { key: "improve", label: "Mejorar redacción" },
+  { key: "shorten", label: "Acortar" },
+  { key: "expand", label: "Expandir" },
+  { key: "fix", label: "Corregir ortografía" },
+  { key: "professional", label: "Tono profesional" },
+  { key: "casual", label: "Tono casual" },
+  { key: "translate", label: "Traducir a…", needsTarget: true },
+];
 
 interface TiptapTextProps {
   content: string;
@@ -95,8 +108,9 @@ const TiptapText: React.FC<TiptapTextProps> = ({
 }) => {
   const [themeColors, setThemeColors] = useState<string[]>([]);
   const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
-  const [openMenu, setOpenMenu] = useState<null | "size" | "color" | "font">(null);
+  const [openMenu, setOpenMenu] = useState<null | "size" | "color" | "font" | "ai">(null);
   const [uploading, setUploading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -189,6 +203,35 @@ const TiptapText: React.FC<TiptapTextProps> = ({
     setOpenMenu(null);
   };
 
+  const aiEdit = async (action: string, needsTarget?: boolean) => {
+    const { from, to } = editor.state.selection;
+    const text = editor.state.doc.textBetween(from, to, " ").trim();
+    if (!text) return;
+    let target = "";
+    if (needsTarget) {
+      target = window.prompt("¿A qué idioma traducir?", "English") || "";
+      if (!target) return;
+    }
+    setOpenMenu(null);
+    setAiLoading(true);
+    try {
+      const res = await fetch(getApiUrl("/api/v1/ppt/ai/edit-text"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, action, target }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const data = await res.json();
+      if (data?.text) {
+        editor.chain().focus().insertContentAt({ from, to }, data.text).run();
+      }
+    } catch {
+      /* leave selection untouched on failure */
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const setLink = () => {
     const prev = editor.getAttributes("link").href || "";
     const url = window.prompt("URL del enlace (vacío para quitar):", prev);
@@ -223,6 +266,33 @@ const TiptapText: React.FC<TiptapTextProps> = ({
 
       <BubbleMenu editor={editor} className="z-50" tippyOptions={{ duration: 100, maxWidth: "none" }}>
         <div className="flex items-center gap-0.5 rounded-xl border border-neutral-200 bg-white p-1 text-black shadow-xl">
+          {/* AI */}
+          <div className="relative">
+            <button
+              onClick={() => setOpenMenu(openMenu === "ai" ? null : "ai")}
+              disabled={aiLoading}
+              className="flex h-7 items-center gap-1 rounded-md bg-gradient-to-r from-[#5141e5] to-[#8b5cf6] px-2 text-xs font-medium text-white hover:opacity-90"
+              title="Editar con IA"
+            >
+              {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} IA
+            </button>
+            {openMenu === "ai" && (
+              <div className="absolute left-0 top-8 z-50 w-48 rounded-lg border border-neutral-200 bg-white p-1 shadow-xl">
+                {AI_ACTIONS.map((a) => (
+                  <button
+                    key={a.key}
+                    onClick={() => aiEdit(a.key, a.needsTarget)}
+                    className="block w-full rounded px-2 py-1.5 text-left text-sm text-neutral-700 hover:bg-[#5141e5]/5 hover:text-[#5141e5]"
+                  >
+                    {a.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <span className="mx-1 h-5 w-px bg-neutral-200" />
+
           <button onClick={() => editor.chain().focus().toggleBold().run()} className={btn(editor.isActive("bold"))} title="Negrita">
             <Bold className="h-4 w-4" />
           </button>

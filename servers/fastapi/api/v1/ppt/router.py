@@ -23,6 +23,7 @@ from api.v1.ppt.endpoints.chat import CHAT_ROUTER
 from api.v1.ppt.endpoints.pptx_slides import PPTX_FONTS_ROUTER
 from api.v1.ppt.endpoints.theme import THEMES_ROUTER
 from api.v1.ppt.endpoints.theme_generate import THEME_ROUTER
+from api.v1.ppt.endpoints.ai_edit import AI_ROUTER
 from templates.router import TEMPLATE_ROUTER
 
 
@@ -46,6 +47,7 @@ API_V1_PPT_ROUTER.include_router(OLLAMA_ROUTER)
 API_V1_PPT_ROUTER.include_router(PDF_SLIDES_ROUTER)
 API_V1_PPT_ROUTER.include_router(OPENAI_ROUTER)
 API_V1_PPT_ROUTER.include_router(ANTHROPIC_ROUTER)
+API_V1_PPT_ROUTER.include_router(AI_ROUTER)
 API_V1_PPT_ROUTER.include_router(GOOGLE_ROUTER)
 API_V1_PPT_ROUTER.include_router(CODEX_AUTH_ROUTER)
 API_V1_PPT_ROUTER.include_router(PPTX_FONTS_ROUTER)
