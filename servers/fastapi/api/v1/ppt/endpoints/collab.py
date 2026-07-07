@@ -27,11 +27,14 @@ from fastapi import (
     WebSocketDisconnect,
 )
 from pydantic import BaseModel
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from models.sql.comment import CommentModel
 from models.sql.presentation import PresentationModel
+from models.sql.presentation_version import PresentationVersionModel
+from models.sql.slide import SlideModel
 from services.database import get_async_session, async_session_maker
 
 LOGGER = logging.getLogger(__name__)
@@ -202,6 +205,191 @@ async def delete_comment(
     await ROOMS.broadcast(
         presentation_id,
         {"type": "comment_deleted", "id": str(comment_id)},
+    )
+    return {"ok": True}
+
+
+# --------------------------------------------------------------------------- #
+# REST: version history (snapshots)
+# --------------------------------------------------------------------------- #
+class VersionCreate(BaseModel):
+    presentation_id: uuid.UUID
+    label: Optional[str] = None
+    author: str = "Anónimo"
+
+
+class VersionMeta(BaseModel):
+    id: uuid.UUID
+    presentation: uuid.UUID
+    label: Optional[str]
+    author: str
+    n_slides: int
+    created_at: datetime
+
+
+def _snapshot_slides(slides: list[SlideModel]) -> list[dict]:
+    return [
+        {
+            "layout_group": s.layout_group,
+            "layout": s.layout,
+            "index": s.index,
+            "content": s.content,
+            "html_content": s.html_content,
+            "speaker_note": s.speaker_note,
+            "properties": s.properties,
+        }
+        for s in slides
+    ]
+
+
+@COLLAB_ROUTER.post("/versions", response_model=VersionMeta)
+async def create_version(
+    data: Annotated[VersionCreate, Body()],
+    sql_session: AsyncSession = Depends(get_async_session),
+):
+    """Snapshot the current slides + title/theme of a presentation."""
+    presentation = await sql_session.get(PresentationModel, data.presentation_id)
+    if not presentation:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+    slides = list(
+        await sql_session.scalars(
+            select(SlideModel)
+            .where(SlideModel.presentation == data.presentation_id)
+            .order_by(SlideModel.index)
+        )
+    )
+    snapshot = {
+        "title": presentation.title,
+        "theme": presentation.theme,
+        "slides": _snapshot_slides(slides),
+    }
+    version = PresentationVersionModel(
+        presentation=data.presentation_id,
+        label=(data.label or "").strip()[:120] or None,
+        author=(data.author or "Anónimo").strip()[:120] or "Anónimo",
+        data=snapshot,
+    )
+    sql_session.add(version)
+    await sql_session.commit()
+    await sql_session.refresh(version)
+    meta = VersionMeta(
+        id=version.id,
+        presentation=version.presentation,
+        label=version.label,
+        author=version.author,
+        n_slides=len(slides),
+        created_at=version.created_at,
+    )
+    await ROOMS.broadcast(
+        str(data.presentation_id),
+        {"type": "version_saved", "version": meta.model_dump(mode="json")},
+    )
+    return meta
+
+
+@COLLAB_ROUTER.get("/versions/{presentation_id}", response_model=list[VersionMeta])
+async def list_versions(
+    presentation_id: uuid.UUID = Path(...),
+    sql_session: AsyncSession = Depends(get_async_session),
+):
+    rows = list(
+        await sql_session.scalars(
+            select(PresentationVersionModel)
+            .where(PresentationVersionModel.presentation == presentation_id)
+            .order_by(PresentationVersionModel.created_at.desc())
+        )
+    )
+    return [
+        VersionMeta(
+            id=v.id,
+            presentation=v.presentation,
+            label=v.label,
+            author=v.author,
+            n_slides=len((v.data or {}).get("slides", [])),
+            created_at=v.created_at,
+        )
+        for v in rows
+    ]
+
+
+@COLLAB_ROUTER.post("/versions/{version_id}/restore")
+async def restore_version(
+    version_id: uuid.UUID = Path(...),
+    sql_session: AsyncSession = Depends(get_async_session),
+):
+    """Rebuild the presentation's slides from a snapshot. A pre-restore snapshot is
+    taken first so a restore is itself undoable."""
+    version = await sql_session.get(PresentationVersionModel, version_id)
+    if not version:
+        raise HTTPException(status_code=404, detail="Version not found")
+    pid = version.presentation
+    presentation = await sql_session.get(PresentationModel, pid)
+    if not presentation:
+        raise HTTPException(status_code=404, detail="Presentation not found")
+
+    # Snapshot current state before overwriting (safety net).
+    current = list(
+        await sql_session.scalars(
+            select(SlideModel).where(SlideModel.presentation == pid).order_by(SlideModel.index)
+        )
+    )
+    sql_session.add(
+        PresentationVersionModel(
+            presentation=pid,
+            label="Auto (antes de restaurar)",
+            author="Sistema",
+            data={
+                "title": presentation.title,
+                "theme": presentation.theme,
+                "slides": _snapshot_slides(current),
+            },
+        )
+    )
+
+    # Replace slides with the snapshot's.
+    await sql_session.execute(delete(SlideModel).where(SlideModel.presentation == pid))
+    snap = version.data or {}
+    for s in snap.get("slides", []):
+        sql_session.add(
+            SlideModel(
+                id=uuid.uuid4(),
+                presentation=pid,
+                layout_group=s.get("layout_group"),
+                layout=s.get("layout"),
+                index=s.get("index", 0),
+                content=s.get("content") or {},
+                html_content=s.get("html_content"),
+                speaker_note=s.get("speaker_note"),
+                properties=s.get("properties"),
+            )
+        )
+    if snap.get("title") is not None:
+        presentation.title = snap["title"]
+    if snap.get("theme") is not None:
+        presentation.theme = snap["theme"]
+    sql_session.add(presentation)
+    await sql_session.commit()
+
+    await ROOMS.broadcast(
+        str(pid),
+        {"type": "doc_updated", "reason": "restore", "version_id": str(version_id)},
+    )
+    return {"ok": True, "presentation_id": str(pid)}
+
+
+# --------------------------------------------------------------------------- #
+# REST: notify document updated (live-sync banner for peers)
+# --------------------------------------------------------------------------- #
+@COLLAB_ROUTER.post("/notify-updated/{presentation_id}")
+async def notify_updated(
+    presentation_id: uuid.UUID = Path(...),
+    author: str = Body("Alguien", embed=True),
+):
+    """Tell peers in the room that the deck was saved, so their editor can offer a
+    non-destructive refresh instead of silently diverging."""
+    await ROOMS.broadcast(
+        str(presentation_id),
+        {"type": "doc_updated", "reason": "save", "author": author},
     )
     return {"ok": True}
 

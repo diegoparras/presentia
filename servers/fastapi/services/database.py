@@ -21,6 +21,7 @@ from models.sql.template import TemplateModel
 from models.sql.template_create_info import TemplateCreateInfoModel
 from models.sql.slide import SlideModel
 from models.sql.comment import CommentModel
+from models.sql.presentation_version import PresentationVersionModel
 from models.sql.webhook_subscription import WebhookSubscription
 from utils.get_env import get_migrate_database_on_startup_env
 from utils.db_utils import get_database_url_and_connect_args, get_pool_kwargs
@@ -64,6 +65,7 @@ async def create_db_and_tables():
                         AsyncPresentationGenerationTaskModel.__table__,
                         OllamaPullStatus.__table__,
                         CommentModel.__table__,
+                        PresentationVersionModel.__table__,
                     ],
                 )
             )

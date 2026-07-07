@@ -20,6 +20,21 @@ export interface Comment {
   created_at: string;
 }
 
+export interface Version {
+  id: string;
+  presentation: string;
+  label: string | null;
+  author: string;
+  n_slides: number;
+  created_at: string;
+}
+
+export interface PeerUpdate {
+  reason: string;
+  author?: string;
+  at: number;
+}
+
 const COLORS = [
   "#5141e5", "#e5417a", "#41b5e5", "#41e58a", "#e5a641",
   "#a641e5", "#e56b41", "#41e5d0",
@@ -60,6 +75,8 @@ export function useCollab(presentationId: string | undefined) {
   const identity = useMemo(loadIdentity, []);
   const [users, setUsers] = useState<CollabUser[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [versions, setVersions] = useState<Version[]>([]);
+  const [peerUpdate, setPeerUpdate] = useState<PeerUpdate | null>(null);
   const [connected, setConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -74,10 +91,22 @@ export function useCollab(presentationId: string | undefined) {
     } catch {}
   }, [presentationId]);
 
-  // Initial comment load
+  const refreshVersions = useCallback(async () => {
+    if (!presentationId) return;
+    try {
+      const res = await fetch(
+        getApiUrl(`/api/v1/ppt/collab/versions/${presentationId}`),
+        { headers: getHeader() }
+      );
+      if (res.ok) setVersions(await res.json());
+    } catch {}
+  }, [presentationId]);
+
+  // Initial load
   useEffect(() => {
     refreshComments();
-  }, [refreshComments]);
+    refreshVersions();
+  }, [refreshComments, refreshVersions]);
 
   // WebSocket presence + live events
   useEffect(() => {
@@ -120,6 +149,18 @@ export function useCollab(presentationId: string | undefined) {
             break;
           case "comment_deleted":
             setComments((prev) => prev.filter((c) => c.id !== msg.id));
+            break;
+          case "version_saved":
+            setVersions((prev) =>
+              prev.some((v) => v.id === msg.version.id) ? prev : [msg.version, ...prev]
+            );
+            break;
+          case "doc_updated":
+            // Another client saved/restored. Don't clobber local edits — surface
+            // a banner and let the user refresh explicitly.
+            if (msg.from?.id !== identity.id) {
+              setPeerUpdate({ reason: msg.reason || "save", author: msg.author, at: Date.now() });
+            }
             break;
         }
       };
@@ -185,6 +226,54 @@ export function useCollab(presentationId: string | undefined) {
     } catch {}
   }, []);
 
+  const saveVersion = useCallback(
+    async (label?: string) => {
+      if (!presentationId) return;
+      try {
+        const res = await fetch(getApiUrl(`/api/v1/ppt/collab/versions`), {
+          method: "POST",
+          headers: getHeader(),
+          body: JSON.stringify({
+            presentation_id: presentationId,
+            label: label || null,
+            author: identity.name,
+          }),
+        });
+        if (res.ok) {
+          const v = await res.json();
+          setVersions((prev) => (prev.some((x) => x.id === v.id) ? prev : [v, ...prev]));
+        }
+      } catch {}
+    },
+    [presentationId, identity]
+  );
+
+  const restoreVersion = useCallback(async (versionId: string) => {
+    try {
+      const res = await fetch(
+        getApiUrl(`/api/v1/ppt/collab/versions/${versionId}/restore`),
+        { method: "POST", headers: getHeader() }
+      );
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // Tell peers this client just saved (so their editor offers a refresh).
+  const notifyUpdated = useCallback(async () => {
+    if (!presentationId) return;
+    try {
+      await fetch(getApiUrl(`/api/v1/ppt/collab/notify-updated/${presentationId}`), {
+        method: "POST",
+        headers: getHeader(),
+        body: JSON.stringify({ author: identity.name }),
+      });
+    } catch {}
+  }, [presentationId, identity]);
+
+  const dismissPeerUpdate = useCallback(() => setPeerUpdate(null), []);
+
   const setName = useCallback((name: string) => {
     const next = { ...identity, name };
     try {
@@ -197,11 +286,18 @@ export function useCollab(presentationId: string | undefined) {
     identity,
     users,
     comments,
+    versions,
     connected,
+    peerUpdate,
     addComment,
     resolveComment,
     deleteComment,
     refreshComments,
+    refreshVersions,
+    saveVersion,
+    restoreVersion,
+    notifyUpdated,
+    dismissPeerUpdate,
     setName,
   };
 }
