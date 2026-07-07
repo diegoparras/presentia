@@ -98,6 +98,10 @@ def is_together_api_base_url(url: str) -> bool:
     return "api.together.ai" in normalized or "api.together.xyz" in normalized
 
 
+def is_openrouter_base_url(url: str) -> bool:
+    return "openrouter.ai" in normalize_openai_compatible_base_url(url).lower()
+
+
 def _model_ids_from_openai_compatible_payload(data: object) -> list[str]:
     if isinstance(data, list):
         items = data
@@ -138,10 +142,30 @@ async def list_together_models(url: str, api_key: str) -> list[str]:
     return _model_ids_from_openai_compatible_payload(data)
 
 
+async def list_openrouter_models(url: str, api_key: str) -> list[str]:
+    """OpenRouter's /models is public JSON, but the OpenAI SDK's models.list()
+    can hit their web frontend and get HTML back. Fetch it directly and force a
+    JSON response via the Accept header."""
+    base_url = normalize_openai_compatible_base_url(url)
+    models_url = f"{base_url.rstrip('/')}/models"
+    headers = {"Accept": "application/json"}
+    if (api_key or "").strip():
+        headers["Authorization"] = f"Bearer {api_key.strip()}"
+
+    async with aiohttp.ClientSession(headers=headers) as session:
+        async with session.get(models_url) as response:
+            await _raise_for_model_response(response, provider="OpenRouter")
+            data = await response.json()
+
+    return _model_ids_from_openai_compatible_payload(data)
+
+
 async def list_available_openai_compatible_models(url: str, api_key: str) -> list[str]:
     url = normalize_openai_compatible_base_url(url)
     if is_together_api_base_url(url):
         return await list_together_models(url, api_key)
+    if is_openrouter_base_url(url):
+        return await list_openrouter_models(url, api_key)
 
     # Local LiteLLM / OpenAI-compatible proxies often omit auth; SDK rejects a blank key.
     effective_key = (api_key or "").strip() or "EMPTY"

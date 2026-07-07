@@ -880,6 +880,53 @@ class ImageGenerationService:
                     else:
                         raise Exception(f"Failed to download image: {response.status}")
 
+    async def _generate_image_via_chat_modality(
+        self, base_url: str, api_key: str, model: str, prompt: str, output_directory: str
+    ) -> str:
+        """Generate an image through the chat-completions API with an image output
+        modality. Some OpenAI-compatible providers (notably OpenRouter) do not
+        serve /v1/images/generations; they return the image inside the chat
+        response (`choices[].message.images[].image_url.url`, usually a data URI)."""
+        client = AsyncOpenAI(base_url=base_url, api_key=api_key)
+        completion = await client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            extra_body={"modalities": ["image", "text"]},
+        )
+        data = completion.model_dump()
+        urls: list[str] = []
+        for choice in data.get("choices", []) or []:
+            message = choice.get("message") or {}
+            for img in message.get("images") or []:
+                if isinstance(img, dict):
+                    url = (img.get("image_url") or {}).get("url")
+                    if url:
+                        urls.append(url)
+        if not urls:
+            raise Exception(
+                "The provider returned no image in the chat response. Make sure the "
+                "model supports image output (e.g. an OpenRouter image model)."
+            )
+
+        image_url = urls[0]
+        image_path = os.path.join(output_directory, f"{uuid.uuid4()}.png")
+        if image_url.startswith("data:"):
+            _, _, b64 = image_url.partition(",")
+            with open(image_path, "wb") as f:
+                f.write(base64.b64decode(b64))
+        else:
+            async with aiohttp.ClientSession(trust_env=True) as session:
+                dl_resp = await session.get(
+                    image_url, timeout=aiohttp.ClientTimeout(total=120)
+                )
+                if dl_resp.status != 200:
+                    raise Exception(
+                        f"Failed to download generated image: {dl_resp.status}"
+                    )
+                with open(image_path, "wb") as f:
+                    f.write(await dl_resp.read())
+        return image_path
+
     async def generate_image_openai_compatible(
         self, prompt: str, output_directory: str
     ) -> str:
@@ -890,6 +937,13 @@ class ImageGenerationService:
         if not base_url or not api_key or not model:
             raise ValueError(
                 "OPENAI_COMPAT_IMAGE_BASE_URL, OPENAI_COMPAT_IMAGE_API_KEY and OPENAI_COMPAT_IMAGE_MODEL must be set."
+            )
+
+        # OpenRouter (and similar) generate images via chat completions with an
+        # image modality, not the /v1/images/generations endpoint.
+        if "openrouter.ai" in base_url.lower():
+            return await self._generate_image_via_chat_modality(
+                base_url, api_key, model, prompt, output_directory
             )
 
         from urllib.parse import urlparse
