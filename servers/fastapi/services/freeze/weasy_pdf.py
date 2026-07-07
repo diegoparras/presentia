@@ -14,6 +14,11 @@ from typing import Any
 
 from weasyprint import HTML
 
+try:
+    from .fonts import embed_font_faces
+except ImportError:  # run as a plain script
+    from fonts import embed_font_faces
+
 SLIDE_W = 1280
 SLIDE_H = 720
 
@@ -27,9 +32,22 @@ html, body {{ width: {SLIDE_W}px; height: {SLIDE_H}px; }}
 """
 
 
-def build_pdf(slides: list[dict[str, Any]], out_path: str) -> None:
+def _used_families(slides: list[dict[str, Any]]) -> set[str]:
+    fams: set[str] = set()
+    for s in slides:
+        for b in s["scene"]["blocks"]:
+            if b.get("type") == "text" and b.get("fontFamily"):
+                fams.add(b["fontFamily"])
+    return fams
+
+
+def build_pdf(slides: list[dict[str, Any]], out_path: str, embed_fonts: bool = True) -> None:
     body = "".join(s["html"] for s in slides)
-    doc = f"<!doctype html><html><head><meta charset='utf-8'><style>{PAGE_CSS}</style></head><body>{body}</body></html>"
+    font_css = embed_font_faces(_used_families(slides)) if embed_fonts else ""
+    doc = (
+        "<!doctype html><html><head><meta charset='utf-8'>"
+        f"<style>{font_css}</style><style>{PAGE_CSS}</style></head><body>{body}</body></html>"
+    )
     HTML(string=doc, base_url=".").write_pdf(out_path)
 
 
