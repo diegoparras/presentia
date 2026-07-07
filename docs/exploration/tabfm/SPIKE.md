@@ -66,14 +66,21 @@ Estos son los datos que definen el **tamaño de problema** que el producto puede
    sostiene con el modelo real.
 4. **`n_estimators` configurable** es un buen parámetro de producto: "rápido" vs "preciso".
 
-## Cómo completar el spike
+## Cómo cerrar M0 (un solo comando con red a HuggingFace)
 
 ```bash
 cd docs/exploration/tabfm
-pip install -e /ruta/a/tabfm[pytorch]     # o [jax]
-python bench.py                            # mide load, latencia por tamaño, R2/acc, importancia
+pip install "tabfm[pytorch] @ git+https://github.com/google-research/tabfm.git"
+
+python bench.py          # → escribe RESULTS.md (latencia, acc/R²/MAE, importancia, límite de features)
+python verify_engine.py  # ejercita el TabFMEngine real de Augur end-to-end (predict/importance/validate)
 ```
 
-`bench.py` reporta: tiempo de carga + tamaño de pesos en disco, latencia `fit`/`predict`
-por (filas × features), accuracy/R² contra datos sintéticos, y costo de
-`permutation_importance`.
+- **`bench.py`** reporta: carga + tamaño de pesos en disco, latencia `fit`/`predict`
+  por (filas × features), accuracy/R²/MAE, costo de `permutation_importance`, y una
+  **sonda del límite de features** (default `max_num_features=500`). Deja un `RESULTS.md`
+  que se puede pegar de vuelta para cerrar M0.
+- **`verify_engine.py`** confirma el motor real de Augur y, de paso, el **manejo de
+  shape del OOF en `validate()`** (el único camino que no se pudo verificar sin red).
+- **`fetch_weights.sh`** (Opción B): pre-descarga los pesos donde haya red y los deja en
+  `HF_HOME` para montarlos en un entorno cerrado o en el volumen `/weights` del Docker de Augur.
