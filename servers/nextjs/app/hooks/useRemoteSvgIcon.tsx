@@ -16,6 +16,96 @@ function isEmptyPaint(value: string | null): boolean {
   return normalized === "none" || normalized === "transparent";
 }
 
+/**
+ * Per-icon color overrides are encoded on the icon URL as a fragment:
+ *   `#c=<hex>`            → recolor the icon glyph
+ *   `#b=<hex>`            → recolor the container shape (div background or the
+ *                           sibling SVG shape, e.g. a hexagon)
+ *   `#c=<hex>&b=<hex>`    → both (hex without the leading `#`)
+ *
+ * This keeps every template working with zero changes: they all forward
+ * `__icon_url__` to <RemoteSvgIcon />, so parsing here recolors the icon (and
+ * its shape) everywhere it is rendered — editor preview and export alike. The
+ * fragment is never sent to the server on fetch, so the SVG asset still loads.
+ */
+export function extractIconColor(url?: string | null): {
+  cleanUrl: string;
+  iconColor?: string;
+  bgColor?: string;
+} {
+  if (!url) return { cleanUrl: "" };
+
+  const hashIndex = url.indexOf("#");
+  if (hashIndex < 0) return { cleanUrl: url };
+
+  const fragment = url.slice(hashIndex + 1);
+  const iconMatch = fragment.match(/(?:^|&)c=([0-9a-fA-F]{3,8})(?:&|$)/);
+  const bgMatch = fragment.match(/(?:^|&)b=([0-9a-fA-F]{3,8})(?:&|$)/);
+
+  // Leave unrelated fragments untouched.
+  if (!iconMatch && !bgMatch) return { cleanUrl: url };
+
+  return {
+    cleanUrl: url.slice(0, hashIndex),
+    iconColor: iconMatch ? `#${iconMatch[1]}` : undefined,
+    bgColor: bgMatch ? `#${bgMatch[1]}` : undefined,
+  };
+}
+
+const TRANSPARENT_PAINTS = new Set(["rgba(0, 0, 0, 0)", "transparent", ""]);
+const MAX_SHAPE_ANCESTOR_DEPTH = 3;
+const MAX_SHAPE_SIZE_PX = 300;
+
+type ShapeTarget = { property: "backgroundColor" | "fill"; elements: Element[] };
+
+/**
+ * Locate the "shape" behind an icon so it can be recolored. Two patterns cover
+ * the templates: a parent element with its own background, or a sibling <svg>
+ * whose paths form the shape (hexagons, badges). Deliberately conservative — it
+ * returns null when nothing clearly icon-shaped is found so we never recolor an
+ * unrelated element.
+ */
+function findShapeTarget(host: HTMLElement): ShapeTarget | null {
+  // Pattern A: nearest small ancestor that paints its own background.
+  let node: HTMLElement | null = host.parentElement;
+  for (let depth = 0; node && depth < MAX_SHAPE_ANCESTOR_DEPTH; depth++) {
+    const background = window.getComputedStyle(node).backgroundColor;
+    const rect = node.getBoundingClientRect();
+    if (
+      !TRANSPARENT_PAINTS.has(background) &&
+      rect.width <= MAX_SHAPE_SIZE_PX &&
+      rect.height <= MAX_SHAPE_SIZE_PX
+    ) {
+      return { property: "backgroundColor", elements: [node] };
+    }
+    node = node.parentElement;
+  }
+
+  // Pattern B: nearest ancestor holding a sibling <svg> shape (not the icon).
+  node = host.parentElement;
+  for (let depth = 0; node && depth < MAX_SHAPE_ANCESTOR_DEPTH; depth++) {
+    const svgs = Array.from(node.querySelectorAll("svg")).filter(
+      (svg) => !host.contains(svg)
+    );
+    const fillShapes: Element[] = [];
+    svgs.forEach((svg) => {
+      svg
+        .querySelectorAll("path, polygon, rect, circle, ellipse")
+        .forEach((shape) => {
+          if (!isEmptyPaint(shape.getAttribute("fill"))) {
+            fillShapes.push(shape);
+          }
+        });
+    });
+    if (fillShapes.length > 0) {
+      return { property: "fill", elements: fillShapes };
+    }
+    node = node.parentElement;
+  }
+
+  return null;
+}
+
 function transformSvg(svgText: string, options: RemoteSvgOptions): string {
   try {
     const parser = new DOMParser();
@@ -226,16 +316,69 @@ export const RemoteSvgIcon: React.FC<{
   title?: string;
   color?: string;
 }> = ({ url, strokeColor, fillColor, className, title, color }) => {
-  const resolvedUrl = resolveBackendAssetUrl(url);
-  const { svgMarkup } = useRemoteSvgIcon(resolvedUrl, { strokeColor, fillColor, className, title, color });
+  const { cleanUrl, iconColor, bgColor } = extractIconColor(url);
+  // The color override (if any) wins over the template-provided colors so a
+  // user recolor takes effect for both line and fill icon weights.
+  const effectiveStrokeColor = iconColor ?? strokeColor;
+  const effectiveFillColor = iconColor ?? fillColor;
+  const effectiveColor = iconColor ?? color;
+
+  // data-path keeps the color fragment so EditableLayoutWrapper can still match
+  // this element against the stored __icon_url__; the SVG itself is fetched from
+  // the clean URL.
+  const dataPath = resolveBackendAssetUrl(url);
+  const fetchUrl = resolveBackendAssetUrl(cleanUrl);
+  const { svgMarkup } = useRemoteSvgIcon(fetchUrl, {
+    strokeColor: effectiveStrokeColor,
+    fillColor: effectiveFillColor,
+    className,
+    title,
+    color: effectiveColor,
+  });
+
+  const hostRef = React.useRef<HTMLSpanElement>(null);
+  // Snapshot of each recolored element's original inline `style` attribute so
+  // the override can be reverted exactly when the color changes or is cleared.
+  // Snapshotting the whole attribute (rather than a single property) survives
+  // shorthand/longhand quirks — e.g. templates using `background: var(--…)`.
+  const appliedRef = React.useRef<{ element: Element; style: string | null }[]>(
+    []
+  );
+
+  React.useEffect(() => {
+    const host = hostRef.current;
+    // Revert any previously applied shape color first.
+    appliedRef.current.forEach(({ element, style }) => {
+      if (style === null) element.removeAttribute("style");
+      else element.setAttribute("style", style);
+    });
+    appliedRef.current = [];
+
+    if (!host || !bgColor || !svgMarkup) return;
+
+    const target = findShapeTarget(host);
+    if (!target) return;
+
+    appliedRef.current = target.elements.map((element) => ({
+      element,
+      style: element.getAttribute("style"),
+    }));
+    target.elements.forEach((element) => {
+      (element as unknown as { style: CSSStyleDeclaration }).style[
+        target.property
+      ] = bgColor;
+    });
+  }, [bgColor, svgMarkup]);
+
   if (!svgMarkup) return null;
   return (
     <span
-      data-path={resolvedUrl}
+      ref={hostRef}
+      data-path={dataPath}
       role={title ? "img" : undefined}
       aria-label={title}
       dangerouslySetInnerHTML={{ __html: svgMarkup }}
-      style={{ display: "inline-block", color: color }}
+      style={{ display: "inline-block", color: effectiveColor }}
     />
   );
 };
