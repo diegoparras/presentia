@@ -14,6 +14,10 @@ export interface ElementOverride {
   backgroundColor?: string;
   textColor?: string;
   borderRadius?: number;
+  borderColor?: string;
+  borderWidth?: number; // px
+  borderStyle?: string; // "solid" | "dashed" | ...
+  boxShadow?: string;
   scaleX?: number;
   scaleY?: number;
   translateX?: number; // px en espacio base 1280x720
@@ -76,6 +80,12 @@ export function overrideToInlineStyle(
   if (o.backgroundColor) css.backgroundColor = o.backgroundColor;
   if (o.textColor) css.color = o.textColor;
   if (o.borderRadius != null) css.borderRadius = `${o.borderRadius}px`;
+  if (o.borderWidth != null && o.borderWidth > 0) {
+    css.borderWidth = `${o.borderWidth}px`;
+    css.borderStyle = o.borderStyle || "solid";
+    if (o.borderColor) css.borderColor = o.borderColor;
+  }
+  if (o.boxShadow) css.boxShadow = o.boxShadow;
   if (o.objectFit) css.objectFit = o.objectFit;
 
   const sx = o.scaleX ?? 1;
