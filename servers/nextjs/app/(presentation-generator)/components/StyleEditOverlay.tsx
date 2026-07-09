@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDispatch } from "react-redux";
-import { RotateCcw, X, ArrowUp } from "lucide-react";
+import { RotateCcw, X, ArrowUp, GripVertical } from "lucide-react";
 import {
   setStyleOverride,
   clearStyleOverride,
@@ -62,6 +62,47 @@ const StyleEditOverlay: React.FC<Props> = ({
   }, [getAnchor, selPath]);
 
   const override: ElementOverride = (selPath && overrides?.[selPath]) || {};
+
+  // Posición del panel de controles: fijo (no sigue al elemento), arrastrable y
+  // persistido. Default: arriba a la derecha, así no tapa la slide ni el toolbar
+  // de texto.
+  const PANEL_POS_KEY = "presentia.stylePanelPos";
+  const [panelPos, setPanelPos] = useState<{ x: number; y: number }>({ x: 16, y: 76 });
+  useEffect(() => {
+    try {
+      const s = window.localStorage.getItem(PANEL_POS_KEY);
+      if (s) {
+        setPanelPos(JSON.parse(s));
+        return;
+      }
+    } catch {}
+    setPanelPos({ x: Math.max(16, window.innerWidth - 312), y: 76 });
+  }, []);
+  const savePanelPos = (p: { x: number; y: number }) => {
+    setPanelPos(p);
+    try {
+      window.localStorage.setItem(PANEL_POS_KEY, JSON.stringify(p));
+    } catch {}
+  };
+  const onPanelDragStart = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const start = panelPos;
+    const sx = e.clientX;
+    const sy = e.clientY;
+    const onMove = (ev: PointerEvent) => {
+      savePanelPos({
+        x: Math.max(0, Math.min(window.innerWidth - 60, start.x + (ev.clientX - sx))),
+        y: Math.max(0, Math.min(window.innerHeight - 40, start.y + (ev.clientY - sy))),
+      });
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
 
   // Rect del elemento seleccionado (para outline/handles/toolbar).
   useEffect(() => {
@@ -295,14 +336,21 @@ const StyleEditOverlay: React.FC<Props> = ({
         onClick={(e) => e.stopPropagation()}
         style={{
           position: "fixed",
-          left: Math.max(8, Math.min(rect.left, window.innerWidth - 300)),
-          top: Math.max(8, rect.top - 96),
+          left: panelPos.x,
+          top: panelPos.y,
           pointerEvents: "auto",
         }}
-        className="max-h-[80vh] w-[288px] overflow-auto rounded-xl border border-neutral-200 bg-white p-2.5 text-black shadow-2xl"
+        className="max-h-[85vh] w-[288px] overflow-auto rounded-xl border border-neutral-200 bg-white p-2.5 text-black shadow-2xl"
       >
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Elemento</span>
+          <div
+            onPointerDown={onPanelDragStart}
+            className="flex flex-1 cursor-grab select-none items-center gap-1.5 rounded-md py-0.5 text-neutral-400 active:cursor-grabbing hover:bg-neutral-100"
+            title="Arrastrar panel"
+          >
+            <GripVertical className="h-4 w-4" />
+            <span className="text-[11px] font-semibold uppercase tracking-wide">Elemento</span>
+          </div>
           <div className="flex items-center gap-1">
             <button onClick={selectParent} title="Seleccionar contenedor" className="rounded p-1 text-neutral-500 hover:bg-neutral-100"><ArrowUp className="h-4 w-4" /></button>
             <button onClick={reset} title="Restablecer" className="rounded p-1 text-neutral-500 hover:bg-neutral-100"><RotateCcw className="h-4 w-4" /></button>
