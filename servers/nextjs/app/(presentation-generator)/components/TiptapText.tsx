@@ -276,6 +276,28 @@ const TiptapText: React.FC<TiptapTextProps> = ({
     }
   }, [content, editor]);
 
+  // Modo anclado: mostrar el toolbar mientras haya una selección de texto activa.
+  // Debe ir ANTES del early-return de abajo para no romper el orden de hooks.
+  useEffect(() => {
+    if (!editor) return;
+    const update = () => {
+      const sel = editor.state.selection;
+      setHasSelection(editor.isFocused && !sel.empty);
+      if (sel.empty) setFloatOffset({ x: 0, y: 0 });
+    };
+    update();
+    editor.on("selectionUpdate", update);
+    editor.on("transaction", update);
+    editor.on("focus", update);
+    editor.on("blur", update);
+    return () => {
+      editor.off("selectionUpdate", update);
+      editor.off("transaction", update);
+      editor.off("focus", update);
+      editor.off("blur", update);
+    };
+  }, [editor]);
+
   if (!editor) {
     return <div className={className}>{content || placeholder}</div>;
   }
@@ -353,27 +375,6 @@ const TiptapText: React.FC<TiptapTextProps> = ({
       setOpenMenu(null);
     }
   };
-
-  // Modo anclado: mostrar el toolbar mientras haya una selección de texto activa.
-  useEffect(() => {
-    if (!editor) return;
-    const update = () => {
-      const sel = editor.state.selection;
-      setHasSelection(editor.isFocused && !sel.empty);
-      if (sel.empty) setFloatOffset({ x: 0, y: 0 });
-    };
-    update();
-    editor.on("selectionUpdate", update);
-    editor.on("transaction", update);
-    editor.on("focus", update);
-    editor.on("blur", update);
-    return () => {
-      editor.off("selectionUpdate", update);
-      editor.off("transaction", update);
-      editor.off("focus", update);
-      editor.off("blur", update);
-    };
-  }, [editor]);
 
   // Arrastrar el menú completo (por el handle).
   const beginDrag = (mode: "float" | "pin") => (e: React.PointerEvent) => {
