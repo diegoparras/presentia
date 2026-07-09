@@ -59,6 +59,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Deriva la versión (p.ej. 0.19.0) desde la rama release/X.Y.0. Es más
+      # robusto que type=match, que no emitía el tag en push de rama.
+      - name: Derive release version
+        id: relver
+        run: |
+          ref="${GITHUB_REF_NAME}"
+          if [[ "$ref" == release/* ]]; then
+            echo "version=${ref#release/}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -67,7 +77,7 @@ jobs:
           tags: |
             type=raw,value=latest
             type=ref,event=tag
-            type=match,pattern=release/(\d+\.\d+\.\d+),group=1
+            type=raw,value=${{ steps.relver.outputs.version }},enable=${{ startsWith(github.ref_name, 'release/') }}
 
       - name: Build and push (linux/amd64)
         uses: docker/build-push-action@v6
