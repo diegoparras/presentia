@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
@@ -30,6 +31,14 @@ import {
   Upload,
   Sparkles,
   Loader2,
+  GripVertical,
+  Pin,
+  PinOff,
+  Settings2,
+  RotateCcw,
+  Eye,
+  EyeOff,
+  X,
 } from "lucide-react";
 
 const AI_ACTIONS: { key: string; label: string; needsTarget?: boolean }[] = [
@@ -95,10 +104,70 @@ function ensureCustomFont(name: string, url: string) {
   document.head.appendChild(style);
 }
 
+// Botones más grandes (antes h-7 w-7)
 const btn = (active: boolean) =>
-  `flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+  `flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
     active ? "bg-[#5141e5]/10 text-[#5141e5]" : "text-neutral-600 hover:bg-neutral-100"
   }`;
+
+// ── Toolbar configurable ────────────────────────────────────────────────────
+// Todas las herramientas disponibles, en su orden por defecto.
+const TOOL_IDS = [
+  "ai", "bold", "italic", "underline", "strike", "highlight", "link",
+  "subscript", "superscript", "code", "size", "font", "color", "clear",
+] as const;
+type ToolId = (typeof TOOL_IDS)[number];
+
+const TOOL_LABELS: Record<ToolId, string> = {
+  ai: "IA", bold: "Negrita", italic: "Itálica", underline: "Subrayado",
+  strike: "Tachado", highlight: "Resaltar", link: "Enlace", subscript: "Subíndice",
+  superscript: "Superíndice", code: "Código", size: "Tamaño", font: "Fuente",
+  color: "Color", clear: "Limpiar formato",
+};
+
+interface ToolbarCfg {
+  hidden: ToolId[];
+  order: ToolId[];
+  pinned: boolean;
+  pinPos: { x: number; y: number };
+  width: number;
+}
+
+const TOOLBAR_CFG_KEY = "presentia.textToolbar.v1";
+const TOOLBAR_MIN_WIDTH = 240;
+const TOOLBAR_MAX_WIDTH = 460;
+const DEFAULT_TOOLBAR_CFG: ToolbarCfg = {
+  hidden: [],
+  order: [...TOOL_IDS],
+  pinned: false,
+  pinPos: { x: 96, y: 140 },
+  width: 300,
+};
+
+const loadToolbarCfg = (): ToolbarCfg => {
+  if (typeof window === "undefined") return { ...DEFAULT_TOOLBAR_CFG };
+  try {
+    const raw = window.localStorage.getItem(TOOLBAR_CFG_KEY);
+    if (!raw) return { ...DEFAULT_TOOLBAR_CFG };
+    const parsed = JSON.parse(raw) as Partial<ToolbarCfg>;
+    const known = (arr?: string[]) =>
+      (arr || []).filter((id): id is ToolId => (TOOL_IDS as readonly string[]).includes(id));
+    // Preservar el orden guardado y anexar herramientas nuevas al final.
+    const order = known(parsed.order);
+    for (const id of TOOL_IDS) if (!order.includes(id)) order.push(id);
+    return {
+      hidden: known(parsed.hidden),
+      order,
+      pinned: !!parsed.pinned,
+      pinPos: parsed.pinPos && typeof parsed.pinPos.x === "number"
+        ? parsed.pinPos : { ...DEFAULT_TOOLBAR_CFG.pinPos },
+      width: Math.min(TOOLBAR_MAX_WIDTH, Math.max(TOOLBAR_MIN_WIDTH,
+        typeof parsed.width === "number" ? parsed.width : DEFAULT_TOOLBAR_CFG.width)),
+    };
+  } catch {
+    return { ...DEFAULT_TOOLBAR_CFG };
+  }
+};
 
 const TiptapText: React.FC<TiptapTextProps> = ({
   content,
@@ -113,6 +182,31 @@ const TiptapText: React.FC<TiptapTextProps> = ({
   const [aiLoading, setAiLoading] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+
+  // ── Config del toolbar (persistida en localStorage) ──
+  const [cfg, setCfg] = useState<ToolbarCfg>(() => loadToolbarCfg());
+  const [configOpen, setConfigOpen] = useState(false);
+  // Para modo anclado: si hay selección de texto activa que justifique mostrarlo.
+  const [hasSelection, setHasSelection] = useState(false);
+  // Desplazamiento por arrastre en modo flotante (relativo a la selección).
+  const [floatOffset, setFloatOffset] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<{
+    mode: "float" | "pin";
+    startX: number;
+    startY: number;
+    baseX: number;
+    baseY: number;
+  } | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  const updateCfg = (patch: Partial<ToolbarCfg>) =>
+    setCfg((prev) => {
+      const next = { ...prev, ...patch };
+      try {
+        window.localStorage.setItem(TOOLBAR_CFG_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
 
   const editor = useEditor({
     extensions: [
@@ -260,79 +354,117 @@ const TiptapText: React.FC<TiptapTextProps> = ({
     }
   };
 
-  return (
-    <div ref={rootRef}>
-      <input ref={fileRef} type="file" accept=".ttf,.otf,.woff,.woff2,.eot" onChange={onUploadFont} className="hidden" />
+  // Modo anclado: mostrar el toolbar mientras haya una selección de texto activa.
+  useEffect(() => {
+    if (!editor) return;
+    const update = () => {
+      const sel = editor.state.selection;
+      setHasSelection(editor.isFocused && !sel.empty);
+      if (sel.empty) setFloatOffset({ x: 0, y: 0 });
+    };
+    update();
+    editor.on("selectionUpdate", update);
+    editor.on("transaction", update);
+    editor.on("focus", update);
+    editor.on("blur", update);
+    return () => {
+      editor.off("selectionUpdate", update);
+      editor.off("transaction", update);
+      editor.off("focus", update);
+      editor.off("blur", update);
+    };
+  }, [editor]);
 
-      <BubbleMenu editor={editor} className="z-50" tippyOptions={{ duration: 100, maxWidth: "none" }}>
-        <div className="flex items-center gap-0.5 rounded-xl border border-neutral-200 bg-white p-1 text-black shadow-xl">
-          {/* AI */}
+  // Arrastrar el menú completo (por el handle).
+  const beginDrag = (mode: "float" | "pin") => (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const base = mode === "pin" ? cfg.pinPos : floatOffset;
+    dragRef.current = { mode, startX: e.clientX, startY: e.clientY, baseX: base.x, baseY: base.y };
+    const onMove = (ev: PointerEvent) => {
+      const d = dragRef.current;
+      if (!d) return;
+      const nx = d.baseX + (ev.clientX - d.startX);
+      const ny = d.baseY + (ev.clientY - d.startY);
+      if (d.mode === "pin") updateCfg({ pinPos: { x: Math.max(0, nx), y: Math.max(0, ny) } });
+      else setFloatOffset({ x: nx, y: ny });
+    };
+    const onUp = () => {
+      dragRef.current = null;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
+
+  const toggleTool = (id: ToolId) =>
+    updateCfg({
+      hidden: cfg.hidden.includes(id)
+        ? cfg.hidden.filter((h) => h !== id)
+        : [...cfg.hidden, id],
+    });
+
+  const reorderTool = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0) return;
+    const order = [...cfg.order];
+    const [moved] = order.splice(from, 1);
+    order.splice(to, 0, moved);
+    updateCfg({ order });
+  };
+
+  const visibleToolIds = cfg.order.filter((id) => !cfg.hidden.includes(id));
+
+  const renderTool = (id: ToolId): React.ReactNode => {
+    switch (id) {
+      case "ai":
+        return (
           <div className="relative">
             <button
               onClick={() => setOpenMenu(openMenu === "ai" ? null : "ai")}
               disabled={aiLoading}
-              className="flex h-7 items-center gap-1 rounded-md bg-gradient-to-r from-[#5141e5] to-[#8b5cf6] px-2 text-xs font-medium text-white hover:opacity-90"
+              className="flex h-9 items-center gap-1 rounded-lg bg-gradient-to-r from-[#5141e5] to-[#8b5cf6] px-2.5 text-xs font-medium text-white hover:opacity-90"
               title="Editar con IA"
             >
-              {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} IA
+              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} IA
             </button>
             {openMenu === "ai" && (
-              <div className="absolute left-0 top-8 z-50 w-48 rounded-lg border border-neutral-200 bg-white p-1 shadow-xl">
+              <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-lg border border-neutral-200 bg-white p-1 shadow-xl">
                 {AI_ACTIONS.map((a) => (
-                  <button
-                    key={a.key}
-                    onClick={() => aiEdit(a.key, a.needsTarget)}
-                    className="block w-full rounded px-2 py-1.5 text-left text-sm text-neutral-700 hover:bg-[#5141e5]/5 hover:text-[#5141e5]"
-                  >
+                  <button key={a.key} onClick={() => aiEdit(a.key, a.needsTarget)} className="block w-full rounded px-2 py-1.5 text-left text-sm text-neutral-700 hover:bg-[#5141e5]/5 hover:text-[#5141e5]">
                     {a.label}
                   </button>
                 ))}
               </div>
             )}
           </div>
-
-          <span className="mx-1 h-5 w-px bg-neutral-200" />
-
-          <button onClick={() => editor.chain().focus().toggleBold().run()} className={btn(editor.isActive("bold"))} title="Negrita">
-            <Bold className="h-4 w-4" />
-          </button>
-          <button onClick={() => editor.chain().focus().toggleItalic().run()} className={btn(editor.isActive("italic"))} title="Itálica">
-            <Italic className="h-4 w-4" />
-          </button>
-          <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={btn(editor.isActive("underline"))} title="Subrayado">
-            <UnderlinedIcon className="h-4 w-4" />
-          </button>
-          <button onClick={() => editor.chain().focus().toggleStrike().run()} className={btn(editor.isActive("strike"))} title="Tachado">
-            <Strikethrough className="h-4 w-4" />
-          </button>
-          <button onClick={() => editor.chain().focus().toggleHighlight({ color: "#FEF08A" }).run()} className={btn(editor.isActive("highlight"))} title="Resaltar">
-            <Highlighter className="h-4 w-4" />
-          </button>
-          <button onClick={setLink} className={btn(editor.isActive("link"))} title="Enlace">
-            <Link2 className="h-4 w-4" />
-          </button>
-
-          <span className="mx-1 h-5 w-px bg-neutral-200" />
-
-          <button onClick={() => editor.chain().focus().toggleSubscript().run()} className={btn(editor.isActive("subscript"))} title="Subíndice">
-            <SubIcon className="h-4 w-4" />
-          </button>
-          <button onClick={() => editor.chain().focus().toggleSuperscript().run()} className={btn(editor.isActive("superscript"))} title="Superíndice">
-            <SupIcon className="h-4 w-4" />
-          </button>
-          <button onClick={() => editor.chain().focus().toggleCode().run()} className={btn(editor.isActive("code"))} title="Código">
-            <Code className="h-4 w-4" />
-          </button>
-
-          <span className="mx-1 h-5 w-px bg-neutral-200" />
-
-          {/* Font size */}
+        );
+      case "bold":
+        return <button onClick={() => editor.chain().focus().toggleBold().run()} className={btn(editor.isActive("bold"))} title="Negrita"><Bold className="h-5 w-5" /></button>;
+      case "italic":
+        return <button onClick={() => editor.chain().focus().toggleItalic().run()} className={btn(editor.isActive("italic"))} title="Itálica"><Italic className="h-5 w-5" /></button>;
+      case "underline":
+        return <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={btn(editor.isActive("underline"))} title="Subrayado"><UnderlinedIcon className="h-5 w-5" /></button>;
+      case "strike":
+        return <button onClick={() => editor.chain().focus().toggleStrike().run()} className={btn(editor.isActive("strike"))} title="Tachado"><Strikethrough className="h-5 w-5" /></button>;
+      case "highlight":
+        return <button onClick={() => editor.chain().focus().toggleHighlight({ color: "#FEF08A" }).run()} className={btn(editor.isActive("highlight"))} title="Resaltar"><Highlighter className="h-5 w-5" /></button>;
+      case "link":
+        return <button onClick={setLink} className={btn(editor.isActive("link"))} title="Enlace"><Link2 className="h-5 w-5" /></button>;
+      case "subscript":
+        return <button onClick={() => editor.chain().focus().toggleSubscript().run()} className={btn(editor.isActive("subscript"))} title="Subíndice"><SubIcon className="h-5 w-5" /></button>;
+      case "superscript":
+        return <button onClick={() => editor.chain().focus().toggleSuperscript().run()} className={btn(editor.isActive("superscript"))} title="Superíndice"><SupIcon className="h-5 w-5" /></button>;
+      case "code":
+        return <button onClick={() => editor.chain().focus().toggleCode().run()} className={btn(editor.isActive("code"))} title="Código"><Code className="h-5 w-5" /></button>;
+      case "size":
+        return (
           <div className="relative">
-            <button onClick={() => setOpenMenu(openMenu === "size" ? null : "size")} className="flex h-7 items-center gap-1 rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Tamaño">
-              {currentSize || "Auto"} <ChevronDown className="h-3 w-3" />
+            <button onClick={() => setOpenMenu(openMenu === "size" ? null : "size")} className="flex h-9 items-center gap-1 rounded-lg px-2.5 text-xs text-neutral-700 hover:bg-neutral-100" title="Tamaño">
+              {currentSize || "Auto"} <ChevronDown className="h-3.5 w-3.5" />
             </button>
             {openMenu === "size" && (
-              <div className="absolute left-0 top-8 z-50 max-h-56 w-24 overflow-auto rounded-lg border border-neutral-200 bg-white p-1 shadow-xl">
+              <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-24 overflow-auto rounded-lg border border-neutral-200 bg-white p-1 shadow-xl">
                 <button onClick={() => { editor.chain().focus().unsetFontSize().run(); setOpenMenu(null); }} className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-neutral-100">Auto</button>
                 {FONT_SIZES.map((s) => (
                   <button key={s} onClick={() => { editor.chain().focus().setFontSize(s).run(); setOpenMenu(null); }} className={`block w-full rounded px-2 py-1 text-left text-xs hover:bg-neutral-100 ${currentSize === s ? "bg-[#5141e5]/10 text-[#5141e5]" : ""}`}>
@@ -342,14 +474,15 @@ const TiptapText: React.FC<TiptapTextProps> = ({
               </div>
             )}
           </div>
-
-          {/* Font family */}
+        );
+      case "font":
+        return (
           <div className="relative">
-            <button onClick={() => setOpenMenu(openMenu === "font" ? null : "font")} className="flex h-7 max-w-[110px] items-center gap-1 truncate rounded-md px-2 text-xs text-neutral-700 hover:bg-neutral-100" title="Fuente">
-              <span className="truncate">{currentFont || "Fuente"}</span> <ChevronDown className="h-3 w-3 shrink-0" />
+            <button onClick={() => setOpenMenu(openMenu === "font" ? null : "font")} className="flex h-9 max-w-[120px] items-center gap-1 truncate rounded-lg px-2.5 text-xs text-neutral-700 hover:bg-neutral-100" title="Fuente">
+              <span className="truncate">{currentFont || "Fuente"}</span> <ChevronDown className="h-3.5 w-3.5 shrink-0" />
             </button>
             {openMenu === "font" && (
-              <div className="absolute left-0 top-8 z-50 max-h-64 w-48 overflow-auto rounded-lg border border-neutral-200 bg-white p-1 shadow-xl">
+              <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-48 overflow-auto rounded-lg border border-neutral-200 bg-white p-1 shadow-xl">
                 <button onClick={() => applyFont("", false)} className="block w-full rounded px-2 py-1 text-left text-sm hover:bg-neutral-100">Predeterminada</button>
                 {customFonts.length > 0 && (
                   <>
@@ -373,17 +506,16 @@ const TiptapText: React.FC<TiptapTextProps> = ({
               </div>
             )}
           </div>
-
-          <span className="mx-1 h-5 w-px bg-neutral-200" />
-
-          {/* Color */}
+        );
+      case "color":
+        return (
           <div className="relative">
-            <button onClick={() => setOpenMenu(openMenu === "color" ? null : "color")} className="flex h-7 items-center gap-1 rounded-md px-1.5 hover:bg-neutral-100" title="Color de texto">
-              <span className="flex h-4 w-4 items-center justify-center rounded-sm border border-neutral-300 text-[11px] font-bold">A</span>
-              <span className="h-1 w-4 rounded-sm" style={{ backgroundColor: editor.getAttributes("textStyle").color || "#111827" }} />
+            <button onClick={() => setOpenMenu(openMenu === "color" ? null : "color")} className="flex h-9 items-center gap-1 rounded-lg px-2 hover:bg-neutral-100" title="Color de texto">
+              <span className="flex h-5 w-5 items-center justify-center rounded-sm border border-neutral-300 text-xs font-bold">A</span>
+              <span className="h-1.5 w-4 rounded-sm" style={{ backgroundColor: editor.getAttributes("textStyle").color || "#111827" }} />
             </button>
             {openMenu === "color" && (
-              <div className="absolute right-0 top-8 z-50 w-44 rounded-lg border border-neutral-200 bg-white p-2 shadow-xl">
+              <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border border-neutral-200 bg-white p-2 shadow-xl">
                 <div className="grid grid-cols-6 gap-1">
                   {palette.map((c, i) => (
                     <button key={`${c}-${i}`} onClick={() => applyColor(c)} className="h-5 w-5 rounded-md border border-neutral-200" style={{ backgroundColor: c }} title={c} />
@@ -396,14 +528,116 @@ const TiptapText: React.FC<TiptapTextProps> = ({
               </div>
             )}
           </div>
+        );
+      case "clear":
+        return <button onClick={() => editor.chain().focus().unsetAllMarks().unsetColor().unsetFontSize().unsetFontFamily().run()} className={btn(false)} title="Limpiar formato"><RemoveFormatting className="h-5 w-5" /></button>;
+      default:
+        return null;
+    }
+  };
 
-          <span className="mx-1 h-5 w-px bg-neutral-200" />
-
-          <button onClick={() => editor.chain().focus().unsetAllMarks().unsetColor().unsetFontSize().unsetFontFamily().run()} className={btn(false)} title="Limpiar formato">
-            <RemoveFormatting className="h-4 w-4" />
-          </button>
+  const renderConfig = () => (
+    <div className="max-h-[340px] overflow-auto pr-0.5">
+      <div className="mb-2 flex items-center justify-between px-1">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Herramientas</span>
+        <button onClick={() => updateCfg({ hidden: [], order: [...TOOL_IDS] })} className="flex items-center gap-1 text-[11px] text-neutral-500 hover:text-neutral-800" title="Restablecer">
+          <RotateCcw className="h-3 w-3" /> Restablecer
+        </button>
+      </div>
+      <ul className="space-y-0.5">
+        {cfg.order.map((id, i) => {
+          const shown = !cfg.hidden.includes(id);
+          return (
+            <li
+              key={id}
+              draggable
+              onDragStart={() => setDragIndex(i)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => { if (dragIndex !== null) reorderTool(dragIndex, i); setDragIndex(null); }}
+              onDragEnd={() => setDragIndex(null)}
+              className={`flex items-center gap-2 rounded-md px-1.5 py-1.5 ${dragIndex === i ? "bg-neutral-100" : "hover:bg-neutral-50"}`}
+            >
+              <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-neutral-300" />
+              <span className={`flex-1 text-sm ${shown ? "text-neutral-700" : "text-neutral-400 line-through"}`}>{TOOL_LABELS[id]}</span>
+              <button onClick={() => toggleTool(id)} className="text-neutral-400 hover:text-neutral-700" title={shown ? "Ocultar" : "Mostrar"}>
+                {shown ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="mt-3 border-t border-neutral-100 px-1 pt-3">
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Ancho</span>
+          <span className="text-[11px] text-neutral-500">{cfg.width}px</span>
         </div>
-      </BubbleMenu>
+        <input type="range" min={TOOLBAR_MIN_WIDTH} max={TOOLBAR_MAX_WIDTH} step={20} value={cfg.width} onChange={(e) => updateCfg({ width: Number(e.target.value) })} className="w-full accent-[#5141e5]" />
+      </div>
+      <button onClick={() => setConfigOpen(false)} className="mt-3 flex w-full items-center justify-center gap-1 rounded-md bg-neutral-100 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-200">
+        <X className="h-3.5 w-3.5" /> Cerrar
+      </button>
+    </div>
+  );
+
+  const renderPanel = (mode: "float" | "pin") => (
+    <div
+      className="rounded-2xl border border-neutral-200 bg-white p-2 text-black shadow-2xl"
+      style={{ width: cfg.width }}
+      onMouseDown={(e) => {
+        const t = e.target as HTMLElement;
+        // Mantener el foco/selección del editor al usar el toolbar, pero dejar
+        // que inputs y selects reciban foco normalmente.
+        if (!t.closest("input, textarea, select, [contenteditable]")) e.preventDefault();
+      }}
+    >
+      <div className="mb-1.5 flex items-center gap-1">
+        <div
+          onPointerDown={beginDrag(mode)}
+          className="flex h-8 flex-1 cursor-grab select-none items-center gap-1.5 rounded-md px-1 text-neutral-400 hover:bg-neutral-100 active:cursor-grabbing"
+          title="Arrastrar menú"
+        >
+          <GripVertical className="h-4 w-4" />
+          <span className="text-[11px] font-semibold uppercase tracking-wide">Formato</span>
+        </div>
+        <button onClick={() => updateCfg({ pinned: !cfg.pinned })} className={btn(cfg.pinned)} title={cfg.pinned ? "Desanclar (seguir la selección)" : "Anclar en un lugar fijo"}>
+          {cfg.pinned ? <Pin className="h-4 w-4" /> : <PinOff className="h-4 w-4" />}
+        </button>
+        <button onClick={() => setConfigOpen((v) => !v)} className={btn(configOpen)} title="Configurar menú">
+          <Settings2 className="h-4 w-4" />
+        </button>
+      </div>
+
+      {configOpen ? (
+        renderConfig()
+      ) : (
+        <div className="flex flex-wrap items-center gap-1">
+          {visibleToolIds.map((id) => (
+            <React.Fragment key={id}>{renderTool(id)}</React.Fragment>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div ref={rootRef}>
+      <input ref={fileRef} type="file" accept=".ttf,.otf,.woff,.woff2,.eot" onChange={onUploadFont} className="hidden" />
+
+      {!cfg.pinned && (
+        <BubbleMenu editor={editor} className="z-[60]" tippyOptions={{ duration: 100, maxWidth: "none" }}>
+          <div style={{ transform: `translate(${floatOffset.x}px, ${floatOffset.y}px)` }}>
+            {renderPanel("float")}
+          </div>
+        </BubbleMenu>
+      )}
+
+      {cfg.pinned && hasSelection && typeof document !== "undefined" &&
+        createPortal(
+          <div style={{ position: "fixed", left: cfg.pinPos.x, top: cfg.pinPos.y, zIndex: 60 }}>
+            {renderPanel("pin")}
+          </div>,
+          document.body
+        )}
 
       <EditorContent
         editor={editor}
