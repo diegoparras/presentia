@@ -151,6 +151,50 @@ const StyleEditOverlay: React.FC<Props> = ({
     }
   };
 
+  // Factor de escala del SlideScale (transform:scale del contenedor de la slide),
+  // para convertir px de pantalla → px del lienzo base al mover.
+  const getSlideScale = (el: HTMLElement): number => {
+    let n: HTMLElement | null = el.parentElement;
+    while (n) {
+      const t = window.getComputedStyle(n).transform;
+      if (t && t !== "none") {
+        try {
+          return new DOMMatrix(t).a || 1;
+        } catch {
+          return 1;
+        }
+      }
+      n = n.parentElement;
+    }
+    return 1;
+  };
+
+  // Mover el elemento (arrastrar el cuerpo/outline) → translate. No reflowea.
+  const onOutlineDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const el = selEl();
+    if (!el) return;
+    const k = getSlideScale(el) || 1;
+    const startTx = override.translateX ?? 0;
+    const startTy = override.translateY ?? 0;
+    const sx = e.clientX;
+    const sy = e.clientY;
+    const onMove = (ev: PointerEvent) => {
+      patch({
+        translateX: startTx + (ev.clientX - sx) / k,
+        translateY: startTy + (ev.clientY - sy) / k,
+        kind: el.tagName === "IMG" ? "image" : "box",
+      });
+    };
+    const onUp = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
+
   // Resize uniforme por handle de esquina (transform-origin top-left → no reflow).
   const onHandleDown = (e: React.PointerEvent) => {
     e.preventDefault();
@@ -214,8 +258,10 @@ const StyleEditOverlay: React.FC<Props> = ({
             data-style-overlay=""
             style={{ position: "fixed", inset: 0, zIndex: 1000, pointerEvents: "none" }}
           >
-            {/* Outline del elemento seleccionado */}
+            {/* Outline del elemento seleccionado — arrastrable para mover */}
             <div
+              data-style-overlay=""
+              onPointerDown={onOutlineDown}
               style={{
                 position: "fixed",
                 left: rect.left,
@@ -224,7 +270,8 @@ const StyleEditOverlay: React.FC<Props> = ({
                 height: rect.height,
                 border: "2px solid #e25a4e",
                 borderRadius: 4,
-                pointerEvents: "none",
+                cursor: "move",
+                pointerEvents: "auto",
               }}
             />
             {/* Handles en las esquinas */}
