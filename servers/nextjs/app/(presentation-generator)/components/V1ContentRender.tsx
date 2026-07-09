@@ -4,6 +4,8 @@ import React, { useMemo, useRef } from "react";
 import EditableLayoutWrapper from "../components/EditableLayoutWrapper";
 import SlideErrorBoundary from "../components/SlideErrorBoundary";
 import TiptapTextReplacer from "../components/TiptapTextReplacer";
+import StyleOverrideApplier from "../components/StyleOverrideApplier";
+import StyleEditOverlay from "../components/StyleEditOverlay";
 import { validate as uuidValidate } from 'uuid';
 import { getLayoutByLayoutId } from "@/app/presentation-templates";
 import CanvasSlide from "./canvas/CanvasSlide";
@@ -103,7 +105,7 @@ const V1ContentRenderComponent = ({ slide, isEditMode, theme }: { slide: any, is
     if (isEditMode) {
         return (
             <SlideErrorBoundary label={`Slide ${(safeSlide.index ?? 0) + 1}`}>
-                <div ref={containerRef} className={` `}>
+                <div ref={containerRef} className={`relative`}>
 
                     <EditableLayoutWrapper
                         slideIndex={safeSlide.index ?? 0}
@@ -130,15 +132,21 @@ const V1ContentRenderComponent = ({ slide, isEditMode, theme }: { slide: any, is
                                 }
                             }}
                         >
-                            <LayoutComp data={{
-                                ...slideContent,
-                                _logo_url__: theme ? theme.logo_url : null,
-                                __companyName__: (theme && theme.company_name) ? theme.company_name : null,
-                            }} />
+                            <StyleOverrideApplier overrides={slideContent.__style_overrides__}>
+                                <LayoutComp data={{
+                                    ...slideContent,
+                                    _logo_url__: theme ? theme.logo_url : null,
+                                    __companyName__: (theme && theme.company_name) ? theme.company_name : null,
+                                }} />
+                            </StyleOverrideApplier>
                         </TiptapTextReplacer>
                     </EditableLayoutWrapper>
 
-
+                    <StyleEditOverlay
+                        containerRef={containerRef}
+                        slideIndex={safeSlide.index ?? 0}
+                        overrides={slideContent.__style_overrides__}
+                    />
 
                 </div>
             </SlideErrorBoundary>
@@ -154,11 +162,13 @@ const V1ContentRenderComponent = ({ slide, isEditMode, theme }: { slide: any, is
                     slideIndex={safeSlide.index ?? 0}
                     readOnly
                 >
-                    <LayoutComp data={{
-                        ...slideContent,
-                        _logo_url__: theme ? theme.logo_url : null,
-                        __companyName__: (theme && theme.company_name) ? theme.company_name : null,
-                    }} />
+                    <StyleOverrideApplier overrides={slideContent.__style_overrides__}>
+                        <LayoutComp data={{
+                            ...slideContent,
+                            _logo_url__: theme ? theme.logo_url : null,
+                            __companyName__: (theme && theme.company_name) ? theme.company_name : null,
+                        }} />
+                    </StyleOverrideApplier>
                 </TiptapTextReplacer>
             </div>
         </SlideErrorBoundary>

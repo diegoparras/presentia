@@ -327,6 +327,45 @@ const presentationGenerationSlice = createSlice({
       }
     },
 
+    // Overrides de estilo por elemento (tamaño/color) — guardados en
+    // content.__style_overrides__[elementPath]. Se auto-persisten con el autosave
+    // y se aplican en el render (editor + export) por StyleOverrideApplier.
+    setStyleOverride: (
+      state,
+      action: PayloadAction<{
+        slideIndex: number;
+        elementPath: string;
+        patch: Record<string, any>;
+      }>
+    ) => {
+      const slide = state.presentationData?.slides?.[action.payload.slideIndex];
+      if (!slide) return;
+      if (!slide.content || typeof slide.content !== "object") slide.content = {};
+      const map = (slide.content.__style_overrides__ =
+        slide.content.__style_overrides__ || {});
+      const { elementPath, patch } = action.payload;
+      map[elementPath] = { ...(map[elementPath] || {}), ...patch };
+    },
+
+    clearStyleOverride: (
+      state,
+      action: PayloadAction<{ slideIndex: number; elementPath: string }>
+    ) => {
+      const slide = state.presentationData?.slides?.[action.payload.slideIndex];
+      const map = slide?.content?.__style_overrides__;
+      if (map) delete map[action.payload.elementPath];
+    },
+
+    clearAllStyleOverrides: (
+      state,
+      action: PayloadAction<{ slideIndex: number }>
+    ) => {
+      const slide = state.presentationData?.slides?.[action.payload.slideIndex];
+      if (slide?.content?.__style_overrides__) {
+        slide.content.__style_overrides__ = {};
+      }
+    },
+
     // Update slide icon at specific data path
     updateSlideIcon: (
       state,
@@ -432,6 +471,9 @@ export const {
   updateSlideContent,
   updateSlideImage,
   updateImageProperties,
+  setStyleOverride,
+  clearStyleOverride,
+  clearAllStyleOverrides,
   updateSlideIcon,
   addNewSlide,
   updateTheme,
