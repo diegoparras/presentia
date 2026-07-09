@@ -21,6 +21,9 @@ interface PresentationGenerationState {
   isLoading: boolean;
   isStreaming: boolean | null;
   outlines: { content: string }[];
+  // Layout construido en /outline y persistido para que /presentation pueda
+  // ejecutar el `prepare` en el flujo en vivo (Gamma) sin re-seleccionar template.
+  generationLayout: any | null;
   error: string | null;
   presentationData: PresentationData | null;
   isSlidesRendered: boolean;
@@ -30,6 +33,7 @@ interface PresentationGenerationState {
 const initialState: PresentationGenerationState = {
   presentation_id: null,
   outlines: [],
+  generationLayout: null,
   isSlidesRendered: false,
   isLayoutLoading: false,
   isLoading: false,
@@ -72,10 +76,15 @@ const presentationGenerationSlice = createSlice({
     },
     clearOutlines: (state) => {
       state.outlines = [];
+      state.generationLayout = null;
     },
     // Set outlines
     setOutlines: (state, action: PayloadAction<{ content: string }[]>) => {
       state.outlines = action.payload;
+    },
+    // Layout usado por el flujo de generación en vivo (prepare en /presentation)
+    setGenerationLayout: (state, action: PayloadAction<any | null>) => {
+      state.generationLayout = action.payload;
     },
     // Set presentation data
     setPresentationData: (state, action: PayloadAction<PresentationData>) => {
@@ -415,6 +424,7 @@ export const {
   setPresentationData,
   updateTitle,
   setOutlines,
+  setGenerationLayout,
   // slides operations
   addSlide,
   updateSlide,

@@ -12,6 +12,7 @@ export const usePresentationNavigation = (
 
   const isPresentMode = searchParams.get("mode") === "present";
   const stream = searchParams.get("stream");
+  const generate = searchParams.get("generate");
   const currentSlide = parseInt(
     searchParams.get("slide") || `${selectedSlide}` || "0"
   );
@@ -75,6 +76,7 @@ export const usePresentationNavigation = (
   return {
     isPresentMode,
     stream,
+    generate,
     currentSlide,
     handleSlideClick,
     toggleFullscreen,

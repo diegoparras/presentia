@@ -4,8 +4,11 @@ import { useState, useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { usePathname, useRouter } from "next/navigation";
 import { notify } from "@/components/ui/sonner";
-import { clearPresentationData } from "@/store/slices/presentationGeneration";
-import { PresentationGenerationApi } from "../../services/api/presentation-generation";
+import {
+  clearPresentationData,
+  setGenerationLayout,
+  setOutlines,
+} from "@/store/slices/presentationGeneration";
 import { LoadingState, TABS } from "../types/index";
 import { TemplateLayoutsWithSettings } from "@/app/presentation-templates/utils";
 import { getCustomTemplateDetails } from "@/app/hooks/useCustomTemplates";
@@ -106,23 +109,18 @@ export const usePresentationGeneration = (
       template_layout_count: selectedTemplateLayoutCount,
     });
 
-    setLoadingState({
-      message: t("up.gen.generatingData"),
-      isLoading: true,
-      showProgress: true,
-      duration: 30,
-    });
-
     try {
       let layout;
 
       // Check if it's a custom template (string = presentationId)
       if (typeof selectedTemplate === "string") {
+        // Spinner mínimo solo mientras se resuelve el custom template; el
+        // `prepare` real corre después en /presentation (flujo en vivo Gamma).
         setLoadingState({
           message: t("up.gen.loadingTemplate"),
           isLoading: true,
-          showProgress: true,
-          duration: 30,
+          showProgress: false,
+          duration: 0,
         });
 
         // Fetch custom template details using the shared function
@@ -135,15 +133,9 @@ export const usePresentationGeneration = (
           customTemplateDetail.layouts.length === 0
         ) {
           notify.error(t("up.gen.templateError.title"), t("up.gen.templateError.desc"));
+          setLoadingState(DEFAULT_LOADING_STATE);
           return;
         }
-
-        setLoadingState({
-          message: t("up.gen.generatingData"),
-          isLoading: true,
-          showProgress: true,
-          duration: 30,
-        });
 
         layout = {
           name: customTemplateDetail.id,
@@ -177,26 +169,23 @@ export const usePresentationGeneration = (
         };
       }
 
-      const response = await PresentationGenerationApi.presentationPrepare({
-        presentation_id: presentationId,
-        outlines: outlines,
-        layout: layout,
-      });
+      // Flujo en vivo tipo Gamma: NO bloqueamos con `prepare` acá. Persistimos
+      // outlines + layout y navegamos ya a /presentation, que orquesta el
+      // prepare y luego el stream con las slides apareciendo en vivo.
+      dispatch(setOutlines(outlines || []));
+      dispatch(setGenerationLayout(layout));
+      dispatch(clearPresentationData());
+      clearTheme();
 
-      if (response) {
-        dispatch(clearPresentationData());
-        clearTheme();
-        router.replace(
-          `/presentation?id=${presentationId}&stream=true&type=standard`
-        );
-      }
+      router.replace(
+        `/presentation?id=${presentationId}&generate=true&type=standard`
+      );
     } catch (error: any) {
-      console.error("Error In Presentation Generation(prepare).", error);
+      console.error("Error preparing presentation generation.", error);
       notify.error(
         t("up.gen.error.title"),
         error.message || t("up.gen.error.desc")
       );
-    } finally {
       setLoadingState(DEFAULT_LOADING_STATE);
     }
   }, [

@@ -18,9 +18,10 @@ import SlideContent from "./SlideContent";
 import { Button } from "@/components/ui/button";
 import { usePathname, useRouter } from "next/navigation";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import {
   usePresentationStreaming,
+  usePresentationPrepare,
   usePresentationData,
   usePresentationNavigation,
   useAutoSave,
@@ -66,6 +67,21 @@ const IDLE_LOADING_STATE: LoadingState = {
   extra_info: "",
 };
 
+/** Extrae un título legible de un outline en markdown (primera línea, sin `#`). */
+const extractOutlineTitle = (content?: string): string => {
+  if (!content) return "";
+  const firstLine =
+    content
+      .split("\n")
+      .map((line) => line.trim())
+      .find(Boolean) || "";
+  return firstLine
+    .replace(/^#+\s*/, "")
+    .replace(/[*_`>]/g, "")
+    .trim()
+    .slice(0, 90);
+};
+
 const PresentationPage: React.FC<PresentationPageProps> = ({
   presentation_id,
 }) => {
@@ -89,7 +105,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
 
 
 
-  const { presentationData, isStreaming } = useSelector(
+  const { presentationData, isStreaming, outlines } = useSelector(
     (state: RootState) => state.presentationGeneration
   );
   const slidesLength = presentationData?.slides?.length ?? 0;
@@ -114,6 +130,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
   const {
     isPresentMode,
     stream,
+    generate,
     currentSlide: presentSlideFromUrl,
     handleSlideClick,
     toggleFullscreen,
@@ -126,23 +143,33 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
     setIsFullscreen
   );
 
-  // Initialize streaming
+  // Flujo en vivo tipo Gamma: fase "preparing" mientras corre el `prepare` y
+  // aún no promovimos la URL a `stream=true`.
+  const isPreparing = generate === "true" && stream !== "true";
+
+  // Orquesta prepare → stream cuando llegamos con ?generate=true
+  usePresentationPrepare(presentation_id, generate, setError);
+
+  // Initialize streaming (no abre el SSE mientras isPreparing)
   usePresentationStreaming(
     presentation_id,
     stream,
     setLoading,
     setError,
-    fetchUserSlides
+    fetchUserSlides,
+    isPreparing
   );
 
   useEffect(() => {
-    if (!loading) {
+    // En preparing no mostramos el modal oscuro: la página ya se ve poblada con
+    // las ghost cards del outline.
+    if (isPreparing || !loading) {
       setLoadingState(IDLE_LOADING_STATE);
       return;
     }
 
     setLoadingState(stream ? STREAM_LOADING_STATE : DEFAULT_LOADING_STATE);
-  }, [loading, stream]);
+  }, [loading, stream, isPreparing]);
 
   useEffect(() => {
     if (!isStreaming) return;
@@ -326,6 +353,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
           <div className="flex gap-2 justify-center items-center">
 
             <Button onClick={() => { trackEvent(MixpanelEvent.PresentationPage_Refresh_Page_Button_Clicked, { pathname }); window.location.reload(); }}>{t("ed.page.refresh")}</Button>
+            <Button variant="outline" onClick={() => { trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/outline" }); router.push(`/outline?id=${presentation_id}`); }}>{t("ed.page.backToOutline")}</Button>
             <Button onClick={() => { trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/upload" }); router.push("/upload"); }}>{t("ed.page.goUpload")}</Button>
           </div>
         </div>
@@ -365,44 +393,95 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
               className="font-inter h-full overflow-y-auto hide-scrollbar scroll-pt-[18px]"
             >
               <div className="w-full max-w-[1280px] min-h-full mx-auto flex flex-col items-center pb-8">
-                {!presentationData ||
-                  loading ||
-                  !presentationData?.slides ||
-                  presentationData?.slides.length === 0 ? (
-                  <div className="relative w-full h-[calc(100vh-120px)] mx-auto hide-scrollbar">
-                    <div className="">
-                      {Array.from({ length: 2 }).map((_, index) => (
-                        <Skeleton
-                          key={index}
-                          className="aspect-video bg-gray-400 my-4 w-full mx-auto "
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {presentationData &&
-                      presentationData.slides &&
-                      presentationData.slides.length > 0 &&
-                      presentationData.slides.map((slide: any, index: number) => (
-                        <SlideContent
-                          key={`${slide.type}-${index}-${slide.index}`}
-                          slide={slide}
-                          index={index}
-                          presentationId={presentation_id}
-                          isChatEditing={
-                            highlightedSlideIndex !== null &&
-                            index === highlightedSlideIndex
-                          }
-                          isChatTargeted={
-                            isChatSending &&
-                            highlightedSlideIndex !== index &&
-                            targetedSlidesSet.has(index)
-                          }
-                        />
-                      ))}
-                  </>
-                )}
+                {(() => {
+                  const slides: any[] = presentationData?.slides ?? [];
+                  const liveMode = isPreparing || Boolean(isStreaming);
+                  const positions = Math.max(outlines?.length ?? 0, slides.length);
+
+                  const renderSlide = (slide: any, index: number) => (
+                    <SlideContent
+                      key={`${slide.type}-${index}-${slide.index}`}
+                      slide={slide}
+                      index={index}
+                      presentationId={presentation_id}
+                      isChatEditing={
+                        highlightedSlideIndex !== null &&
+                        index === highlightedSlideIndex
+                      }
+                      isChatTargeted={
+                        isChatSending &&
+                        highlightedSlideIndex !== index &&
+                        targetedSlidesSet.has(index)
+                      }
+                    />
+                  );
+
+                  // Flujo en vivo tipo Gamma: ghost cards por outline que se
+                  // rellenan a medida que cada slide llega por el stream.
+                  if (liveMode && positions > 0) {
+                    return (
+                      <>
+                        {isPreparing && (
+                          <div className="mb-2 flex items-center gap-2 self-center rounded-full bg-white px-4 py-2 text-sm font-medium text-[#191919]/80 shadow-sm">
+                            <Loader2 className="h-4 w-4 animate-spin text-[#e25a4e]" />
+                            <span>{t("ed.page.preparing")}</span>
+                          </div>
+                        )}
+                        {Array.from({ length: positions }).map((_, index) => {
+                          const slide = slides[index];
+                          if (slide) return renderSlide(slide, index);
+
+                          const title = extractOutlineTitle(
+                            outlines?.[index]?.content
+                          );
+                          return (
+                            <div
+                              key={`ghost-${index}`}
+                              className="relative w-full my-4"
+                            >
+                              <Skeleton className="aspect-video w-full mx-auto bg-gray-300" />
+                              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-8 text-center">
+                                {title ? (
+                                  <p className="text-[#191919]/70 text-xl font-semibold font-inter line-clamp-2">
+                                    {title}
+                                  </p>
+                                ) : null}
+                                <div className="flex items-center gap-1.5 text-[#191919]/45 text-xs font-medium">
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  <span>
+                                    {t(
+                                      isPreparing
+                                        ? "ed.page.preparing"
+                                        : "ed.page.creating"
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </>
+                    );
+                  }
+
+                  // Estado normal: cargando presentación existente o sin datos.
+                  if (!presentationData || loading || slides.length === 0) {
+                    return (
+                      <div className="relative w-full h-[calc(100vh-120px)] mx-auto hide-scrollbar">
+                        <div className="">
+                          {Array.from({ length: 2 }).map((_, index) => (
+                            <Skeleton
+                              key={index}
+                              className="aspect-video bg-gray-400 my-4 w-full mx-auto "
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return <>{slides.map((slide, index) => renderSlide(slide, index))}</>;
+                })()}
               </div>
             </div>
           </div>

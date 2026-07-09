@@ -113,7 +113,10 @@ export const usePresentationStreaming = (
   stream: string | null,
   setLoading: (loading: boolean) => void,
   setError: (error: boolean) => void,
-  fetchUserSlides: () => void
+  fetchUserSlides: () => void,
+  // Durante la fase "preparing" (flujo Gamma), el `prepare` todavía no resolvió
+  // y no hay `structure` en backend: no abrimos el SSE ni cargamos datos aún.
+  isPreparing: boolean = false
 ) => {
   const dispatch = useDispatch();
   const previousSlidesLength = useRef(0);
@@ -123,6 +126,11 @@ export const usePresentationStreaming = (
   tRef.current = t;
 
   useEffect(() => {
+    // Fase "preparing": esperamos a que `prepare` resuelva antes de tocar nada.
+    if (isPreparing) {
+      return;
+    }
+
     if (!stream) {
       fetchUserSlides();
       return;
@@ -337,5 +345,5 @@ export const usePresentationStreaming = (
       closeEventSource();
       clearRetryTimer();
     };
-  }, [presentationId, stream, dispatch, setLoading, setError, fetchUserSlides]);
+  }, [presentationId, stream, isPreparing, dispatch, setLoading, setError, fetchUserSlides]);
 };
