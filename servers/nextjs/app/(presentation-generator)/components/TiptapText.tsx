@@ -2,7 +2,8 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditorPanel } from "./EditorPanelContext";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
 import Underline from "@tiptap/extension-underline";
@@ -183,10 +184,11 @@ const TiptapText: React.FC<TiptapTextProps> = ({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
+  const editorPanel = useEditorPanel();
   // ── Config del toolbar (persistida en localStorage) ──
   const [cfg, setCfg] = useState<ToolbarCfg>(() => loadToolbarCfg());
   const [configOpen, setConfigOpen] = useState(false);
-  // Para modo anclado: si hay selección de texto activa que justifique mostrarlo.
+  // Si hay selección de texto activa (para mostrar el toolbar en el sidebar).
   const [hasSelection, setHasSelection] = useState(false);
   // Desplazamiento por arrastre en modo flotante (relativo a la selección).
   const [floatOffset, setFloatOffset] = useState({ x: 0, y: 0 });
@@ -297,6 +299,18 @@ const TiptapText: React.FC<TiptapTextProps> = ({
       editor.off("blur", update);
     };
   }, [editor]);
+
+  // Registrar/limpiar el editor activo en el panel derecho según la selección.
+  useEffect(() => {
+    if (!editor) return;
+    if (hasSelection) {
+      editorPanel.setEditor(editor);
+      editorPanel.setElement(null);
+    } else {
+      editorPanel.setEditor((prev: any) => (prev === editor ? null : prev));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasSelection, editor]);
 
   if (!editor) {
     return <div className={className}>{content || placeholder}</div>;
@@ -580,10 +594,13 @@ const TiptapText: React.FC<TiptapTextProps> = ({
     </div>
   );
 
-  const renderPanel = (mode: "float" | "pin") => (
+  const renderPanel = (mode: "float" | "pin" | "docked") => {
+    const docked = mode === "docked";
+    return (
     <div
-      className="rounded-2xl border border-neutral-200 bg-white p-2 text-black shadow-2xl"
-      style={{ width: cfg.width }}
+      data-editor-ui=""
+      className={docked ? "font-syne text-black" : "rounded-2xl border border-neutral-200 bg-white p-2 text-black shadow-2xl"}
+      style={docked ? undefined : { width: cfg.width }}
       onMouseDown={(e) => {
         const t = e.target as HTMLElement;
         // Mantener el foco/selección del editor al usar el toolbar, pero dejar
@@ -591,18 +608,27 @@ const TiptapText: React.FC<TiptapTextProps> = ({
         if (!t.closest("input, textarea, select, [contenteditable]")) e.preventDefault();
       }}
     >
-      <div className="mb-1.5 flex items-center gap-1">
-        <div
-          onPointerDown={beginDrag(mode)}
-          className="flex h-8 flex-1 cursor-grab select-none items-center gap-1.5 rounded-md px-1 text-neutral-400 hover:bg-neutral-100 active:cursor-grabbing"
-          title="Arrastrar menú"
-        >
-          <GripVertical className="h-4 w-4" />
-          <span className="text-[11px] font-semibold uppercase tracking-wide">Formato</span>
-        </div>
-        <button onClick={() => updateCfg({ pinned: !cfg.pinned })} className={btn(cfg.pinned)} title={cfg.pinned ? "Desanclar (seguir la selección)" : "Anclar en un lugar fijo"}>
-          {cfg.pinned ? <Pin className="h-4 w-4" /> : <PinOff className="h-4 w-4" />}
-        </button>
+      <div className="mb-3 flex items-center gap-1">
+        {docked ? (
+          <div className="flex flex-1 items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#FBEDEA] text-[#e25a4e] text-sm font-bold">A</span>
+            <span className="text-base font-semibold text-[#191919]">Texto</span>
+          </div>
+        ) : (
+          <div
+            onPointerDown={beginDrag(mode as "float" | "pin")}
+            className="flex h-8 flex-1 cursor-grab select-none items-center gap-1.5 rounded-md px-1 text-neutral-400 hover:bg-neutral-100 active:cursor-grabbing"
+            title="Arrastrar menú"
+          >
+            <GripVertical className="h-4 w-4" />
+            <span className="text-[11px] font-semibold uppercase tracking-wide">Formato</span>
+          </div>
+        )}
+        {!docked && (
+          <button onClick={() => updateCfg({ pinned: !cfg.pinned })} className={btn(cfg.pinned)} title={cfg.pinned ? "Desanclar (seguir la selección)" : "Anclar en un lugar fijo"}>
+            {cfg.pinned ? <Pin className="h-4 w-4" /> : <PinOff className="h-4 w-4" />}
+          </button>
+        )}
         <button onClick={() => setConfigOpen((v) => !v)} className={btn(configOpen)} title="Configurar menú">
           <Settings2 className="h-4 w-4" />
         </button>
@@ -618,27 +644,17 @@ const TiptapText: React.FC<TiptapTextProps> = ({
         </div>
       )}
     </div>
-  );
+    );
+  };
 
   return (
     <div ref={rootRef}>
       <input ref={fileRef} type="file" accept=".ttf,.otf,.woff,.woff2,.eot" onChange={onUploadFont} className="hidden" />
 
-      {!cfg.pinned && (
-        <BubbleMenu editor={editor} className="z-[60]" tippyOptions={{ duration: 100, maxWidth: "none" }}>
-          <div style={{ transform: `translate(${floatOffset.x}px, ${floatOffset.y}px)` }}>
-            {renderPanel("float")}
-          </div>
-        </BubbleMenu>
-      )}
-
-      {cfg.pinned && hasSelection && typeof document !== "undefined" &&
-        createPortal(
-          <div style={{ position: "fixed", left: cfg.pinPos.x, top: cfg.pinPos.y, zIndex: 60 }}>
-            {renderPanel("pin")}
-          </div>,
-          document.body
-        )}
+      {/* El toolbar de formato se muestra en el panel derecho (sidebar) cuando
+          hay una selección de texto activa. Sin flotantes sobre la slide. */}
+      {hasSelection && editorPanel.textPanelEl &&
+        createPortal(renderPanel("docked"), editorPanel.textPanelEl)}
 
       <EditorContent
         editor={editor}

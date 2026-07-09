@@ -3,11 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDispatch } from "react-redux";
-import { RotateCcw, X, ArrowUp, GripVertical } from "lucide-react";
-import {
-  setStyleOverride,
-  clearStyleOverride,
-} from "@/store/slices/presentationGeneration";
+import { setStyleOverride } from "@/store/slices/presentationGeneration";
 import {
   ElementOverride,
   StyleOverrides,
@@ -15,22 +11,14 @@ import {
   getElementPath,
   resolveElementPath,
 } from "./styleOverrides";
+import { useEditorPanel } from "./EditorPanelContext";
 
-const PALETTE = [
-  "#e25a4e", "#f59e0b", "#16a34a", "#2563eb", "#7c3aed", "#0ea5e9",
-  "#111827", "#374151", "#9ca3af", "#ffffff", "#fef3c7", "#dcfce7",
-];
-
-const SHADOWS: { label: string; value: string }[] = [
-  { label: "Ninguna", value: "" },
-  { label: "Suave", value: "0 2px 8px rgba(0,0,0,0.12)" },
-  { label: "Media", value: "0 6px 18px rgba(0,0,0,0.18)" },
-  { label: "Fuerte", value: "0 14px 40px rgba(0,0,0,0.28)" },
-];
-
-// Elementos cuyo click NO debe seleccionar una caja: los maneja su propio editor.
-const BAIL_SELECTOR =
-  ".ProseMirror, [contenteditable], .tiptap-text-editor, img, svg, [data-style-overlay]";
+// Elementos cuyo click NO debe seleccionar una caja.
+const BAIL_SELECTOR = [
+  ".ProseMirror", "[contenteditable]", ".tiptap-text-editor", "img", "svg",
+  "[data-style-overlay]", "[data-editor-ui]", "[data-tippy-root]",
+  "[data-radix-popper-content-wrapper]", "[data-radix-portal]",
+].join(", ");
 
 interface Props {
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -44,8 +32,13 @@ const StyleEditOverlay: React.FC<Props> = ({
   overrides,
 }) => {
   const dispatch = useDispatch();
-  const [selPath, setSelPath] = useState<string | null>(null);
+  const { element, setElement, setEditor } = useEditorPanel();
   const [rect, setRect] = useState<DOMRect | null>(null);
+
+  // Sólo esta slide dibuja el contorno si el elemento seleccionado es suyo.
+  const selPath =
+    element && element.slideIndex === slideIndex ? element.path : null;
+  const override: ElementOverride = (selPath && overrides?.[selPath]) || {};
 
   const getAnchor = useCallback(
     () =>
@@ -61,50 +54,7 @@ const StyleEditOverlay: React.FC<Props> = ({
     return resolveElementPath(anchor, selPath);
   }, [getAnchor, selPath]);
 
-  const override: ElementOverride = (selPath && overrides?.[selPath]) || {};
-
-  // Posición del panel de controles: fijo (no sigue al elemento), arrastrable y
-  // persistido. Default: arriba a la derecha, así no tapa la slide ni el toolbar
-  // de texto.
-  const PANEL_POS_KEY = "presentia.stylePanelPos";
-  const [panelPos, setPanelPos] = useState<{ x: number; y: number }>({ x: 16, y: 76 });
-  useEffect(() => {
-    try {
-      const s = window.localStorage.getItem(PANEL_POS_KEY);
-      if (s) {
-        setPanelPos(JSON.parse(s));
-        return;
-      }
-    } catch {}
-    setPanelPos({ x: Math.max(16, window.innerWidth - 312), y: 76 });
-  }, []);
-  const savePanelPos = (p: { x: number; y: number }) => {
-    setPanelPos(p);
-    try {
-      window.localStorage.setItem(PANEL_POS_KEY, JSON.stringify(p));
-    } catch {}
-  };
-  const onPanelDragStart = (e: React.PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const start = panelPos;
-    const sx = e.clientX;
-    const sy = e.clientY;
-    const onMove = (ev: PointerEvent) => {
-      savePanelPos({
-        x: Math.max(0, Math.min(window.innerWidth - 60, start.x + (ev.clientX - sx))),
-        y: Math.max(0, Math.min(window.innerHeight - 40, start.y + (ev.clientY - sy))),
-      });
-    };
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  };
-
-  // Rect del elemento seleccionado (para outline/handles/toolbar).
+  // Rect del elemento seleccionado (para contorno/handles).
   useEffect(() => {
     if (selPath == null) {
       setRect(null);
@@ -120,25 +70,19 @@ const StyleEditOverlay: React.FC<Props> = ({
     return () => cancelAnimationFrame(raf);
   }, [selPath, selEl]);
 
-  // Selección por click-target: texto/imagen/icono → sus propios editores (y
-  // cerramos el panel); caja → seleccionamos para darle estilo.
+  // Selección por click-target.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
       const anchor = getAnchor();
       if (!target || !anchor || !anchor.contains(target)) return;
       if (target.closest("[data-style-overlay]")) return;
-
-      // Editando texto/imagen/icono → dejar que su editor actúe y cerrar panel.
       if (target.closest(BAIL_SELECTOR)) {
-        setSelPath(null);
+        setElement(null); // editar texto/imagen/icono → cerrar panel de elemento
         return;
       }
-
-      // Es una caja → seleccionar para estilo.
       e.preventDefault();
       e.stopPropagation();
       let node: HTMLElement | null = target;
@@ -146,8 +90,7 @@ const StyleEditOverlay: React.FC<Props> = ({
       while (node && node !== anchor) {
         const cs = window.getComputedStyle(node);
         const bg = cs.backgroundColor;
-        const hasBg =
-          bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent" && bg !== "";
+        const hasBg = bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent" && bg !== "";
         if (hasBg || parseFloat(cs.borderRadius) > 0) {
           picked = node;
           break;
@@ -155,25 +98,27 @@ const StyleEditOverlay: React.FC<Props> = ({
         node = node.parentElement;
       }
       const path = getElementPath(picked, anchor);
-      if (path != null) setSelPath(path);
+      if (path != null) {
+        setEditor(null);
+        setElement({ slideIndex, path });
+      }
     };
-
     container.addEventListener("click", onClick, true);
     return () => container.removeEventListener("click", onClick, true);
-  }, [containerRef, getAnchor]);
+  }, [containerRef, getAnchor, setElement, setEditor, slideIndex]);
 
-  // Deseleccionar al clickear fuera de la slide, o con Esc.
+  // Deseleccionar al clickear fuera de la slide y del panel; o con Esc.
   useEffect(() => {
     if (selPath == null) return;
     const onDown = (e: PointerEvent) => {
       const t = e.target as HTMLElement | null;
       if (!t) return;
       if (containerRef.current?.contains(t)) return;
-      if (t.closest("[data-style-overlay]")) return;
-      setSelPath(null);
+      if (t.closest("[data-style-overlay], [data-editor-ui]")) return;
+      setElement(null);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSelPath(null);
+      if (e.key === "Escape") setElement(null);
     };
     window.addEventListener("pointerdown", onDown, true);
     window.addEventListener("keydown", onKey);
@@ -181,30 +126,13 @@ const StyleEditOverlay: React.FC<Props> = ({
       window.removeEventListener("pointerdown", onDown, true);
       window.removeEventListener("keydown", onKey);
     };
-  }, [selPath, containerRef]);
+  }, [selPath, containerRef, setElement]);
 
   const patch = (p: Partial<ElementOverride>) => {
     if (selPath == null) return;
     dispatch(setStyleOverride({ slideIndex, elementPath: selPath, patch: p }));
   };
 
-  const reset = () => {
-    if (selPath == null) return;
-    dispatch(clearStyleOverride({ slideIndex, elementPath: selPath }));
-  };
-
-  const selectParent = () => {
-    const anchor = getAnchor();
-    const el = selEl();
-    const parent = el?.parentElement;
-    if (anchor && parent && anchor.contains(parent) && parent !== anchor) {
-      const p = getElementPath(parent, anchor);
-      if (p != null) setSelPath(p);
-    }
-  };
-
-  // Factor de escala del SlideScale (transform:scale) para convertir px de
-  // pantalla → px del lienzo base al mover.
   const getSlideScale = (el: HTMLElement): number => {
     let n: HTMLElement | null = el.parentElement;
     while (n) {
@@ -221,7 +149,7 @@ const StyleEditOverlay: React.FC<Props> = ({
     return 1;
   };
 
-  // Mover (arrastrar el contorno) → translate. No reflowea.
+  // Mover (arrastrar contorno) → translate.
   const onOutlineDown = (e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -247,7 +175,7 @@ const StyleEditOverlay: React.FC<Props> = ({
     window.addEventListener("pointerup", onUp);
   };
 
-  // Resize uniforme por handle de esquina (transform-origin top-left → no reflow).
+  // Resize uniforme por handle de esquina.
   const onHandleDown = (e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -260,11 +188,7 @@ const StyleEditOverlay: React.FC<Props> = ({
     const onMove = (ev: PointerEvent) => {
       const dist = Math.hypot(ev.clientX - originX, ev.clientY - originY);
       const next = clampScale((startScale * dist) / startDist);
-      patch({
-        scaleX: next,
-        scaleY: next,
-        kind: el.tagName === "IMG" ? "image" : "box",
-      });
+      patch({ scaleX: next, scaleY: next, kind: el.tagName === "IMG" ? "image" : "box" });
     };
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
@@ -274,41 +198,10 @@ const StyleEditOverlay: React.FC<Props> = ({
     window.addEventListener("pointerup", onUp);
   };
 
-  const swatchRow = (
-    label: string,
-    onPick: (c: string) => void,
-    onClear?: () => void,
-    colors: string[] = PALETTE
-  ) => (
-    <>
-      <p className="mb-1 text-[11px] font-medium text-neutral-500">{label}</p>
-      <div className="mb-2 flex flex-wrap items-center gap-1.5">
-        {colors.map((c) => (
-          <button
-            key={c}
-            onClick={() => onPick(c)}
-            className="h-6 w-6 rounded-md border border-neutral-200"
-            style={{ backgroundColor: c }}
-            title={c}
-          />
-        ))}
-        <label className="relative h-6 w-6 cursor-pointer overflow-hidden rounded-md border border-dashed border-neutral-300">
-          <span className="absolute inset-0" style={{ background: "conic-gradient(#ef4444,#f59e0b,#22c55e,#3b82f6,#a855f7,#ef4444)" }} />
-          <input type="color" onChange={(e) => onPick(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0" />
-        </label>
-        {onClear && (
-          <button onClick={onClear} className="ml-1 text-[11px] text-neutral-500 hover:text-neutral-800">Quitar</button>
-        )}
-      </div>
-    </>
-  );
-
-  if (!containerRef || selPath == null || !rect) return null;
-  if (typeof document === "undefined") return null;
+  if (selPath == null || !rect || typeof document === "undefined") return null;
 
   return createPortal(
     <div data-style-overlay="" style={{ position: "fixed", inset: 0, zIndex: 1000, pointerEvents: "none" }}>
-      {/* Contorno — arrastrable para mover */}
       <div
         data-style-overlay=""
         onPointerDown={onOutlineDown}
@@ -317,7 +210,6 @@ const StyleEditOverlay: React.FC<Props> = ({
           border: "2px solid #e25a4e", borderRadius: 4, cursor: "move", pointerEvents: "auto",
         }}
       />
-      {/* Handles de esquina (resize) */}
       {[[rect.left, rect.top], [rect.right, rect.top], [rect.left, rect.bottom], [rect.right, rect.bottom]].map(([x, y], i) => (
         <div
           key={i}
@@ -329,74 +221,6 @@ const StyleEditOverlay: React.FC<Props> = ({
           }}
         />
       ))}
-
-      {/* Panel de propiedades */}
-      <div
-        data-style-overlay=""
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          position: "fixed",
-          left: panelPos.x,
-          top: panelPos.y,
-          pointerEvents: "auto",
-        }}
-        className="max-h-[85vh] w-[288px] overflow-auto rounded-xl border border-neutral-200 bg-white p-2.5 text-black shadow-2xl"
-      >
-        <div className="mb-2 flex items-center justify-between">
-          <div
-            onPointerDown={onPanelDragStart}
-            className="flex flex-1 cursor-grab select-none items-center gap-1.5 rounded-md py-0.5 text-neutral-400 active:cursor-grabbing hover:bg-neutral-100"
-            title="Arrastrar panel"
-          >
-            <GripVertical className="h-4 w-4" />
-            <span className="text-[11px] font-semibold uppercase tracking-wide">Elemento</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button onClick={selectParent} title="Seleccionar contenedor" className="rounded p-1 text-neutral-500 hover:bg-neutral-100"><ArrowUp className="h-4 w-4" /></button>
-            <button onClick={reset} title="Restablecer" className="rounded p-1 text-neutral-500 hover:bg-neutral-100"><RotateCcw className="h-4 w-4" /></button>
-            <button onClick={() => setSelPath(null)} title="Cerrar" className="rounded p-1 text-neutral-500 hover:bg-neutral-100"><X className="h-4 w-4" /></button>
-          </div>
-        </div>
-
-        {swatchRow("Fondo", (c) => patch({ backgroundColor: c }), () => patch({ backgroundColor: undefined }))}
-        {swatchRow("Texto", (c) => patch({ textColor: c }))}
-
-        {/* Borde */}
-        {swatchRow("Borde", (c) => patch({ borderColor: c, borderWidth: (override.borderWidth ?? 0) > 0 ? override.borderWidth : 2, borderStyle: "solid" }), () => patch({ borderWidth: 0 }))}
-        <div className="mb-2 flex items-center gap-2">
-          <span className="text-[11px] text-neutral-500">Grosor</span>
-          <input type="range" min={0} max={12} step={1} value={override.borderWidth ?? 0} onChange={(e) => patch({ borderWidth: Number(e.target.value), borderStyle: "solid", borderColor: override.borderColor || "#111827" })} className="flex-1 accent-[#e25a4e]" />
-          <span className="w-6 text-right text-[11px] text-neutral-500">{override.borderWidth ?? 0}</span>
-        </div>
-
-        {/* Sombra */}
-        <p className="mb-1 text-[11px] font-medium text-neutral-500">Sombra</p>
-        <div className="mb-2 flex flex-wrap gap-1">
-          {SHADOWS.map((s) => (
-            <button
-              key={s.label}
-              onClick={() => patch({ boxShadow: s.value || undefined })}
-              className={`rounded-md border px-2 py-1 text-[11px] ${(override.boxShadow || "") === s.value ? "border-[#e25a4e] bg-[#e25a4e]/10 text-[#e25a4e]" : "border-neutral-200 text-neutral-600 hover:bg-neutral-50"}`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Radio de esquina */}
-        <div className="mb-2 flex items-center gap-2">
-          <span className="text-[11px] text-neutral-500">Redondeo</span>
-          <input type="range" min={0} max={48} step={2} value={override.borderRadius ?? 0} onChange={(e) => patch({ borderRadius: Number(e.target.value) })} className="flex-1 accent-[#e25a4e]" />
-          <span className="w-6 text-right text-[11px] text-neutral-500">{override.borderRadius ?? 0}</span>
-        </div>
-
-        {/* Tamaño */}
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] font-medium text-neutral-500">Tamaño</p>
-          <span className="text-[11px] text-neutral-500">{Math.round((override.scaleX ?? 1) * 100)}%</span>
-        </div>
-        <input type="range" min={25} max={400} step={5} value={Math.round((override.scaleX ?? 1) * 100)} onChange={(e) => { const s = clampScale(Number(e.target.value) / 100); patch({ scaleX: s, scaleY: s }); }} className="w-full accent-[#e25a4e]" />
-      </div>
     </div>,
     document.body
   );

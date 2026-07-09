@@ -31,6 +31,8 @@ import { applyPresentationThemeToElement } from "../utils/applyPresentationTheme
 
 import PresentationHeader from "./PresentationHeader";
 import Chat from "./Chat";
+import { EditorPanelProvider } from "@/app/(presentation-generator)/components/EditorPanelContext";
+import PropertiesSidebar from "@/app/(presentation-generator)/components/PropertiesSidebar";
 import { useI18n } from "@/lib/i18n";
 
 interface LoadingState {
@@ -362,6 +364,7 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
   }
 
   return (
+    <EditorPanelProvider>
     <div className="h-screen overflow-hidden font-syne">
       <OverlayLoader
         show={loadingState.isLoading}
@@ -486,18 +489,23 @@ const PresentationPage: React.FC<PresentationPageProps> = ({
             </div>
           </div>
           <div className="w-full max-w-[370px] h-full shrink-0 self-start sticky top-0">
-            <Chat
-              presentationId={presentation_id}
-              currentSlide={selectedSlide}
-              onPresentationChanged={handlePresentationChanged}
-              onChatSendingStateChange={handleChatSendingStateChange}
-              onFollowModeChange={setIsFollowModeEnabled}
-              onAgentSlideFocus={handleAgentSlideFocus}
+            <PropertiesSidebar
+              chat={
+                <Chat
+                  presentationId={presentation_id}
+                  currentSlide={selectedSlide}
+                  onPresentationChanged={handlePresentationChanged}
+                  onChatSendingStateChange={handleChatSendingStateChange}
+                  onFollowModeChange={setIsFollowModeEnabled}
+                  onAgentSlideFocus={handleAgentSlideFocus}
+                />
+              }
             />
           </div>
         </div>
       </div>
     </div>
+    </EditorPanelProvider>
   );
 };
 
