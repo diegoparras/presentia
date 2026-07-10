@@ -66,6 +66,23 @@ const undoRedoSlice = createSlice({
         return;
       }
 
+      // Coalescencia temporal: los gestos continuos del editor (arrastrar,
+      // sliders de tamaño/rotación/opacidad) disparan decenas de cambios por
+      // segundo. Los cambios dentro de la ventana se funden en un solo paso
+      // de historial (un drag completo = un deshacer), actualizando el
+      // presente SIN empujar los estados intermedios al pasado.
+      const COALESCE_MS = 800;
+      const now = Date.now();
+      if (now - state.present.timestamp < COALESCE_MS) {
+        state.present = {
+          slides: newSlides,
+          timestamp: now,
+          actionType: action.payload.actionType,
+        };
+        state.future = [];
+        return;
+      }
+
       // Add current state to past
       state.past.push(state.present);
 
@@ -80,7 +97,7 @@ const undoRedoSlice = createSlice({
       // Set new present
       state.present = {
         slides: newSlides,
-        timestamp: Date.now(),
+        timestamp: now,
         actionType: action.payload.actionType
       };
     },
