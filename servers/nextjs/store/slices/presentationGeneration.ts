@@ -385,6 +385,21 @@ const presentationGenerationSlice = createSlice({
       });
     },
 
+    // Color individual por serie/categoría del gráfico de la slide —
+    // content.chartData.colors[i]. FlexibleReportChart los prioriza sobre
+    // las variables del tema.
+    setChartColor: (
+      state,
+      action: PayloadAction<{ slideIndex: number; index: number; color: string | null }>
+    ) => {
+      const slide = state.presentationData?.slides?.[action.payload.slideIndex];
+      const chart = slide?.content?.chartData;
+      if (!chart || typeof chart !== "object") return;
+      const colors: (string | null)[] = Array.isArray(chart.colors) ? chart.colors : [];
+      colors[action.payload.index] = action.payload.color;
+      chart.colors = colors;
+    },
+
     // Iconos superpuestos a la slide — content.__overlays__[]. Usan
     // __icon_url__ para que el IconsEditor existente los detecte y edite.
     addSlideOverlay: (
@@ -519,6 +534,7 @@ export const {
   clearStyleOverride,
   clearAllStyleOverrides,
   setSlideBackground,
+  setChartColor,
   addSlideOverlay,
   removeSlideOverlay,
   updateSlideIcon,

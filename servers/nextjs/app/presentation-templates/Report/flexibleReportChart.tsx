@@ -271,6 +271,9 @@ type FlexibleReportChartProps = {
   colorFallback?: string;
   dualLineColors?: [string, string];
   density?: "default" | "compact";
+  // Colores por serie/categoría elegidos por el usuario (índice a índice).
+  // Pisan a las variables del tema; los índices faltantes usan el tema.
+  colors?: string[];
 };
 
 export function FlexibleReportChart({
@@ -280,9 +283,10 @@ export function FlexibleReportChart({
   colorFallback = "#157CFF",
   dualLineColors = ["var(--graph-0,#9fb6ff)", "var(--graph-1,#4d4ef3)"],
   density = "default",
+  colors,
 }: FlexibleReportChartProps) {
   const compact = density === "compact";
-  const color = (i: number) => graphVar(i, colorFallback);
+  const color = (i: number) => colors?.[i] || graphVar(i, colorFallback);
   const axisProps = {
     tick: { fill: AXIS_TEXT, fontSize: compact ? 9 : 12, fontFamily: FONT } as any,
     stroke: AXIS_TEXT,

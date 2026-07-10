@@ -33,13 +33,16 @@ const StyleEditOverlay: React.FC<Props> = ({
   overrides,
 }) => {
   const dispatch = useDispatch();
-  const { element, setElement, setEditor, setBackgroundSlide } = useEditorPanel();
+  const { element, setElement, setEditor, setBackgroundSlide, aspectLocked } = useEditorPanel();
   const [rect, setRect] = useState<DOMRect | null>(null);
 
   // Sólo esta slide dibuja el contorno si el elemento seleccionado es suyo.
   const selPath =
     element && element.slideIndex === slideIndex ? element.path : null;
   const override: ElementOverride = (selPath && overrides?.[selPath]) || {};
+  // Ref vivo para handlers que corren varias veces entre renders (flechas).
+  const overrideRef = useRef(override);
+  overrideRef.current = override;
 
   const getAnchor = useCallback(
     () =>
@@ -154,7 +157,30 @@ const StyleEditOverlay: React.FC<Props> = ({
       setElement(null);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setElement(null);
+      if (e.key === "Escape") {
+        setElement(null);
+        return;
+      }
+      // Mover con flechas (1px; Shift = 10px) — sin robar el tipeo de inputs.
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      const step = e.shiftKey ? 10 : 1;
+      const deltas: Record<string, [number, number]> = {
+        ArrowLeft: [-step, 0],
+        ArrowRight: [step, 0],
+        ArrowUp: [0, -step],
+        ArrowDown: [0, step],
+      };
+      const d = deltas[e.key];
+      if (!d) return;
+      e.preventDefault();
+      const cur = overrideRef.current;
+      const patchMove: Record<string, number> = {};
+      if (d[0] !== 0) patchMove.translateX = (cur.translateX ?? 0) + d[0];
+      if (d[1] !== 0) patchMove.translateY = (cur.translateY ?? 0) + d[1];
+      dispatch(
+        setStyleOverride({ slideIndex, elementPath: selPath!, patch: patchMove })
+      );
     };
     window.addEventListener("pointerdown", onDown, true);
     window.addEventListener("keydown", onKey);
@@ -162,7 +188,8 @@ const StyleEditOverlay: React.FC<Props> = ({
       window.removeEventListener("pointerdown", onDown, true);
       window.removeEventListener("keydown", onKey);
     };
-  }, [selPath, containerRef, setElement]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selPath, containerRef, setElement, override.translateX, override.translateY, slideIndex]);
 
   const patch = (p: Partial<ElementOverride>) => {
     if (selPath == null) return;
@@ -211,7 +238,9 @@ const StyleEditOverlay: React.FC<Props> = ({
     window.addEventListener("pointerup", onUp);
   };
 
-  // Resize uniforme por handle de esquina.
+  // Resize por handle de esquina. Con proporción fija (candado) escala
+  // uniforme; con proporción libre, X e Y se escalan por separado según el
+  // movimiento en cada eje.
   const onHandleDown = (e: React.PointerEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -220,11 +249,21 @@ const StyleEditOverlay: React.FC<Props> = ({
     const originX = rect.left;
     const originY = rect.top;
     const startDist = Math.hypot(e.clientX - originX, e.clientY - originY) || 1;
-    const startScale = override.scaleX ?? 1;
+    const startDx = Math.abs(e.clientX - originX) || 1;
+    const startDy = Math.abs(e.clientY - originY) || 1;
+    const startScaleX = override.scaleX ?? 1;
+    const startScaleY = override.scaleY ?? 1;
+    const kind = el.tagName === "IMG" ? "image" : ("box" as const);
     const onMove = (ev: PointerEvent) => {
-      const dist = Math.hypot(ev.clientX - originX, ev.clientY - originY);
-      const next = clampScale((startScale * dist) / startDist);
-      patch({ scaleX: next, scaleY: next, kind: el.tagName === "IMG" ? "image" : "box" });
+      if (aspectLocked) {
+        const dist = Math.hypot(ev.clientX - originX, ev.clientY - originY);
+        const f = dist / startDist;
+        patch({ scaleX: clampScale(startScaleX * f), scaleY: clampScale(startScaleY * f), kind });
+      } else {
+        const fx = Math.abs(ev.clientX - originX) / startDx;
+        const fy = Math.abs(ev.clientY - originY) / startDy;
+        patch({ scaleX: clampScale(startScaleX * fx), scaleY: clampScale(startScaleY * fy), kind });
+      }
     };
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);

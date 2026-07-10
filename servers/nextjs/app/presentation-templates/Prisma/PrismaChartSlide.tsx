@@ -61,6 +61,7 @@ const PrismaChartSlide = ({ data }: { data: Partial<SchemaType> }) => {
               chartType={chartData.type as any}
               data={(chartData.data as any[]) || []}
               series={(chartData as any).series || []}
+              colors={(chartData as any).colors}
               colorFallback="var(--primary-color,#ff5a5f)"
             />
           )}

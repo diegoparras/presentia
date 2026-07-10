@@ -86,10 +86,12 @@ export const useEditorPanel = () => {
     editor: snap.editor,
     textPanelEl: snap.textPanelEl,
     backgroundSlide: snap.backgroundSlide,
+    aspectLocked: snap.aspectLocked,
     setElement,
     setEditor,
     setTextPanelEl,
     setBackgroundSlide,
+    setAspectLocked,
   };
 };
 
