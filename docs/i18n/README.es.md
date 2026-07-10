@@ -8,12 +8,15 @@
 
 Un generador de presentaciones con IA, open source y self‑hosted — el satélite de
 decks de la **[Suite Escriba](https://getescriba.com)**. Transformá un **prompt, un
-documento, un dataset o un markdown** en una presentación editable y exportala a
-**PPTX o PDF**. Sobre su upstream ([Presenton](https://github.com/presenton/presenton))
-suma **gráficos que no pueden alucinar** (cada cifra se valida contra tus datos), un
-**panel de costos LLM por deck**, un **gateway opcional de anonimización de PII**, un
-**selector guiado de modelos** (una key de OpenRouter habilita todo el catálogo) y
-una interfaz en **7 idiomas**.
+documento, un dataset o un markdown** en una presentación, retocala en un **editor
+de clase Canva** (estilos por elemento, fondos de slide, iconos superpuestos,
+cualquier Google Font, colores de gráfico por serie — y todo sobrevive al export) y
+publicala como **PPTX, PDF, MP4 o página web**. Sobre su upstream
+([Presenton](https://github.com/presenton/presenton)) suma el **editor pro**, la
+**generación en vivo estilo Gamma**, **gráficos que no pueden alucinar** (cada cifra
+se valida contra tus datos), un **panel de costos LLM por deck**, un **gateway
+opcional de anonimización de PII**, un **selector guiado de modelos** (una key de
+OpenRouter habilita todo el catálogo) y una interfaz en **7 idiomas**.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-e25a4e.svg)](../../LICENSE)
 [![Fork de Presenton](https://img.shields.io/badge/fork%20de-Presenton-8b5cf6.svg)](https://github.com/presenton/presenton)
@@ -29,17 +32,36 @@ una interfaz en **7 idiomas**.
 
 ## ✨ Qué hace
 
-- 🎤 **Prompt → deck** — describí el tema, revisá el outline generado, elegí una plantilla y obtené la presentación completa: layouts, texto e imágenes, lista para retocar en un editor completo con asistente de IA.
+### Generá
+
+- 🎤 **Prompt → deck** — describí el tema, revisá el outline generado, elegí una plantilla y mirá cómo el deck **se arma en vivo, estilo Gamma**: tarjetas fantasma que se van completando a medida que cada slide se genera.
 - 📄 **Documentos → deck** — subí PDF, Word, PowerPoint, planillas, imágenes o texto plano y armá el deck desde su contenido. Opcionalmente el parsing se delega a [Escriba](https://github.com/diegoparras/escriba) para la mejor conversión con OCR ([ver abajo](#-integración-con-la-suite-escriba)).
 - 🧾 **Markdown → deck (modo Gamma)** — pegá o arrastrá un `.md`: cada sección separada por `---` o por encabezados `#`/`##` se convierte en una tarjeta. Tres modos de texto: **Preservar** (tu texto viaja tal cual; la IA solo elige layouts y genera imágenes), **Condensar** (resume) y **Generar** (reescribe y expande). Con **editor de markdown integrado**: toolbar, vista previa en vivo por tarjeta y drag & drop.
 - 📊 **Gráficos anclados a tus datos** — generá un deck desde un dataset CSV/TSV/JSON. Cada cifra de cada gráfico se **valida contra el dataset**: tiene que existir en los datos o ser un agregado exacto de columna (suma, promedio, mínimo, máximo, conteo). Si el modelo inventa una cifra, se reintenta con feedback; si insiste, el slide se rechaza. Gráficos alucinados: cero.
+
+### Editá como en Canva
+
+- 🎛️ **Panel de propiedades acoplado** — un panel contextual a la derecha (estilo Canva/Figma): seleccioná cualquier caja, tarjeta o imagen y editá su **fondo, color de texto, borde, sombra, redondeo, tamaño y posición** en el lugar. Todo lo que cambiás sobrevive a recargas *y* a los exports.
+- 🧲 **Control real de elementos** — mové arrastrando los bordes, redimensioná desde las esquinas con **proporción fijable**, alineá en la slide (izquierda/centro/derecha × arriba/medio/abajo), **rotá**, ajustá la **opacidad**, traé al frente / mandá atrás, y mové con las **flechas del teclado** (Shift = 10 px).
+- ✍️ **Edición de texto pro** — toolbar de formato completo acoplado al panel: negrita/itálica/subrayado, tamaño, color, resaltado, enlaces, sub/superíndice, **acciones de reescritura con IA**, y **cualquier Google Font por nombre** — escribís "Lobster", se carga, persiste y hasta queda **incrustada en el PPTX** para que se vea en máquinas que no la tienen instalada. El texto se alinea dentro de su bloque (H + V) y los bloques se redimensionan por **reflujo** — cambia el contenedor, no la tipografía.
+- 🖼️ **Fondos de slide** — imagen de fondo por slide (o varias, o todas) desde un **archivo, una generación con IA o un link** (las imágenes externas se cachean localmente para que el export siempre las incluya), con ajuste y opacidad.
+- ⭐ **Iconos superpuestos** — soltá iconos en cualquier parte de la slide, movelos y redimensionalos, y personalizalos con el buscador de iconos (búsqueda, peso, color del icono, color de la forma).
+- 📈 **Colores de gráfico por serie** — hacé clic en cualquier gráfico y recoloreá cada serie/categoría individualmente; funciona en **todas las familias de plantillas** y viaja al export.
+- 🤝 **Colaboración** — comentarios, presencia en vivo, historial de versiones y sincronización cuando otra persona edita el deck.
+
+### Publicalo
+
+- 📦 **Exports fieles** — PPTX y PDF renderizados por el *mismo* pipeline React que ves en el editor: estilos por elemento, fondos, iconos y fuentes incrustadas llegan intactos. Más **export a video MP4** y **publicación web con un clic**.
 - 💸 **Panel de costos LLM** — cada llamada al modelo queda registrada y atribuida a su presentación, etapa y slide, con un catálogo de precios versionado. Mirá cuánto costó realmente cada deck y compará proveedores.
 - 🧭 **Selector guiado de modelos** — modelos rankeados por calidad curada y precio combinado, con badges *Mejor calidad* / *Mejor precio‑calidad* / *Más económico*. **Una key de OpenRouter habilita casi todo el catálogo**; cambiar de modelo es un click.
+
+### Plataforma
+
 - 🛡️ **Gateway de PII (opcional)** — con [Anonimal](https://github.com/diegoparras/anonimal) activo, el contenido del usuario y el texto extraído de documentos se anonimizan **antes** de llegar al proveedor de LLM. **Fail‑closed**: si el anonimizador no responde, la generación se corta en vez de filtrar PII cruda.
 - 🔎 **Búsqueda web** — fundamentá las generaciones con [Searchgirl](https://getescriba.com) (la metabúsqueda privada de la suite), SearXNG, Tavily, Exa o Brave — o usá el grounding nativo del modelo.
 - 🤖 **Traé tu propio modelo** — OpenAI, Anthropic, Google, DeepSeek, OpenRouter, **Ollama / LM Studio (local)**, LiteLLM, Azure OpenAI, AWS Bedrock, Google Vertex o cualquier endpoint compatible con OpenAI.
 - 🖼️ **Imágenes a tu manera** — GPT Image 1.5, DALL‑E 3, Gemini Flash, **ComfyUI (local)**, stock gratuito de Pexels/Pixabay, o sin imágenes. Con instrucciones de estilo por deck ("fotorrealista", "line art minimalista"…).
-- 🎨 **Plantillas y temas** — familias integradas (General, Modern, Standard, Swift, Report con gráficos, **Institucional** en es‑AR), plantillas personalizadas generadas desde tu propio PPTX, editor de temas completo (colores, fuentes, logo) y `style_instructions` por plantilla que moldean el tono de escritura.
+- 🎨 **17 familias de plantillas y temas** — de corporativo a lúdico, incluidas las propias del fork: **Aurora** (minimalismo tipo keynote), **Nocturno** (oscura premium — la única familia oscura del set) y **Prisma** (formas creativas y color), más **Institucional** (es‑AR) y las familias del upstream. Plantillas personalizadas generadas desde tu propio PPTX, editor de temas completo (colores, fuentes, logo) y `style_instructions` por plantilla que moldean el tono de escritura.
 - 🌍 **7 idiomas de interfaz** — English, Español, Français, Português, Italiano, 中文, 日本語 — cambiables desde el sidebar, recordados por navegador.
 - 🔒 **Self‑hosted y privado** — login integrado, SQLite por defecto (PostgreSQL vía `DATABASE_URL`), tus keys y tu contenido nunca salen de tu servidor.
 
@@ -377,7 +399,11 @@ del fork — está en [`docs/ARQUITECTURA.md`](../ARQUITECTURA.md).
 **Presentia** es un fork de **[Presenton](https://github.com/presenton/presenton)**
 — un excelente generador open source de presentaciones con IA del
 [equipo de Presenton](https://presenton.ai) ([docs](https://docs.presenton.ai)).
-Toda la maquinaria central de generación es de ellos; el fork agrega las
+La maquinaria central de generación es de ellos; el fork agrega el **editor pro**
+(panel de propiedades acoplado, estilos por elemento, fondos de slide, iconos
+superpuestos, Google Fonts con incrustado en PPTX, colores de gráfico por serie),
+la **generación en vivo estilo Gamma**, las **familias de plantillas
+Aurora/Nocturno/Prisma**, la colaboración (comentarios, presencia, versiones), las
 integraciones con la Suite Escriba, el guard de gráficos anclados a datos, el panel
 de costos, el selector de modelos, el editor de markdown, la capa de i18n y el
 branding de la suite.

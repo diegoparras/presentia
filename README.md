@@ -8,12 +8,15 @@
 
 An open‑source, self‑hosted AI presentation generator — the deck satellite of the
 **[Escriba Suite](https://getescriba.com)**. Turn a **prompt, a document, a dataset
-or a markdown file** into an editable presentation and export it to **PPTX or PDF**.
-On top of its upstream ([Presenton](https://github.com/presenton/presenton)) it adds
-**charts that can't hallucinate** (every number is validated against your data), a
-**per‑deck LLM cost panel**, an optional **PII‑anonymization gateway**, a **guided
-model picker** (one OpenRouter key unlocks the whole catalog) and a UI in
-**7 languages**.
+or a markdown file** into a presentation, refine it in a **Canva‑class editor**
+(per‑element styling, slide backgrounds, overlay icons, any Google Font, per‑series
+chart colors — everything survives the export) and ship it as **PPTX, PDF, MP4 or a
+published web page**. On top of its upstream
+([Presenton](https://github.com/presenton/presenton)) it adds the **pro editor**,
+**live Gamma‑style generation**, **charts that can't hallucinate** (every number is
+validated against your data), a **per‑deck LLM cost panel**, an optional
+**PII‑anonymization gateway**, a **guided model picker** (one OpenRouter key unlocks
+the whole catalog) and a UI in **7 languages**.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-e25a4e.svg)](LICENSE)
 [![Fork of Presenton](https://img.shields.io/badge/fork%20of-Presenton-8b5cf6.svg)](https://github.com/presenton/presenton)
@@ -29,17 +32,36 @@ model picker** (one OpenRouter key unlocks the whole catalog) and a UI in
 
 ## ✨ Features
 
-- 🎤 **Prompt → deck** — describe the topic, review the generated outline, pick a template and get a full presentation: layouts, text and images, ready to fine‑tune in a complete editor with an AI assistant.
+### Generate
+
+- 🎤 **Prompt → deck** — describe the topic, review the generated outline, pick a template and watch the deck **stream in live, Gamma‑style**: ghost cards fill in one by one as each slide is generated.
 - 📄 **Documents → deck** — upload PDF, Word, PowerPoint, spreadsheets, images or plain text and build the deck from their content. Optionally delegate parsing to [Escriba](https://github.com/diegoparras/escriba) for best‑in‑class conversion with OCR ([see below](#-escriba-suite-integration)).
 - 🧾 **Markdown → deck (Gamma mode)** — paste or drop a `.md` file: every section split by `---` or by `#`/`##` headings becomes a card. Three text modes: **Preserve** (your text travels verbatim; the AI only picks layouts and generates images), **Condense** (summarizes) and **Generate** (rewrites and expands). Comes with a **built‑in markdown editor**: toolbar, live per‑card preview and drag & drop.
 - 📊 **Charts grounded in your data** — generate a deck from a CSV/TSV/JSON dataset. Every figure in every chart is **validated against the dataset**: it must exist in the data or be an exact column aggregate (sum, average, min, max, count). If the model invents a number it gets retried with feedback; if it insists, the slide is rejected. No hallucinated charts, period.
+
+### Edit like Canva
+
+- 🎛️ **Docked properties panel** — a contextual right‑hand panel (Canva/Figma style): select any box, card or image and edit its **background, text color, border, shadow, corner radius, size and position** in place. Everything you change survives reloads *and* exports.
+- 🧲 **Real element control** — move by dragging edges, resize from corners with a **lockable aspect ratio**, align to the slide (left/center/right × top/middle/bottom), **rotate**, set **opacity**, bring to front / send to back, and nudge with the **arrow keys** (Shift = 10 px).
+- ✍️ **Pro text editing** — a full formatting toolbar docked in the panel: bold/italic/underline, size, color, highlight, links, sub/superscript, **AI rewrite actions**, and **any Google Font by name** — just type "Lobster" and it loads, persists and even gets **embedded into the PPTX** so it renders on machines that don't have it installed. Text blocks align within their box (H + V) and resize by **reflow** — the container changes, the typography doesn't.
+- 🖼️ **Slide backgrounds** — set a background image per slide (or several, or all) from an **upload, an AI generation or a URL** (external images are cached locally so exports always include them), with fit and opacity controls.
+- ⭐ **Overlay icons** — drop icons anywhere on a slide, drag/resize them, and restyle them with the icon customizer (search, weight, icon color, shape color).
+- 📈 **Per‑series chart colors** — click any chart and recolor each series/category individually; works across **every template family** and carries into exports.
+- 🤝 **Collaboration** — comments, live presence, version history and live sync when someone else edits the deck.
+
+### Ship it
+
+- 📦 **Faithful exports** — PPTX and PDF rendered from the *same* React pipeline you see in the editor: element styles, backgrounds, icons and embedded fonts all arrive intact. Plus **MP4 video export** and **one‑click web publishing**.
 - 💸 **LLM cost panel** — every model call is logged and attributed to its presentation, stage and slide, priced with a versioned catalog. See what each deck actually cost and compare providers.
 - 🧭 **Guided model picker** — models ranked by curated quality and blended price, with *Best quality* / *Best price‑quality* / *Cheapest* badges. **One OpenRouter key unlocks almost the entire catalog**; switching models is one click.
+
+### Platform
+
 - 🛡️ **PII gateway (optional)** — with [Anonimal](https://github.com/diegoparras/anonimal) enabled, user content and extracted document text are anonymized **before** reaching the LLM provider. **Fail‑closed**: if the anonymizer is down, generation stops instead of leaking raw PII.
 - 🔎 **Web search** — ground generations with [Searchgirl](https://getescriba.com) (the suite's private metasearch), SearXNG, Tavily, Exa or Brave — or use the model's native grounding.
 - 🤖 **Bring your own model** — OpenAI, Anthropic, Google, DeepSeek, OpenRouter, **Ollama / LM Studio (local)**, LiteLLM, Azure OpenAI, AWS Bedrock, Google Vertex or any OpenAI‑compatible endpoint.
 - 🖼️ **Images your way** — GPT Image 1.5, DALL‑E 3, Gemini Flash, **ComfyUI (local)**, free stock from Pexels/Pixabay, or no images at all. Optional per‑deck style instructions ("photorealistic", "minimal line art"…).
-- 🎨 **Templates & themes** — built‑in template families (General, Modern, Standard, Swift, Report with charts, **Institucional** in es‑AR), custom templates generated from your own PPTX, a full theme editor (colors, fonts, logo) and per‑template `style_instructions` that shape the writing tone.
+- 🎨 **17 template families & themes** — from corporate to playful, including the fork's own **Aurora** (keynote‑style minimalism), **Nocturno** (premium dark — the only dark family in the set) and **Prisma** (bold creative shapes), plus **Institucional** (es‑AR) and the upstream families. Custom templates generated from your own PPTX, a full theme editor (colors, fonts, logo) and per‑template `style_instructions` that shape the writing tone.
 - 🌍 **7 UI languages** — English, Español, Français, Português, Italiano, 中文, 日本語 — switchable from the sidebar, remembered per browser.
 - 🔒 **Self‑hosted & private** — built‑in login, SQLite by default (PostgreSQL via `DATABASE_URL`), your keys and content never leave your server.
 
@@ -366,9 +388,13 @@ is in [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md).
 
 **Presentia** is a fork of **[Presenton](https://github.com/presenton/presenton)**
 — an excellent open‑source AI presentation generator by the
-[Presenton team](https://presenton.ai) ([docs](https://docs.presenton.ai)). All the
-core generation machinery is theirs; the fork adds the Escriba Suite integrations,
-the grounded‑charts guard, the cost panel, the model picker, the markdown editor,
+[Presenton team](https://presenton.ai) ([docs](https://docs.presenton.ai)). The
+core generation machinery is theirs; the fork adds the **pro editor** (docked
+properties panel, per‑element styling, slide backgrounds, overlay icons, Google
+Fonts with PPTX embedding, per‑series chart colors), **live Gamma‑style
+generation**, the **Aurora/Nocturno/Prisma template families**, collaboration
+(comments, presence, versions), the Escriba Suite integrations, the
+grounded‑charts guard, the cost panel, the model picker, the markdown editor,
 the i18n layer and the suite branding.
 
 Maintained by **Diego Parras** as part of the **[Escriba Suite](https://getescriba.com)**

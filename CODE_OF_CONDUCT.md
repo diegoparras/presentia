@@ -119,7 +119,7 @@ Remember: **diverse perspectives make open-source projects stronger**.
 
 If you believe someone is violating this Code of Conduct, please report it privately.
 
-📧 **Email:** [suraj@presenton.ai](mailto:suraj@presenton.ai)
+📧 **Email:** el mantenedor vía [GitHub Issues](https://github.com/diegoparras/presentia/issues)
 
 All reports will be handled confidentially and respectfully by the maintainers.
 
@@ -148,6 +148,6 @@ This Code of Conduct is inspired by guidelines from open-source communities and 
 
 If you have questions about this Code of Conduct, feel free to contact us:
 
-📧 **suraj@presenton.ai**
+📧 **[GitHub Issues](https://github.com/diegoparras/presentia/issues)**
 
 Thank you for helping make **Presenton a welcoming and collaborative open-source project.**
