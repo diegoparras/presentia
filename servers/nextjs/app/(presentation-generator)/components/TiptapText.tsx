@@ -43,7 +43,10 @@ import {
   Move,
 } from "lucide-react";
 import { getElementPath } from "./styleOverrides";
-import { useDispatch } from "react-redux";
+// OJO: TiptapText se monta en un React root SEPARADO (createRoot de
+// TiptapTextReplacer) sin <Provider> de Redux — useDispatch() acá CRASHEA el
+// componente y el texto desaparece. Usar el store singleton directamente.
+import { store } from "@/store/store";
 import { setStyleOverride } from "@/store/slices/presentationGeneration";
 
 const AI_ACTIONS: { key: string; label: string; needsTarget?: boolean }[] = [
@@ -219,7 +222,6 @@ const TiptapText: React.FC<TiptapTextProps> = ({
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const editorPanel = useEditorPanel();
-  const dispatch = useDispatch();
   // ── Config del toolbar (persistida en localStorage) ──
   const [cfg, setCfg] = useState<ToolbarCfg>(() => loadToolbarCfg());
   const [configOpen, setConfigOpen] = useState(false);
@@ -502,7 +504,7 @@ const TiptapText: React.FC<TiptapTextProps> = ({
   const alignBlock = (p: Record<string, string>) => {
     const path = getBlockPath();
     if (path == null || slideIndex == null) return;
-    dispatch(setStyleOverride({ slideIndex, elementPath: path, patch: p }));
+    store.dispatch(setStyleOverride({ slideIndex, elementPath: path, patch: p }));
   };
 
   // Cargar una Google Font escrita por nombre y aplicarla a la selección.
