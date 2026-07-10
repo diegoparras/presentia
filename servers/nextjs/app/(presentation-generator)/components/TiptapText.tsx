@@ -83,6 +83,32 @@ const PRESET_COLORS = [
   "#6366F1", "#8B5CF6", "#EC4899", "#14B8A6",
 ];
 
+// textStyle (color / fontFamily / fontSize) no tiene equivalente en markdown y
+// tiptap-markdown lo DESCARTA al serializar: la fuente/color/tamaño aplicados
+// se perdían al guardar (y por lo tanto al recargar y al exportar). Le
+// enseñamos a serializarlo como <span style="..."> (html:true lo re-parsea).
+export const TextStyleWithMarkdown = TextStyle.extend({
+  addStorage() {
+    return {
+      markdown: {
+        serialize: {
+          open(_state: unknown, mark: { attrs?: Record<string, string | null> }) {
+            const a = mark.attrs || {};
+            const css: string[] = [];
+            if (a.fontFamily) css.push(`font-family: ${a.fontFamily}`);
+            if (a.fontSize) css.push(`font-size: ${a.fontSize}`);
+            if (a.color) css.push(`color: ${a.color}`);
+            return css.length ? `<span style="${css.join("; ")}">` : "<span>";
+          },
+          close: "</span>",
+          mixable: true,
+          expelEnclosingWhitespace: true,
+        },
+      },
+    };
+  },
+});
+
 const googleLoaded = new Set<string>();
 function ensureGoogleFont(family: string) {
   if (!family || googleLoaded.has(family) || typeof document === "undefined") return;
@@ -225,7 +251,7 @@ const TiptapText: React.FC<TiptapTextProps> = ({
       StarterKit,
       Markdown.configure({ html: true, transformPastedText: true }),
       Underline,
-      TextStyle,
+      TextStyleWithMarkdown,
       Color,
       Highlight.configure({ multicolor: true }),
       FontFamily,

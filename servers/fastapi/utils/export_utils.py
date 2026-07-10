@@ -16,6 +16,20 @@ from utils.runtime_limits import log_memory
 LOGGER = logging.getLogger(__name__)
 
 
+async def _embed_pptx_fonts(path: str) -> None:
+    """Incrusta las Google Fonts usadas por el .pptx (best-effort, no fatal)."""
+    import asyncio
+
+    from utils.pptx_font_embed import embed_google_fonts_into_pptx
+
+    try:
+        count = await asyncio.to_thread(embed_google_fonts_into_pptx, path)
+        if count:
+            LOGGER.info("pptx export: %d familia(s) de fuentes incrustadas", count)
+    except Exception as exc:  # noqa: BLE001 - el export vale más que el embed
+        LOGGER.warning("pptx export: no se pudieron incrustar fuentes: %s", exc)
+
+
 def _get_next_public_url() -> str:
     return (os.getenv("NEXT_PUBLIC_URL") or "").strip() or "http://127.0.0.1"
 
@@ -83,6 +97,8 @@ async def export_presentation(
                 _get_next_public_url().rstrip("/"),
                 fastapi_url or "",
             )
+            if export_as == "pptx":
+                await _embed_pptx_fonts(out_path)
             return PresentationAndPath(presentation_id=presentation_id, path=out_path)
         except Exception as exc:  # noqa: BLE001 - fall back to the default engine
             if is_video:
@@ -100,6 +116,8 @@ async def export_presentation(
         fastapi_url=fastapi_url,
         cookie_header=cookie_header,
     )
+    if export_as == "pptx":
+        await _embed_pptx_fonts(export_result.path)
     log_memory(
         LOGGER,
         "presentation.export.finish",
