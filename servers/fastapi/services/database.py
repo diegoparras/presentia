@@ -66,6 +66,7 @@ async def create_db_and_tables():
                         OllamaPullStatus.__table__,
                         CommentModel.__table__,
                         PresentationVersionModel.__table__,
+                        LLMUsageEventModel.__table__,
                     ],
                 )
             )

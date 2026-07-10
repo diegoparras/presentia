@@ -14,7 +14,13 @@ const PropertiesSidebar: React.FC<{ chat: React.ReactNode }> = ({ chat }) => {
   const showProps = !!element || !!editor;
 
   return (
-    <div data-editor-ui="" className="relative h-full">
+    <div
+      data-editor-ui=""
+      className="relative h-full"
+      // El tema aplica font-family sobre #presentation-slides-wrapper (ancestro
+      // de este panel). Reafirmamos la tipografía del chrome para no heredarla.
+      style={{ fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif" }}
+    >
       {/* Chat siempre montado (preserva su estado), oculto cuando hay panel. */}
       <div className={showProps ? "pointer-events-none absolute inset-0 opacity-0" : "h-full"}>
         {chat}

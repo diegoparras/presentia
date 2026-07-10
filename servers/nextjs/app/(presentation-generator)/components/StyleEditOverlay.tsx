@@ -13,9 +13,10 @@ import {
 } from "./styleOverrides";
 import { useEditorPanel } from "./EditorPanelContext";
 
-// Elementos cuyo click NO debe seleccionar una caja.
+// Elementos cuyo click NO debe seleccionar una caja. Las imágenes NO están acá:
+// se manejan aparte (1er click selecciona; 2do click abre el ImageEditor).
 const BAIL_SELECTOR = [
-  ".ProseMirror", "[contenteditable]", ".tiptap-text-editor", "img", "svg",
+  ".ProseMirror", "[contenteditable]", ".tiptap-text-editor", "svg",
   "[data-style-overlay]", "[data-editor-ui]", "[data-tippy-root]",
   "[data-radix-popper-content-wrapper]", "[data-radix-portal]",
 ].join(", ");
@@ -80,7 +81,23 @@ const StyleEditOverlay: React.FC<Props> = ({
       if (!target || !anchor || !anchor.contains(target)) return;
       if (target.closest("[data-style-overlay]")) return;
       if (target.closest(BAIL_SELECTOR)) {
-        setElement(null); // editar texto/imagen/icono → cerrar panel de elemento
+        setElement(null); // editar texto/icono → cerrar panel de elemento
+        return;
+      }
+      // Imágenes: 1er click las selecciona (resize/mover + panel Elemento);
+      // si ya está seleccionada, dejamos pasar el click para que el handler
+      // de EditableLayoutWrapper abra el ImageEditor (zoom/enfoque/reemplazo).
+      const imgEl = target.closest("img") as HTMLElement | null;
+      if (imgEl) {
+        const imgPath = getElementPath(imgEl, anchor);
+        if (imgPath == null) return;
+        const yaSeleccionada =
+          element && element.slideIndex === slideIndex && element.path === imgPath;
+        if (yaSeleccionada) return; // pasa al ImageEditor
+        e.preventDefault();
+        e.stopPropagation();
+        setEditor(null);
+        setElement({ slideIndex, path: imgPath });
         return;
       }
       e.preventDefault();
@@ -105,7 +122,7 @@ const StyleEditOverlay: React.FC<Props> = ({
     };
     container.addEventListener("click", onClick, true);
     return () => container.removeEventListener("click", onClick, true);
-  }, [containerRef, getAnchor, setElement, setEditor, slideIndex]);
+  }, [containerRef, getAnchor, setElement, setEditor, slideIndex, element]);
 
   // Deseleccionar al clickear fuera de la slide y del panel; o con Esc.
   useEffect(() => {
@@ -200,16 +217,33 @@ const StyleEditOverlay: React.FC<Props> = ({
 
   if (selPath == null || !rect || typeof document === "undefined") return null;
 
+  // Tiras de arrastre SOLO en los bordes: el interior del elemento queda libre
+  // para clicks normales (iconos, imágenes, texto). Mover = arrastrar un borde.
+  const STRIP = 8;
+  const strips: React.CSSProperties[] = [
+    { left: rect.left - STRIP / 2, top: rect.top - STRIP / 2, width: rect.width + STRIP, height: STRIP },
+    { left: rect.left - STRIP / 2, top: rect.bottom - STRIP / 2, width: rect.width + STRIP, height: STRIP },
+    { left: rect.left - STRIP / 2, top: rect.top - STRIP / 2, width: STRIP, height: rect.height + STRIP },
+    { left: rect.right - STRIP / 2, top: rect.top - STRIP / 2, width: STRIP, height: rect.height + STRIP },
+  ];
+
   return createPortal(
     <div data-style-overlay="" style={{ position: "fixed", inset: 0, zIndex: 1000, pointerEvents: "none" }}>
+      {/* Borde visual (no captura eventos). */}
       <div
-        data-style-overlay=""
-        onPointerDown={onOutlineDown}
         style={{
           position: "fixed", left: rect.left, top: rect.top, width: rect.width, height: rect.height,
-          border: "2px solid #e25a4e", borderRadius: 4, cursor: "move", pointerEvents: "auto",
+          border: "2px solid #e25a4e", borderRadius: 4, pointerEvents: "none",
         }}
       />
+      {strips.map((s, i) => (
+        <div
+          key={`s${i}`}
+          data-style-overlay=""
+          onPointerDown={onOutlineDown}
+          style={{ position: "fixed", cursor: "move", pointerEvents: "auto", ...s }}
+        />
+      ))}
       {[[rect.left, rect.top], [rect.right, rect.top], [rect.left, rect.bottom], [rect.right, rect.bottom]].map(([x, y], i) => (
         <div
           key={i}
