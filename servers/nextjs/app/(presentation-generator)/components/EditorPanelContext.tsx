@@ -17,6 +17,8 @@ interface EditorPanelState {
   textPanelEl: HTMLElement | null;
   // Slide cuyo fondo se está editando (panel "Fondo").
   backgroundSlide: number | null;
+  // Si el resize por esquinas mantiene la proporción (true = fija).
+  aspectLocked: boolean;
 }
 
 /**
@@ -31,6 +33,7 @@ let state: EditorPanelState = {
   editor: null,
   textPanelEl: null,
   backgroundSlide: null,
+  aspectLocked: true,
 };
 const listeners = new Set<() => void>();
 
@@ -67,6 +70,12 @@ const setBackgroundSlide = (v: Updater<number | null>) => {
   const next = resolve(v, state.backgroundSlide);
   if (next === state.backgroundSlide) return;
   state = { ...state, backgroundSlide: next };
+  emit();
+};
+const setAspectLocked = (v: Updater<boolean>) => {
+  const next = resolve(v, state.aspectLocked);
+  if (next === state.aspectLocked) return;
+  state = { ...state, aspectLocked: next };
   emit();
 };
 

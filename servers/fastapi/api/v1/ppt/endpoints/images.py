@@ -160,6 +160,81 @@ async def upload_image(
         raise HTTPException(status_code=500, detail=f"Failed to upload image: {str(e)}")
 
 
+_CACHE_MAX_BYTES = 20 * 1024 * 1024
+_CACHE_EXT_BY_TYPE = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "image/gif": ".gif",
+    "image/svg+xml": ".svg",
+    "image/avif": ".avif",
+}
+
+
+@IMAGES_ROUTER.post("/cache")
+async def cache_external_image(
+    payload: dict, sql_session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Descarga una imagen externa y la guarda como asset local. Los motores de
+    export a PPTX/PDF embeben de forma confiable solo assets locales
+    (/app_data): con URLs de internet fallan por hotlink protection o porque
+    el conversor no las descarga. Cachearla al elegirla resuelve el export y
+    de paso evita que el deck dependa de un sitio ajeno.
+    """
+    import asyncio
+    import urllib.request
+
+    url = (payload.get("url") or "").strip()
+    if not url.lower().startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="url must be http(s)")
+
+    def _download() -> tuple[bytes, str]:
+        req = urllib.request.Request(
+            url,
+            headers={
+                # UA de navegador: muchos sitios rechazan clientes no-browser.
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+                # Preferir jpeg/png: máxima compatibilidad con los motores de
+                # export (avif/webp dependen del renderer).
+                "Accept": "image/jpeg,image/png;q=0.9,image/webp;q=0.8,image/*;q=0.7,*/*;q=0.5",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=25) as res:  # noqa: S310
+            ctype = (res.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            data = res.read(_CACHE_MAX_BYTES + 1)
+        return data, ctype
+
+    try:
+        data, ctype = await asyncio.to_thread(_download)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"No se pudo descargar la imagen: {exc}")
+
+    if len(data) > _CACHE_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="Imagen demasiado grande (max 20MB)")
+    ext = _CACHE_EXT_BY_TYPE.get(ctype)
+    if not ext:
+        # Algunos servers devuelven content-type generico: aceptar por magia de bytes.
+        if data[:8].startswith(b"\x89PNG"):
+            ext = ".png"
+        elif data[:3] == b"\xff\xd8\xff":
+            ext = ".jpg"
+        elif data[:4] == b"RIFF" and b"WEBP" in data[:16]:
+            ext = ".webp"
+        else:
+            raise HTTPException(status_code=422, detail=f"La URL no devolvio una imagen ({ctype or 'sin content-type'})")
+
+    image_path = os.path.join(get_images_directory(), f"{uuid.uuid4()}{ext}")
+    with open(image_path, "wb") as f:
+        f.write(data)
+
+    image_asset = ImageAsset(path=image_path, is_uploaded=True, extras={"source_url": url})
+    sql_session.add(image_asset)
+    await sql_session.commit()
+    await sql_session.refresh(image_asset)
+    return _image_asset_api_dict(image_asset)
+
+
 @IMAGES_ROUTER.get("/uploaded")
 async def get_uploaded_images(sql_session: AsyncSession = Depends(get_async_session)):
     try:

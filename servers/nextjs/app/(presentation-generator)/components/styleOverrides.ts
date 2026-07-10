@@ -22,6 +22,9 @@ export interface ElementOverride {
   scaleY?: number;
   translateX?: number; // px en espacio base 1280x720
   translateY?: number;
+  rotate?: number; // grados
+  opacity?: number; // 0-100
+  zIndex?: number; // orden de apilado (adelante/atrás)
   objectFit?: "cover" | "contain" | "fill";
 }
 
@@ -108,13 +111,25 @@ export function overrideToInlineStyle(
   }
   if (o.boxShadow) css.boxShadow = o.boxShadow;
   if (o.objectFit) css.objectFit = o.objectFit;
+  if (o.opacity != null && o.opacity < 100) css.opacity = String(o.opacity / 100);
+  if (o.zIndex != null) {
+    css.zIndex = String(o.zIndex);
+    // z-index requiere elemento posicionado (los transformados ya generan
+    // stacking context, pero un elemento estático sin transform no).
+    css.position = "relative";
+  }
 
   const sx = o.scaleX ?? 1;
   const sy = o.scaleY ?? 1;
   const tx = o.translateX ?? 0;
   const ty = o.translateY ?? 0;
-  if (sx !== 1 || sy !== 1 || tx !== 0 || ty !== 0) {
-    css.transform = `translate(${tx}px, ${ty}px) scale(${sx}, ${sy})`;
+  const rot = o.rotate ?? 0;
+  if (sx !== 1 || sy !== 1 || tx !== 0 || ty !== 0 || rot !== 0) {
+    // Rotación alrededor del centro SIN cambiar el origin (que anclaría
+    // distinto la escala): translate(50%) rotate translate(-50%) — los
+    // porcentajes refieren al tamaño del propio elemento.
+    const rotPart = rot !== 0 ? ` translate(50%, 50%) rotate(${rot}deg) translate(-50%, -50%)` : "";
+    css.transform = `translate(${tx}px, ${ty}px) scale(${sx}, ${sy})${rotPart}`;
     css.transformOrigin = "top left";
   }
   return css;

@@ -29,7 +29,7 @@ const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) =>
   const [preview, setPreview] = useState<string | null>(current?.url ?? null);
   const [fit, setFit] = useState<"cover" | "contain">(current?.fit === "contain" ? "contain" : "cover");
   const [opacity, setOpacity] = useState<number>(current?.opacity ?? 100);
-  const [busy, setBusy] = useState<null | "upload" | "ia">(null);
+  const [busy, setBusy] = useState<null | "upload" | "ia" | "url">(null);
   const [error, setError] = useState<string | null>(null);
   const [scope, setScope] = useState<Set<number>>(() => new Set([slideIndex]));
   const fileRef = useRef<HTMLInputElement>(null);
@@ -89,11 +89,25 @@ const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) =>
     }
   };
 
-  const onUseUrl = () => {
+  const onUseUrl = async () => {
     const u = url.trim();
     if (!u) return;
+    setBusy("url");
     setError(null);
-    setPreview(u);
+    try {
+      // Cachear en el servidor: el export solo embebe assets locales de forma
+      // confiable (las URLs externas fallan por hotlink protection).
+      const res = await ImagesApi.cacheImageUrl(u);
+      const local = resolveUrl(res);
+      setPreview(local || u);
+    } catch {
+      // Si no se pudo descargar (sitio bloqueado), usar la URL cruda: se ve
+      // en el editor aunque el export pueda no incluirla.
+      setPreview(u);
+      setError("No se pudo copiar la imagen al servidor; se usará el link directo (puede no salir en el export).");
+    } finally {
+      setBusy(null);
+    }
   };
 
   const apply = () => {
@@ -163,10 +177,10 @@ const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) =>
           />
           <button
             onClick={onUseUrl}
-            disabled={!url.trim()}
+            disabled={!url.trim() || busy !== null}
             className="h-9 shrink-0 rounded-md bg-[#5141e5]/10 px-2.5 text-xs font-medium text-[#5141e5] hover:bg-[#5141e5]/20 disabled:opacity-40"
           >
-            Usar
+            {busy === "url" ? "…" : "Usar"}
           </button>
         </div>
       </div>

@@ -28,6 +28,17 @@ export class ImagesApi {
   }
   }
 
+  // Descarga una imagen externa al servidor y devuelve el asset local.
+  // Necesario para que el export (PPTX/PDF) pueda embeberla de forma confiable.
+  static async cacheImageUrl(url: string): Promise<ImageAssetResponse> {
+    const response = await fetch(getApiUrl(`/api/v1/ppt/images/cache`), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url }),
+    });
+    return await ApiResponseHandler.handleResponse(response, "Failed to cache image") as ImageAssetResponse;
+  }
+
   static async getUploadedImages(): Promise<ImageAssetResponse[]> {
     try {
     const response = await fetch(getApiUrl(`/api/v1/ppt/images/uploaded`));

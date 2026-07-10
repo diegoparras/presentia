@@ -1366,6 +1366,42 @@ import reportSettings from "./Report/settings.json";
 import pitchDeckSettings from "./pitch-deck/settings.json";
 import institucionalSettings from "./Institucional/settings.json";
 
+// Aurora / Nocturno / Prisma (Suite Escriba) — imports namespace: cada layout
+// exporta default + Schema + slideLayoutId/Name/Description con nombres iguales.
+import auroraSettings from "./Aurora/settings.json";
+import * as AuroraCover from "./Aurora/AuroraCoverSlide";
+import * as AuroraToc from "./Aurora/AuroraTocSlide";
+import * as AuroraSection from "./Aurora/AuroraSectionSlide";
+import * as AuroraBullets from "./Aurora/AuroraBulletsSlide";
+import * as AuroraImage from "./Aurora/AuroraImageSlide";
+import * as AuroraMetrics from "./Aurora/AuroraMetricsSlide";
+import * as AuroraChart from "./Aurora/AuroraChartSlide";
+import * as AuroraQuote from "./Aurora/AuroraQuoteSlide";
+import * as AuroraProse from "./Aurora/AuroraProseSlide";
+import * as AuroraClosing from "./Aurora/AuroraClosingSlide";
+import nocturnoSettings from "./Nocturno/settings.json";
+import * as NocturnoCover from "./Nocturno/NocturnoCoverSlide";
+import * as NocturnoToc from "./Nocturno/NocturnoTocSlide";
+import * as NocturnoSection from "./Nocturno/NocturnoSectionSlide";
+import * as NocturnoBullets from "./Nocturno/NocturnoBulletsSlide";
+import * as NocturnoImage from "./Nocturno/NocturnoImageSlide";
+import * as NocturnoMetrics from "./Nocturno/NocturnoMetricsSlide";
+import * as NocturnoChart from "./Nocturno/NocturnoChartSlide";
+import * as NocturnoQuote from "./Nocturno/NocturnoQuoteSlide";
+import * as NocturnoProse from "./Nocturno/NocturnoProseSlide";
+import * as NocturnoClosing from "./Nocturno/NocturnoClosingSlide";
+import prismaSettings from "./Prisma/settings.json";
+import * as PrismaCover from "./Prisma/PrismaCoverSlide";
+import * as PrismaToc from "./Prisma/PrismaTocSlide";
+import * as PrismaSection from "./Prisma/PrismaSectionSlide";
+import * as PrismaBullets from "./Prisma/PrismaBulletsSlide";
+import * as PrismaImage from "./Prisma/PrismaImageSlide";
+import * as PrismaMetrics from "./Prisma/PrismaMetricsSlide";
+import * as PrismaChart from "./Prisma/PrismaChartSlide";
+import * as PrismaQuote from "./Prisma/PrismaQuoteSlide";
+import * as PrismaProse from "./Prisma/PrismaProseSlide";
+import * as PrismaClosing from "./Prisma/PrismaClosingSlide";
+
 // Institucional templates (Suite Escriba)
 import InstitucionalCoverSlide, {
   Schema as InstCoverSchema,
@@ -1597,6 +1633,48 @@ export const institucionalTemplates: TemplateWithData[] = [
   createTemplateEntry(InstitucionalConclusionsSlide, InstConclusionsSchema, InstConclusionsId, InstConclusionsName, InstConclusionsDesc, "institucional", "InstitucionalConclusionsSlide"),
   createTemplateEntry(InstitucionalImageSlide, InstImageSchema, InstImageId, InstImageName, InstImageDesc, "institucional", "InstitucionalImageSlide"),
   createTemplateEntry(InstitucionalClosingSlide, InstClosingSchema, InstClosingId, InstClosingName, InstClosingDesc, "institucional", "InstitucionalClosingSlide"),
+];
+
+const asEntry = (m: any, group: string, file: string) =>
+  createTemplateEntry(m.default, m.Schema, m.slideLayoutId, m.slideLayoutName, m.slideLayoutDescription, group, file);
+
+export const auroraTemplates: TemplateWithData[] = [
+  asEntry(AuroraCover, "aurora", "AuroraCoverSlide"),
+  asEntry(AuroraToc, "aurora", "AuroraTocSlide"),
+  asEntry(AuroraSection, "aurora", "AuroraSectionSlide"),
+  asEntry(AuroraBullets, "aurora", "AuroraBulletsSlide"),
+  asEntry(AuroraProse, "aurora", "AuroraProseSlide"),
+  asEntry(AuroraImage, "aurora", "AuroraImageSlide"),
+  asEntry(AuroraMetrics, "aurora", "AuroraMetricsSlide"),
+  asEntry(AuroraChart, "aurora", "AuroraChartSlide"),
+  asEntry(AuroraQuote, "aurora", "AuroraQuoteSlide"),
+  asEntry(AuroraClosing, "aurora", "AuroraClosingSlide"),
+];
+
+export const nocturnoTemplates: TemplateWithData[] = [
+  asEntry(NocturnoCover, "nocturno", "NocturnoCoverSlide"),
+  asEntry(NocturnoToc, "nocturno", "NocturnoTocSlide"),
+  asEntry(NocturnoSection, "nocturno", "NocturnoSectionSlide"),
+  asEntry(NocturnoBullets, "nocturno", "NocturnoBulletsSlide"),
+  asEntry(NocturnoProse, "nocturno", "NocturnoProseSlide"),
+  asEntry(NocturnoImage, "nocturno", "NocturnoImageSlide"),
+  asEntry(NocturnoMetrics, "nocturno", "NocturnoMetricsSlide"),
+  asEntry(NocturnoChart, "nocturno", "NocturnoChartSlide"),
+  asEntry(NocturnoQuote, "nocturno", "NocturnoQuoteSlide"),
+  asEntry(NocturnoClosing, "nocturno", "NocturnoClosingSlide"),
+];
+
+export const prismaTemplates: TemplateWithData[] = [
+  asEntry(PrismaCover, "prisma", "PrismaCoverSlide"),
+  asEntry(PrismaToc, "prisma", "PrismaTocSlide"),
+  asEntry(PrismaSection, "prisma", "PrismaSectionSlide"),
+  asEntry(PrismaBullets, "prisma", "PrismaBulletsSlide"),
+  asEntry(PrismaProse, "prisma", "PrismaProseSlide"),
+  asEntry(PrismaImage, "prisma", "PrismaImageSlide"),
+  asEntry(PrismaMetrics, "prisma", "PrismaMetricsSlide"),
+  asEntry(PrismaChart, "prisma", "PrismaChartSlide"),
+  asEntry(PrismaQuote, "prisma", "PrismaQuoteSlide"),
+  asEntry(PrismaClosing, "prisma", "PrismaClosingSlide"),
 ];
 
 export const educationTemplates: TemplateWithData[] = [
@@ -3481,6 +3559,9 @@ export const allLayouts: TemplateWithData[] = [
   ...reportTemplates,
   ...pitchDeckTemplates,
   ...institucionalTemplates,
+  ...auroraTemplates,
+  ...nocturnoTemplates,
+  ...prismaTemplates,
 ];
 
 // TODO: Step 5: Combine all templates into a single array For UseCases (like the ones below)
@@ -3583,6 +3664,27 @@ export const templates: TemplateLayoutsWithSettings[] = [
     description: institucionalSettings.description,
     settings: institucionalSettings as TemplateGroupSettings,
     layouts: institucionalTemplates,
+  },
+  {
+    id: "aurora",
+    name: "Aurora",
+    description: auroraSettings.description,
+    settings: auroraSettings as TemplateGroupSettings,
+    layouts: auroraTemplates,
+  },
+  {
+    id: "nocturno",
+    name: "Nocturno",
+    description: nocturnoSettings.description,
+    settings: nocturnoSettings as TemplateGroupSettings,
+    layouts: nocturnoTemplates,
+  },
+  {
+    id: "prisma",
+    name: "Prisma",
+    description: prismaSettings.description,
+    settings: prismaSettings as TemplateGroupSettings,
+    layouts: prismaTemplates,
   },
 ];
 
