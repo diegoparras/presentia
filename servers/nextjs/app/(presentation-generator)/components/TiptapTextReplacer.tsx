@@ -151,6 +151,7 @@ const TiptapTextReplacer: React.FC<TiptapTextReplacerProps> = ({
         root.render(
           <TiptapText
             content={initialContent}
+            slideIndex={slideIndex}
             onContentChange={(content: string) => {
               if (dataPath && onContentChange) {
                 onContentChange(content, dataPath.path, slideIndex);
@@ -194,6 +195,7 @@ const TiptapTextReplacer: React.FC<TiptapTextReplacerProps> = ({
       root.render(
         <TiptapText
           content={newContent}
+          slideIndex={slideIndex}
           onContentChange={(content: string) => {
             if (dataPath && onContentChange) {
               onContentChange(content, dataPath, slideIndex);

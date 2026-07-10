@@ -40,7 +40,9 @@ import {
   Eye,
   EyeOff,
   X,
+  Move,
 } from "lucide-react";
+import { getElementPath } from "./styleOverrides";
 
 const AI_ACTIONS: { key: string; label: string; needsTarget?: boolean }[] = [
   { key: "improve", label: "Mejorar redacción" },
@@ -57,6 +59,9 @@ interface TiptapTextProps {
   onContentChange?: (content: string) => void;
   className?: string;
   placeholder?: string;
+  // Índice de la slide (lo pasa TiptapTextReplacer). Habilita "Bloque":
+  // seleccionar el contenedor del texto para moverlo/redimensionarlo.
+  slideIndex?: number;
 }
 
 interface CustomFont {
@@ -175,6 +180,7 @@ const TiptapText: React.FC<TiptapTextProps> = ({
   onContentChange,
   className = "",
   placeholder = "Enter text...",
+  slideIndex,
 }) => {
   const [themeColors, setThemeColors] = useState<string[]>([]);
   const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
@@ -190,6 +196,10 @@ const TiptapText: React.FC<TiptapTextProps> = ({
   const [configOpen, setConfigOpen] = useState(false);
   // Si hay selección de texto activa (para mostrar el toolbar en el sidebar).
   const [hasSelection, setHasSelection] = useState(false);
+  // Buscador de Google Fonts por nombre (menú Fuente).
+  const [fontQuery, setFontQuery] = useState("");
+  const [fontLoading, setFontLoading] = useState(false);
+  const [fontError, setFontError] = useState<string | null>(null);
   // Desplazamiento por arrastre en modo flotante (relativo a la selección).
   const [floatOffset, setFloatOffset] = useState({ x: 0, y: 0 });
   const dragRef = useRef<{
@@ -287,18 +297,40 @@ const TiptapText: React.FC<TiptapTextProps> = ({
       setHasSelection(editor.isFocused && !sel.empty);
       if (sel.empty) setFloatOffset({ x: 0, y: 0 });
     };
+    // Si el foco pasa a un control del panel derecho (p.ej. el buscador de
+    // fuentes), el editor pierde foco pero el panel debe seguir abierto.
+    const onBlur = ({ event }: { event?: FocusEvent }) => {
+      const next = (event?.relatedTarget as HTMLElement | null) ?? null;
+      if (next && next.closest && next.closest("[data-editor-ui]")) return;
+      update();
+    };
     update();
     editor.on("selectionUpdate", update);
     editor.on("transaction", update);
     editor.on("focus", update);
-    editor.on("blur", update);
+    editor.on("blur", onBlur);
     return () => {
       editor.off("selectionUpdate", update);
       editor.off("transaction", update);
       editor.off("focus", update);
-      editor.off("blur", update);
+      editor.off("blur", onBlur);
     };
   }, [editor]);
+
+  // Cerrar el panel al clickear fuera (del panel y del texto). Necesario
+  // porque el blur hacia el panel no cierra (ver onBlur arriba).
+  useEffect(() => {
+    if (!hasSelection || !editor) return;
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (!t) return;
+      if (t.closest("[data-editor-ui]")) return;
+      if (editor.view?.dom?.contains(t)) return;
+      setHasSelection(false);
+    };
+    window.addEventListener("pointerdown", onDown, true);
+    return () => window.removeEventListener("pointerdown", onDown, true);
+  }, [hasSelection, editor]);
 
   // Registrar/limpiar el editor activo en el panel derecho según la selección.
   useEffect(() => {
@@ -368,6 +400,41 @@ const TiptapText: React.FC<TiptapTextProps> = ({
     if (url === null) return;
     if (url === "") editor.chain().focus().extendMarkRange("link").unsetLink().run();
     else editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  };
+
+  // Seleccionar el contenedor del texto como elemento (mover/redimensionar).
+  const selectTextBlock = () => {
+    if (slideIndex == null) return;
+    // rootRef está montado dentro del host que TiptapTextReplacer insertó en
+    // el lugar del elemento original — ese host es el "bloque" del texto.
+    const host = rootRef.current?.parentElement as HTMLElement | null;
+    const anchor = host?.closest("[data-style-root]") as HTMLElement | null;
+    if (!host || !anchor) return;
+    const path = getElementPath(host, anchor);
+    if (path == null) return;
+    setHasSelection(false);
+    editorPanel.setEditor(null);
+    editorPanel.setElement({ slideIndex, path });
+  };
+
+  // Cargar una Google Font escrita por nombre y aplicarla a la selección.
+  const loadGoogleFontByName = async () => {
+    const name = fontQuery.trim().replace(/\s+/g, " ");
+    if (!name) return;
+    setFontLoading(true);
+    setFontError(null);
+    try {
+      const url = `https://fonts.googleapis.com/css2?family=${name.replace(/\s+/g, "+")}:wght@400;500;600;700&display=swap`;
+      const res = await fetch(url, { method: "GET", mode: "cors" });
+      if (!res.ok) throw new Error("not-found");
+      ensureGoogleFont(name);
+      applyFont(name, false);
+      setFontQuery("");
+    } catch {
+      setFontError(`"${name}" no existe en Google Fonts`);
+    } finally {
+      setFontLoading(false);
+    }
   };
 
   const onUploadFont = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -510,6 +577,26 @@ const TiptapText: React.FC<TiptapTextProps> = ({
                   </>
                 )}
                 <div className="px-2 py-1 text-[10px] font-semibold uppercase text-neutral-400">Google Fonts</div>
+                <div className="px-1 pb-1">
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="text"
+                      value={fontQuery}
+                      onChange={(e) => { setFontQuery(e.target.value); setFontError(null); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); loadGoogleFontByName(); } }}
+                      placeholder="Escribí una fuente…"
+                      className="h-8 w-full min-w-0 rounded-md border border-neutral-200 px-2 text-xs outline-none focus:border-[#5141e5]"
+                    />
+                    <button
+                      onClick={loadGoogleFontByName}
+                      disabled={fontLoading || !fontQuery.trim()}
+                      className="h-8 shrink-0 rounded-md bg-[#5141e5]/10 px-2 text-xs font-medium text-[#5141e5] hover:bg-[#5141e5]/20 disabled:opacity-40"
+                    >
+                      {fontLoading ? "…" : "Usar"}
+                    </button>
+                  </div>
+                  {fontError && <p className="mt-1 px-1 text-[11px] text-red-500">{fontError}</p>}
+                </div>
                 {GOOGLE_FONTS.map((f) => (
                   <button key={f} onMouseEnter={() => ensureGoogleFont(f)} onClick={() => applyFont(f, false)} style={{ fontFamily: f }} className={`block w-full rounded px-2 py-1 text-left text-sm hover:bg-neutral-100 ${currentFont === f ? "bg-[#5141e5]/10 text-[#5141e5]" : ""}`}>
                     {f}
@@ -613,6 +700,15 @@ const TiptapText: React.FC<TiptapTextProps> = ({
           <div className="flex flex-1 items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#FBEDEA] text-[#e25a4e] text-sm font-bold">A</span>
             <span className="text-base font-semibold text-[#191919]">Texto</span>
+            {slideIndex != null && (
+              <button
+                onClick={selectTextBlock}
+                className="ml-1 flex h-8 items-center gap-1.5 rounded-lg bg-neutral-100 px-2.5 text-xs font-medium text-neutral-600 hover:bg-neutral-200"
+                title="Seleccionar el bloque de texto para moverlo o cambiarle el tamaño"
+              >
+                <Move className="h-3.5 w-3.5" /> Bloque
+              </button>
+            )}
           </div>
         ) : (
           <div

@@ -14,6 +14,39 @@ interface Props {
   children: React.ReactNode;
 }
 
+// ── Auto-carga de Google Fonts usadas en el contenido ───────────────────────
+// El editor permite aplicar cualquier Google Font por nombre (marca inline
+// font-family). Para que se vea igual en lectura, export (/pdf-maker) y
+// publicación, escaneamos los font-family inline y cargamos las familias que
+// falten. Si una familia no es de Google (custom/tema), el link 404 sin daño.
+const GENERIC_FAMILIES = new Set([
+  "inherit", "initial", "unset", "serif", "sans-serif", "monospace", "cursive",
+  "fantasy", "system-ui", "ui-sans-serif", "ui-serif", "ui-monospace",
+]);
+const requestedFamilies = new Set<string>();
+
+const ensureGoogleFontsFromDom = (root: HTMLElement) => {
+  if (typeof document === "undefined") return;
+  root.querySelectorAll<HTMLElement>('[style*="font-family"]').forEach((el) => {
+    const raw = el.style.fontFamily;
+    if (!raw || raw.includes("var(")) return;
+    const family = raw.split(",")[0].trim().replace(/^['"]|['"]$/g, "");
+    if (!family || GENERIC_FAMILIES.has(family.toLowerCase())) return;
+    if (requestedFamilies.has(family)) return;
+    requestedFamilies.add(family);
+    // Si ya hay un @font-face o link para esa familia (tema/custom), no dupl.
+    const id = `tt-gfont-${family.replace(/\s+/g, "-")}`;
+    if (document.getElementById(id)) return;
+    // Nota: no usar document.fonts.check() acá — devuelve true para familias
+    // desconocidas en Chromium y saltearía la carga.
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = `https://fonts.googleapis.com/css2?family=${family.replace(/\s+/g, "+")}:wght@400;500;600;700&display=swap`;
+    document.head.appendChild(link);
+  });
+};
+
 /**
  * Aplica los overrides de estilo por elemento sobre el DOM ya renderizado del
  * template. Monta un contenedor-ancla (`data-style-root`, layout-neutral con
@@ -54,6 +87,7 @@ const StyleOverrideApplier: React.FC<Props> = ({ overrides, children }) => {
         });
       });
       root.setAttribute(STYLE_APPLIED_ATTR, "true");
+      ensureGoogleFontsFromDom(root);
     };
 
     apply();
