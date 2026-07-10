@@ -227,6 +227,8 @@ const TiptapText: React.FC<TiptapTextProps> = ({
   const [configOpen, setConfigOpen] = useState(false);
   // Si hay selección de texto activa (para mostrar el toolbar en el sidebar).
   const [hasSelection, setHasSelection] = useState(false);
+  // Tamaño de fuente manual (menú Tamaño).
+  const [sizeQuery, setSizeQuery] = useState("");
   // Buscador de Google Fonts por nombre (menú Fuente).
   const [fontQuery, setFontQuery] = useState("");
   const [fontLoading, setFontLoading] = useState(false);
@@ -507,6 +509,19 @@ const TiptapText: React.FC<TiptapTextProps> = ({
     store.dispatch(setStyleOverride({ slideIndex, elementPath: path, patch: p }));
   };
 
+  // Aplicar un tamaño de fuente tipeado a mano (en px).
+  const applyCustomSize = () => {
+    const n = parseInt(sizeQuery, 10);
+    if (!Number.isFinite(n) || n < 6 || n > 300) return;
+    // El foco estaba en el input → la selección de PM quedó colapsada.
+    if (editor.state.selection.empty && lastSelRef.current) {
+      editor.chain().focus().setTextSelection(lastSelRef.current).run();
+    }
+    editor.chain().focus().setFontSize(`${n}px`).run();
+    setSizeQuery("");
+    setOpenMenu(null);
+  };
+
   // Cargar una Google Font escrita por nombre y aplicarla a la selección.
   const loadGoogleFontByName = async () => {
     const name = fontQuery.trim().replace(/\s+/g, " ");
@@ -641,7 +656,30 @@ const TiptapText: React.FC<TiptapTextProps> = ({
               {currentSize || "Auto"} <ChevronDown className="h-3.5 w-3.5" />
             </button>
             {openMenu === "size" && (
-              <div className="absolute left-0 top-full z-50 mt-1 max-h-56 w-24 overflow-auto rounded-lg border border-neutral-200 bg-white p-1 shadow-xl">
+              <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-28 overflow-auto rounded-lg border border-neutral-200 bg-white p-1 shadow-xl">
+                <div className="mb-1 flex items-center gap-1 px-0.5">
+                  <input
+                    type="number"
+                    min={6}
+                    max={300}
+                    value={sizeQuery}
+                    onChange={(e) => setSizeQuery(e.target.value)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      if (e.key === "Enter") { e.preventDefault(); applyCustomSize(); }
+                    }}
+                    placeholder="px"
+                    className="h-7 w-full min-w-0 rounded-md border border-neutral-200 px-1.5 text-xs outline-none focus:border-[#5141e5]"
+                  />
+                  <button
+                    onClick={applyCustomSize}
+                    disabled={!sizeQuery.trim()}
+                    className="h-7 shrink-0 rounded-md bg-[#5141e5]/10 px-1.5 text-[11px] font-medium text-[#5141e5] hover:bg-[#5141e5]/20 disabled:opacity-40"
+                  >
+                    OK
+                  </button>
+                </div>
                 <button onClick={() => { editor.chain().focus().unsetFontSize().run(); setOpenMenu(null); }} className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-neutral-100">Auto</button>
                 {FONT_SIZES.map((s) => (
                   <button key={s} onClick={() => { editor.chain().focus().setFontSize(s).run(); setOpenMenu(null); }} className={`block w-full rounded px-2 py-1 text-left text-xs hover:bg-neutral-100 ${currentSize === s ? "bg-[#5141e5]/10 text-[#5141e5]" : ""}`}>
