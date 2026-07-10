@@ -1,9 +1,20 @@
 "use client";
 
-import React, { useRef, useEffect, useState, ReactNode } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  useState,
+  ReactNode,
+} from "react";
 import ReactDOM from "react-dom/client";
 import TiptapText from "./TiptapText";
 import { marked } from "marked";
+
+// Marca los nodos cuyo texto crudo ya fue convertido a HTML inline en el
+// pre-render; guarda el texto ORIGINAL para que las pasadas posteriores
+// (Tiptap / read-only) puedan seguir encontrando su ruta en slideData.
+const MD_PREVIEW_ATTR = "data-md-preview";
 
 /**
  * Parse inline markdown synchronously when possible. `marked.parseInline`
@@ -53,6 +64,62 @@ const TiptapTextReplacer: React.FC<TiptapTextReplacerProps> = ({
   // place without spinning up a React root per text node.
   const readOnlyNodesRef = useRef<Map<HTMLElement, string>>(new Map());
 
+  // Pre-render SINCRÓNICO (antes del primer paint) del markdown/HTML inline.
+  // El contenido guardado puede traer marcas (`**bold**` o `<span style=...>`
+  // de fuente/tamaño/color); el template lo pinta como texto plano y las
+  // pasadas de abajo corren con delay (250ms lectura / 1s edición), así que
+  // sin este paso el usuario ve el markup crudo durante el primer segundo
+  // tras refrescar.
+  const preRenderInlineMarkdown = (container: HTMLElement) => {
+    const allElements = container.querySelectorAll("*");
+    allElements.forEach((element) => {
+      const htmlElement = element as HTMLElement;
+      if (htmlElement.hasAttribute(MD_PREVIEW_ATTR)) return;
+      // Hijos inyectados por un pre-render anterior.
+      if (htmlElement.closest(`[${MD_PREVIEW_ATTR}]`)) return;
+      if (
+        htmlElement.classList.contains("tiptap-text-editor") ||
+        htmlElement.closest(".tiptap-text-editor")
+      )
+        return;
+      if (isInIgnoredElementTree(htmlElement)) return;
+
+      // SOLO hojas puras (sin hijos elemento): ahí es donde el markup crudo
+      // flashea. Un padre con texto directo + hijos NO se toca — el observer
+      // corre en la ventana en que un hijo ya fue swapeado por el contenedor
+      // Tiptap (aún vacío) y verlo como hoja pisaría el editor con innerHTML.
+      if (htmlElement.childElementCount > 0) return;
+
+      const trimmedText = getDirectTextContent(htmlElement).trim();
+      if (!trimmedText || trimmedText.length <= 2) return;
+      if (shouldSkipElement(htmlElement)) return;
+
+      const dataPath = findDataPath(slideData, trimmedText);
+      const content = dataPath.path
+        ? getValueByPath(slideData, dataPath.path) ?? trimmedText
+        : trimmedText;
+      const parsed = parseInlineMarkdown(content);
+      // Texto plano sin marcas: no hay nada que convertir.
+      if (parsed === htmlElement.innerHTML) return;
+
+      htmlElement.setAttribute(MD_PREVIEW_ATTR, trimmedText);
+      htmlElement.innerHTML = parsed;
+    });
+  };
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    preRenderInlineMarkdown(container);
+    // Los templates pueden montar contenido async (imports dinámicos, charts);
+    // el observer re-convierte lo nuevo antes del siguiente frame.
+    const observer = new MutationObserver(() =>
+      preRenderInlineMarkdown(container)
+    );
+    observer.observe(container, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [slideData, slideIndex, readOnly]);
+
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -67,10 +134,17 @@ const TiptapTextReplacer: React.FC<TiptapTextReplacerProps> = ({
         if (htmlElement.hasAttribute("data-md-applied")) return;
         if (isInIgnoredElementTree(htmlElement)) return;
 
-        const trimmedText = getDirectTextContent(htmlElement).trim();
+        const previewText = htmlElement.getAttribute(MD_PREVIEW_ATTR);
+        // Hijos inyectados por el pre-render: los maneja su elemento padre.
+        if (!previewText && htmlElement.closest(`[${MD_PREVIEW_ATTR}]`)) return;
+
+        const trimmedText =
+          previewText ?? getDirectTextContent(htmlElement).trim();
         if (!trimmedText || trimmedText.length <= 2) return;
-        if (hasTextChildren(htmlElement)) return;
-        if (shouldSkipElement(htmlElement)) return;
+        if (!previewText) {
+          if (hasTextChildren(htmlElement)) return;
+          if (shouldSkipElement(htmlElement)) return;
+        }
 
         const dataPath = findDataPath(slideData, trimmedText);
         const content = dataPath.path
@@ -106,18 +180,26 @@ const TiptapTextReplacer: React.FC<TiptapTextReplacerProps> = ({
         // Skip if element is inside an ignored element tree
         if (isInIgnoredElementTree(htmlElement)) return;
 
+        // El pre-render pudo convertir el texto crudo a spans; el original
+        // (necesario para encontrar la ruta en slideData) quedó en el atributo.
+        const previewText = htmlElement.getAttribute(MD_PREVIEW_ATTR);
+        // Hijos inyectados por el pre-render: los maneja su elemento padre.
+        if (!previewText && htmlElement.closest(`[${MD_PREVIEW_ATTR}]`)) return;
+
         // Get direct text content (not from child elements)
-        const directTextContent = getDirectTextContent(htmlElement);
-        const trimmedText = directTextContent.trim();
+        const trimmedText =
+          previewText ?? getDirectTextContent(htmlElement).trim();
 
         // Check if element has meaningful text content
         if (!trimmedText || trimmedText.length <= 2) return;
 
-        // Skip elements that contain other elements with text (to avoid double processing)
-        if (hasTextChildren(htmlElement)) return;
+        if (!previewText) {
+          // Skip elements that contain other elements with text (to avoid double processing)
+          if (hasTextChildren(htmlElement)) return;
 
-        // Skip certain element types that shouldn't be editable
-        if (shouldSkipElement(htmlElement)) return;
+          // Skip certain element types that shouldn't be editable
+          if (shouldSkipElement(htmlElement)) return;
+        }
 
         // Get all computed styles to preserve them
         const allClasses = Array.from(htmlElement.classList);
@@ -340,6 +422,9 @@ const TiptapTextReplacer: React.FC<TiptapTextReplacerProps> = ({
     const hasTextChildren = (element: HTMLElement): boolean => {
       const children = Array.from(element.children) as HTMLElement[];
       return children.some((child) => {
+        // Un hijo pre-renderizado sigue siendo "hijo con texto" aunque su
+        // texto directo haya pasado a spans internos.
+        if (child.hasAttribute(MD_PREVIEW_ATTR)) return true;
         const childText = getDirectTextContent(child).trim();
         return childText.length > 1;
       });
