@@ -8,6 +8,7 @@ import {
   ElementOverride,
   StyleOverrides,
   clampScale,
+  findVisualHost,
   getElementPath,
   resolveElementPath,
 } from "./styleOverrides";
@@ -43,6 +44,9 @@ const StyleEditOverlay: React.FC<Props> = ({
   // Ref vivo para handlers que corren varias veces entre renders (flechas).
   const overrideRef = useRef(override);
   overrideRef.current = override;
+  // Tras un drag-desde-el-cuerpo, el navegador dispara igualmente un click:
+  // este flag lo traga para no re-seleccionar/abrir editores sin querer.
+  const dragJustEndedRef = useRef(false);
 
   const getAnchor = useCallback(
     () =>
@@ -79,6 +83,13 @@ const StyleEditOverlay: React.FC<Props> = ({
     const container = containerRef.current;
     if (!container) return;
     const onClick = (e: MouseEvent) => {
+      // El click que sigue a un drag no debe seleccionar ni abrir editores.
+      if (dragJustEndedRef.current) {
+        dragJustEndedRef.current = false;
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       const target = e.target as HTMLElement | null;
       const anchor = getAnchor();
       if (!target || !anchor || !anchor.contains(target)) return;
@@ -170,6 +181,101 @@ const StyleEditOverlay: React.FC<Props> = ({
     container.addEventListener("click", onClick, true);
     return () => container.removeEventListener("click", onClick, true);
   }, [containerRef, getAnchor, setElement, setEditor, slideIndex, element]);
+
+  // Arrastre directo desde el CUERPO del elemento: seleccionar + mover en un
+  // solo gesto (umbral 4px distingue drag de click; el click conserva su
+  // comportamiento). El texto queda excluido (selección de texto con mouse)
+  // y la slide entera no se arrastra (evita corrimientos accidentales).
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const resolveDraggable = (
+      target: HTMLElement,
+      anchor: HTMLElement
+    ): HTMLElement | null => {
+      if (
+        target.closest(
+          "[data-style-overlay], [data-editor-ui], [data-tippy-root], [data-radix-popper-content-wrapper], [data-radix-portal]"
+        )
+      )
+        return null;
+      if (target.closest(".ProseMirror, [contenteditable], .tiptap-text-editor"))
+        return null;
+      const ov = target.closest("[data-overlay-idx]") as HTMLElement | null;
+      if (ov) return ov;
+      const img = target.closest("img") as HTMLElement | null;
+      if (img && anchor.contains(img)) return img;
+      const chartWrap = target.closest(".recharts-wrapper") as HTMLElement | null;
+      let picked: HTMLElement | null = chartWrap;
+      let node: HTMLElement | null = chartWrap ? chartWrap.parentElement : target;
+      while (node && node !== anchor) {
+        const cs = window.getComputedStyle(node);
+        const bg = cs.backgroundColor;
+        if (
+          (bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent" && bg !== "") ||
+          parseFloat(cs.borderRadius) > 0
+        ) {
+          picked = node;
+          break;
+        }
+        node = node.parentElement;
+      }
+      if (!picked) return null;
+      if (picked === findVisualHost(anchor)) return null; // la slide entera, no
+      return picked;
+    };
+
+    const onDown = (e: PointerEvent) => {
+      if (e.button !== 0) return;
+      const target = e.target as HTMLElement | null;
+      const anchor = getAnchor();
+      if (!target || !anchor || !anchor.contains(target)) return;
+      const el = resolveDraggable(target, anchor);
+      if (!el) return;
+      const path = getElementPath(el, anchor);
+      if (path == null) return;
+      // Evitar el drag nativo de imágenes/SVG del navegador.
+      if (target.closest("img, svg")) e.preventDefault();
+      const k = getSlideScale(el) || 1;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startTx = overrides?.[path]?.translateX ?? 0;
+      const startTy = overrides?.[path]?.translateY ?? 0;
+      const kind = el.tagName === "IMG" ? ("image" as const) : ("box" as const);
+      let dragging = false;
+      const onMove = (ev: PointerEvent) => {
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        if (!dragging) {
+          if (Math.hypot(dx, dy) < 4) return;
+          dragging = true;
+          setEditor(null);
+          setBackgroundSlide(null);
+          setElement({ slideIndex, path });
+        }
+        ev.preventDefault();
+        dispatch(
+          setStyleOverride({
+            slideIndex,
+            elementPath: path,
+            patch: { translateX: startTx + dx / k, translateY: startTy + dy / k, kind },
+          })
+        );
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        if (dragging) dragJustEndedRef.current = true;
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+    };
+
+    container.addEventListener("pointerdown", onDown, true);
+    return () => container.removeEventListener("pointerdown", onDown, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [containerRef, getAnchor, overrides, slideIndex, setElement, setEditor, setBackgroundSlide]);
 
   // Deseleccionar al clickear fuera de la slide y del panel; o con Esc.
   useEffect(() => {
