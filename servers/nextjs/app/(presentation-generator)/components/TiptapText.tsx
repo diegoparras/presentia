@@ -226,6 +226,9 @@ const TiptapText: React.FC<TiptapTextProps> = ({
   const [fontQuery, setFontQuery] = useState("");
   const [fontLoading, setFontLoading] = useState(false);
   const [fontError, setFontError] = useState<string | null>(null);
+  // Última selección no vacía: al enfocar el buscador, el caret se muda al
+  // input y PM colapsa la selección — la restauramos al aplicar la fuente.
+  const lastSelRef = useRef<{ from: number; to: number } | null>(null);
   // Desplazamiento por arrastre en modo flotante (relativo a la selección).
   const [floatOffset, setFloatOffset] = useState({ x: 0, y: 0 });
   const dragRef = useRef<{
@@ -318,17 +321,39 @@ const TiptapText: React.FC<TiptapTextProps> = ({
   // Debe ir ANTES del early-return de abajo para no romper el orden de hooks.
   useEffect(() => {
     if (!editor) return;
-    const update = () => {
-      const sel = editor.state.selection;
-      // El panel sigue "activo" si el foco está en un control del propio panel
-      // (p.ej. el buscador de fuentes): si un transaction/selectionUpdate llega
-      // mientras se tipea ahí, no hay que desmontar el panel.
+    // El panel sigue "activo" mientras el foco esté en un control del propio
+    // panel (p.ej. el buscador de fuentes): al clickear un input, el caret del
+    // documento se muda ahí y ProseMirror COLAPSA su selección — sin esta
+    // salvedad, hasSelection caía a false y el panel se desmontaba con el
+    // menú y el input adentro (bug del buscador de Google Fonts).
+    const evaluate = () => {
+      if (editor.isDestroyed) return false;
       const focusEnPanel = !!(
         document.activeElement &&
         (document.activeElement as HTMLElement).closest?.("[data-editor-ui]")
       );
-      setHasSelection((editor.isFocused || focusEnPanel) && !sel.empty);
-      if (sel.empty) setFloatOffset({ x: 0, y: 0 });
+      if (focusEnPanel) return true;
+      return editor.isFocused && !editor.state.selection.empty;
+    };
+    let closeTimer = 0;
+    const update = () => {
+      const sel = editor.state.selection;
+      if (!sel.empty) lastSelRef.current = { from: sel.from, to: sel.to };
+      if (evaluate()) {
+        window.clearTimeout(closeTimer);
+        setHasSelection(true);
+        return;
+      }
+      // Cierre diferido y re-verificado: durante el mousedown sobre un input
+      // del panel hay un instante con activeElement=body (blur→focusin) que
+      // daría un falso cierre si evaluáramos sincrónicamente.
+      window.clearTimeout(closeTimer);
+      closeTimer = window.setTimeout(() => {
+        if (!evaluate()) {
+          setHasSelection(false);
+          setFloatOffset({ x: 0, y: 0 });
+        }
+      }, 150);
     };
     // Si el foco pasa a un control del panel derecho (p.ej. el buscador de
     // fuentes), el editor pierde foco pero el panel debe seguir abierto.
@@ -343,6 +368,7 @@ const TiptapText: React.FC<TiptapTextProps> = ({
     editor.on("focus", update);
     editor.on("blur", onBlur);
     return () => {
+      window.clearTimeout(closeTimer);
       editor.off("selectionUpdate", update);
       editor.off("transaction", update);
       editor.off("focus", update);
@@ -461,6 +487,11 @@ const TiptapText: React.FC<TiptapTextProps> = ({
       const res = await fetch(url, { method: "GET", mode: "cors" });
       if (!res.ok) throw new Error("not-found");
       ensureGoogleFont(name);
+      // El foco estaba en el input → la selección de PM quedó colapsada.
+      // Restaurar la última selección real antes de aplicar.
+      if (editor.state.selection.empty && lastSelRef.current) {
+        editor.chain().focus().setTextSelection(lastSelRef.current).run();
+      }
       applyFont(name, false);
       setFontQuery("");
     } catch {
