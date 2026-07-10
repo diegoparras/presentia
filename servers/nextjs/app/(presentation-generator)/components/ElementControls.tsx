@@ -65,7 +65,13 @@ const ElementControls: React.FC<{ slideIndex: number; path: string }> = ({
   path,
 }) => {
   const dispatch = useDispatch();
-  const { setElement, aspectLocked, setAspectLocked } = useEditorPanel();
+  const { elements, setElement, aspectLocked, setAspectLocked } = useEditorPanel();
+  // Con multi-selección (marquee), los cambios aplican a TODOS los paths
+  // seleccionados de esta slide; los valores mostrados son los del primario.
+  const targetPaths =
+    elements.length > 1
+      ? elements.filter((s) => s.slideIndex === slideIndex).map((s) => s.path)
+      : [path];
   const override: ElementOverride = useSelector(
     (s: RootState) =>
       (s.presentationGeneration.presentationData as any)?.slides?.[slideIndex]
@@ -152,7 +158,9 @@ const ElementControls: React.FC<{ slideIndex: number; path: string }> = ({
   }, [chartData, slideIndex, path]);
 
   const patch = (p: Partial<ElementOverride>) =>
-    dispatch(setStyleOverride({ slideIndex, elementPath: path, patch: p }));
+    targetPaths.forEach((tp) =>
+      dispatch(setStyleOverride({ slideIndex, elementPath: tp, patch: p }))
+    );
 
   // ¿Lo seleccionado es un icono superpuesto? (permite eliminarlo)
   const overlayIndex = useMemo(() => {
@@ -171,7 +179,11 @@ const ElementControls: React.FC<{ slideIndex: number; path: string }> = ({
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#FBEDEA] text-[#e25a4e]">◧</span>
           <span className="text-base font-semibold text-[#191919]">
-            {overlayIndex != null ? "Icono" : "Elemento"}
+            {targetPaths.length > 1
+              ? `Elementos (${targetPaths.length})`
+              : overlayIndex != null
+                ? "Icono"
+                : "Elemento"}
           </span>
         </div>
         <div className="flex items-center gap-1">
@@ -188,7 +200,7 @@ const ElementControls: React.FC<{ slideIndex: number; path: string }> = ({
               <Trash2 className="h-4 w-4" />
             </button>
           )}
-          <button onClick={() => dispatch(clearStyleOverride({ slideIndex, elementPath: path }))} title="Restablecer" className="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100"><RotateCcw className="h-4 w-4" /></button>
+          <button onClick={() => targetPaths.forEach((tp) => dispatch(clearStyleOverride({ slideIndex, elementPath: tp })))} title="Restablecer" className="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100"><RotateCcw className="h-4 w-4" /></button>
           <button onClick={() => setElement(null)} title="Cerrar" className="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100"><X className="h-4 w-4" /></button>
         </div>
       </div>

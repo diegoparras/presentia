@@ -9,8 +9,9 @@ export interface ElementSelection {
 }
 
 interface EditorPanelState {
-  // Elemento (no-texto) seleccionado.
-  element: ElementSelection | null;
+  // Elementos (no-texto) seleccionados. Normalmente uno; la selección por
+  // recuadro (marquee) puede elegir varios de la misma slide.
+  elements: ElementSelection[];
   // Editor de texto activo (instancia de Tiptap) — para mostrar sus controles.
   editor: any | null;
   // Nodo destino donde el editor de texto activo portalea su toolbar.
@@ -29,7 +30,7 @@ interface EditorPanelState {
  * derecho. Un store compartido sí es visible desde cualquier root.
  */
 let state: EditorPanelState = {
-  element: null,
+  elements: [],
   editor: null,
   textPanelEl: null,
   backgroundSlide: null,
@@ -48,10 +49,21 @@ type Updater<T> = T | ((prev: T) => T);
 const resolve = <T,>(v: Updater<T>, prev: T): T =>
   typeof v === "function" ? (v as (p: T) => T)(prev) : v;
 
+// API de selección simple (la usan todos los flujos existentes): mapea al
+// array de multi-selección.
 const setElement = (v: Updater<ElementSelection | null>) => {
-  const next = resolve(v, state.element);
-  if (next === state.element) return;
-  state = { ...state, element: next };
+  const prev = state.elements[0] ?? null;
+  const next = resolve(v, prev);
+  if (next === prev && state.elements.length <= 1) return;
+  state = { ...state, elements: next ? [next] : [] };
+  emit();
+};
+
+// Multi-selección (marquee): todos de la misma slide.
+const setElements = (v: Updater<ElementSelection[]>) => {
+  const next = resolve(v, state.elements);
+  if (next === state.elements) return;
+  state = { ...state, elements: next };
   emit();
 };
 const setEditor = (v: Updater<any | null>) => {
@@ -82,12 +94,15 @@ const setAspectLocked = (v: Updater<boolean>) => {
 export const useEditorPanel = () => {
   const snap = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
   return {
-    element: snap.element,
+    // `element` = selección primaria (compatibilidad con los flujos simples).
+    element: snap.elements[0] ?? null,
+    elements: snap.elements,
     editor: snap.editor,
     textPanelEl: snap.textPanelEl,
     backgroundSlide: snap.backgroundSlide,
     aspectLocked: snap.aspectLocked,
     setElement,
+    setElements,
     setEditor,
     setTextPanelEl,
     setBackgroundSlide,
