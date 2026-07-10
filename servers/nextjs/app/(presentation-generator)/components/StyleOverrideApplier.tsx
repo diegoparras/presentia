@@ -55,6 +55,9 @@ const applyBackgroundLayer = (
   if (!layer) {
     layer = document.createElement("div");
     layer.setAttribute(SLIDE_BG_ATTR, "");
+    // <img> real (no CSS background-image): los motores de export a PPTX solo
+    // capturan elementos <img> — un background-image se pierde en el .pptx.
+    layer.appendChild(document.createElement("img"));
     host.prepend(layer);
   }
   if (window.getComputedStyle(host).position === "static") {
@@ -63,13 +66,24 @@ const applyBackgroundLayer = (
   Object.assign(layer.style, {
     position: "absolute",
     inset: "0",
-    backgroundImage: `url("${background.url}")`,
-    backgroundSize: background.fit || "cover",
-    backgroundPosition: "center",
-    backgroundRepeat: "no-repeat",
-    opacity: String((background.opacity ?? 100) / 100),
+    overflow: "hidden",
     pointerEvents: "none",
   });
+  const img = layer.querySelector("img") as HTMLImageElement | null;
+  if (img) {
+    if (img.getAttribute("src") !== background.url) {
+      img.setAttribute("src", background.url);
+    }
+    img.setAttribute("alt", "");
+    Object.assign(img.style, {
+      width: "100%",
+      height: "100%",
+      objectFit: background.fit || "cover",
+      objectPosition: "center",
+      opacity: String((background.opacity ?? 100) / 100),
+      pointerEvents: "none",
+    });
+  }
 };
 
 // ── Auto-carga de Google Fonts usadas en el contenido ───────────────────────

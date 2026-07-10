@@ -229,6 +229,8 @@ const TiptapText: React.FC<TiptapTextProps> = ({
   // Última selección no vacía: al enfocar el buscador, el caret se muda al
   // input y PM colapsa la selección — la restauramos al aplicar la fuente.
   const lastSelRef = useRef<{ from: number; to: number } | null>(null);
+  // Debounce del guardado on-update.
+  const saveTimerRef = useRef<number>(0);
   // Desplazamiento por arrastre en modo flotante (relativo a la selección).
   const [floatOffset, setFloatOffset] = useState({ x: 0, y: 0 });
   const dragRef = useRef<{
@@ -270,7 +272,18 @@ const TiptapText: React.FC<TiptapTextProps> = ({
         "data-placeholder": placeholder,
       },
     },
+    // Guardado ante cada cambio (debounce): antes solo se guardaba en blur, y
+    // un estilo aplicado (p.ej. una fuente) se perdía si el usuario exportaba
+    // o recargaba sin desenfocar el editor.
+    onUpdate: ({ editor }) => {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = window.setTimeout(() => {
+        const markdown = editor?.storage.markdown.getMarkdown();
+        if (onContentChange) onContentChange(markdown);
+      }, 800);
+    },
     onBlur: ({ editor }) => {
+      window.clearTimeout(saveTimerRef.current);
       const markdown = editor?.storage.markdown.getMarkdown();
       if (onContentChange) onContentChange(markdown);
     },
