@@ -294,7 +294,14 @@ const TiptapText: React.FC<TiptapTextProps> = ({
     if (!editor) return;
     const update = () => {
       const sel = editor.state.selection;
-      setHasSelection(editor.isFocused && !sel.empty);
+      // El panel sigue "activo" si el foco está en un control del propio panel
+      // (p.ej. el buscador de fuentes): si un transaction/selectionUpdate llega
+      // mientras se tipea ahí, no hay que desmontar el panel.
+      const focusEnPanel = !!(
+        document.activeElement &&
+        (document.activeElement as HTMLElement).closest?.("[data-editor-ui]")
+      );
+      setHasSelection((editor.isFocused || focusEnPanel) && !sel.empty);
       if (sel.empty) setFloatOffset({ x: 0, y: 0 });
     };
     // Si el foco pasa a un control del panel derecho (p.ej. el buscador de
@@ -583,7 +590,15 @@ const TiptapText: React.FC<TiptapTextProps> = ({
                       type="text"
                       value={fontQuery}
                       onChange={(e) => { setFontQuery(e.target.value); setFontError(null); }}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); loadGoogleFontByName(); } }}
+                      onKeyDown={(e) => {
+                        // Que ningún atajo global (editor, undo/redo) se coma las teclas.
+                        e.stopPropagation();
+                        if (e.key === "Enter") { e.preventDefault(); loadGoogleFontByName(); }
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck={false}
                       placeholder="Escribí una fuente…"
                       className="h-8 w-full min-w-0 rounded-md border border-neutral-200 px-2 text-xs outline-none focus:border-[#5141e5]"
                     />
@@ -686,7 +701,10 @@ const TiptapText: React.FC<TiptapTextProps> = ({
     return (
     <div
       data-editor-ui=""
-      className={docked ? "font-syne text-black" : "rounded-2xl border border-neutral-200 bg-white p-2 text-black shadow-2xl"}
+      // translate=no: la extensión de Google Translate reescribe nodos de texto
+      // y rompe la reconciliación de React (inputs que no dejan tipear).
+      translate="no"
+      className={`notranslate ${docked ? "font-syne text-black" : "rounded-2xl border border-neutral-200 bg-white p-2 text-black shadow-2xl"}`}
       style={docked ? undefined : { width: cfg.width }}
       onMouseDown={(e) => {
         const t = e.target as HTMLElement;

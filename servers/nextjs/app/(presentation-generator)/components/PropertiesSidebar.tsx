@@ -16,7 +16,10 @@ const PropertiesSidebar: React.FC<{ chat: React.ReactNode }> = ({ chat }) => {
   return (
     <div
       data-editor-ui=""
-      className="relative h-full"
+      // La extensión de Google Translate reescribe nodos de texto y rompe la
+      // reconciliación de React (inputs que no dejan tipear) → excluir el panel.
+      translate="no"
+      className="notranslate relative h-full"
       // El tema aplica font-family sobre #presentation-slides-wrapper (ancestro
       // de este panel). Reafirmamos la tipografía del chrome para no heredarla.
       style={{ fontFamily: "var(--font-inter), ui-sans-serif, system-ui, sans-serif" }}
