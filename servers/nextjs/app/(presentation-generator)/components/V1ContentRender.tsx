@@ -132,7 +132,7 @@ const V1ContentRenderComponent = ({ slide, isEditMode, theme }: { slide: any, is
                                 }
                             }}
                         >
-                            <StyleOverrideApplier overrides={slideContent.__style_overrides__} background={slideContent.__background__} overlays={slideContent.__overlays__}>
+                            <StyleOverrideApplier overrides={slideContent.__style_overrides__} background={slideContent.__background__} overlays={slideContent.__overlays__} graphColors={slideContent.__graph_colors__}>
                                 <LayoutComp data={{
                                     ...slideContent,
                                     _logo_url__: theme ? theme.logo_url : null,
@@ -163,7 +163,7 @@ const V1ContentRenderComponent = ({ slide, isEditMode, theme }: { slide: any, is
                     slideIndex={safeSlide.index ?? 0}
                     readOnly
                 >
-                    <StyleOverrideApplier overrides={slideContent.__style_overrides__} background={slideContent.__background__} overlays={slideContent.__overlays__}>
+                    <StyleOverrideApplier overrides={slideContent.__style_overrides__} background={slideContent.__background__} overlays={slideContent.__overlays__} graphColors={slideContent.__graph_colors__}>
                         <LayoutComp data={{
                             ...slideContent,
                             _logo_url__: theme ? theme.logo_url : null,

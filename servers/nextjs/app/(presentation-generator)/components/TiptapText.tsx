@@ -43,6 +43,8 @@ import {
   Move,
 } from "lucide-react";
 import { getElementPath } from "./styleOverrides";
+import { useDispatch } from "react-redux";
+import { setStyleOverride } from "@/store/slices/presentationGeneration";
 
 const AI_ACTIONS: { key: string; label: string; needsTarget?: boolean }[] = [
   { key: "improve", label: "Mejorar redacción" },
@@ -217,6 +219,7 @@ const TiptapText: React.FC<TiptapTextProps> = ({
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const editorPanel = useEditorPanel();
+  const dispatch = useDispatch();
   // ── Config del toolbar (persistida en localStorage) ──
   const [cfg, setCfg] = useState<ToolbarCfg>(() => loadToolbarCfg());
   const [configOpen, setConfigOpen] = useState(false);
@@ -475,19 +478,31 @@ const TiptapText: React.FC<TiptapTextProps> = ({
     else editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
   };
 
-  // Seleccionar el contenedor del texto como elemento (mover/redimensionar).
-  const selectTextBlock = () => {
-    if (slideIndex == null) return;
-    // rootRef está montado dentro del host que TiptapTextReplacer insertó en
-    // el lugar del elemento original — ese host es el "bloque" del texto.
+  // Path del bloque de texto (el host que TiptapTextReplacer insertó en el
+  // lugar del elemento original).
+  const getBlockPath = (): string | null => {
+    if (slideIndex == null) return null;
     const host = rootRef.current?.parentElement as HTMLElement | null;
     const anchor = host?.closest("[data-style-root]") as HTMLElement | null;
-    if (!host || !anchor) return;
-    const path = getElementPath(host, anchor);
-    if (path == null) return;
+    if (!host || !anchor) return null;
+    return getElementPath(host, anchor);
+  };
+
+  // Seleccionar el contenedor del texto como elemento (mover/redimensionar).
+  const selectTextBlock = () => {
+    const path = getBlockPath();
+    if (path == null || slideIndex == null) return;
     setHasSelection(false);
     editorPanel.setEditor(null);
     editorPanel.setElement({ slideIndex, path });
+  };
+
+  // Alineación del texto respecto a su bloque (override del bloque:
+  // persiste y sale igual en el export).
+  const alignBlock = (p: Record<string, string>) => {
+    const path = getBlockPath();
+    if (path == null || slideIndex == null) return;
+    dispatch(setStyleOverride({ slideIndex, elementPath: path, patch: p }));
   };
 
   // Cargar una Google Font escrita por nombre y aplicarla a la selección.
@@ -826,6 +841,26 @@ const TiptapText: React.FC<TiptapTextProps> = ({
           {visibleToolIds.map((id) => (
             <React.Fragment key={id}>{renderTool(id)}</React.Fragment>
           ))}
+        </div>
+      )}
+
+      {/* Alineación del texto respecto a su bloque (solo en modo acoplado). */}
+      {docked && !configOpen && slideIndex != null && (
+        <div className="mt-3 border-t border-neutral-100 pt-3">
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Alinear en el bloque</p>
+          <div className="flex items-center gap-1.5">
+            {([["left", "Izquierda", "⇤"], ["center", "Centro", "⇹"], ["right", "Derecha", "⇥"]] as const).map(([v, t, g]) => (
+              <button key={v} onMouseDown={(e) => e.preventDefault()} onClick={() => alignBlock({ textAlign: v })} title={t} className="flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 text-sm text-neutral-600 hover:bg-neutral-50">
+                {g}
+              </button>
+            ))}
+            <span className="mx-1 h-5 w-px bg-neutral-200" />
+            {([["top", "Arriba", "⤒"], ["middle", "Medio", "⇳"], ["bottom", "Abajo", "⤓"]] as const).map(([v, t, g]) => (
+              <button key={v} onMouseDown={(e) => e.preventDefault()} onClick={() => alignBlock({ vAlign: v })} title={t} className="flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 text-sm text-neutral-600 hover:bg-neutral-50">
+                {g}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

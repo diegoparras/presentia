@@ -22,7 +22,7 @@ import {
   setStyleOverride,
   clearStyleOverride,
   removeSlideOverlay,
-  setChartColor,
+  setGraphColor,
 } from "@/store/slices/presentationGeneration";
 import { ElementOverride, clampScale, resolveElementPath } from "./styleOverrides";
 import { useEditorPanel } from "./EditorPanelContext";
@@ -71,11 +71,13 @@ const ElementControls: React.FC<{ slideIndex: number; path: string }> = ({
       (s.presentationGeneration.presentationData as any)?.slides?.[slideIndex]
         ?.content?.__style_overrides__?.[path]
   ) || {};
-  const chartData = useSelector(
+  const slideContent = useSelector(
     (s: RootState) =>
       (s.presentationGeneration.presentationData as any)?.slides?.[slideIndex]
-        ?.content?.chartData
+        ?.content
   );
+  const chartData = slideContent?.chartData ?? slideContent?.graph;
+  const graphColors: (string | null)[] = slideContent?.__graph_colors__ ?? [];
 
   // Resolver el elemento en el DOM (para alinear y detectar gráfico/overlay).
   const resolveEl = (): HTMLElement | null => {
@@ -113,21 +115,41 @@ const ElementControls: React.FC<{ slideIndex: number; path: string }> = ({
     dispatch(setStyleOverride({ slideIndex, elementPath: path, patch }));
   };
 
-  // ¿El elemento seleccionado contiene el gráfico de la slide?
+  // ¿El elemento seleccionado contiene (o está dentro de) un gráfico?
+  // Detección por DOM: cubre TODAS las familias de templates.
   const isChart = useMemo(() => {
-    if (!chartData) return false;
     const el = resolveEl();
-    return !!el?.querySelector?.(".recharts-wrapper, .recharts-surface");
+    if (!el) return false;
+    return !!(
+      el.querySelector?.(".recharts-wrapper, .recharts-surface") ||
+      el.closest?.(".recharts-wrapper")
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slideIndex, path, chartData]);
+  }, [slideIndex, path]);
 
-  // Etiquetas para los colores del gráfico: series o categorías.
+  // Etiquetas para los colores: series/categorías del contenido; si el
+  // template guarda los datos con otra forma, caer a la leyenda del DOM o a
+  // etiquetas genéricas.
   const chartKeys: string[] = useMemo(() => {
-    if (!chartData) return [];
-    if (Array.isArray(chartData.series) && chartData.series.length) return chartData.series;
-    const rows = Array.isArray(chartData.data) ? chartData.data : [];
-    return rows.slice(0, 8).map((r: any, i: number) => r?.name || `#${i + 1}`);
-  }, [chartData]);
+    if (chartData) {
+      if (Array.isArray(chartData.series) && chartData.series.length) return chartData.series;
+      const rows = Array.isArray(chartData.data)
+        ? chartData.data
+        : Array.isArray(chartData)
+          ? chartData
+          : [];
+      if (rows.length) return rows.slice(0, 8).map((r: any, i: number) => r?.name || `Color ${i + 1}`);
+    }
+    const el = resolveEl();
+    const legend = el
+      ? [...(el.querySelectorAll?.(".recharts-legend-item-text") || [])].map(
+          (n: any) => n.textContent?.trim()
+        ).filter(Boolean)
+      : [];
+    if (legend.length) return legend.slice(0, 8) as string[];
+    return ["Color 1", "Color 2", "Color 3", "Color 4"];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartData, slideIndex, path]);
 
   const patch = (p: Partial<ElementOverride>) =>
     dispatch(setStyleOverride({ slideIndex, elementPath: path, patch: p }));
@@ -240,6 +262,21 @@ const ElementControls: React.FC<{ slideIndex: number; path: string }> = ({
           ))}
         </div>
 
+        <p className="mb-1.5 text-xs font-medium text-neutral-500">Alinear texto (en el bloque)</p>
+        <div className="mb-3 flex items-center gap-1.5">
+          {([["left", "Izquierda"], ["center", "Centro"], ["right", "Derecha"]] as const).map(([v, t]) => (
+            <button key={v} onClick={() => patch({ textAlign: override.textAlign === v ? undefined : v })} title={t} className={`h-8 rounded-md border px-2 text-xs ${override.textAlign === v ? "border-[#e25a4e] bg-[#e25a4e]/10 text-[#e25a4e]" : "border-neutral-200 text-neutral-600 hover:bg-neutral-50"}`}>
+              {v === "left" ? "⇤" : v === "center" ? "⇹" : "⇥"}
+            </button>
+          ))}
+          <span className="mx-1 h-5 w-px bg-neutral-200" />
+          {([["top", "Arriba"], ["middle", "Medio"], ["bottom", "Abajo"]] as const).map(([v, t]) => (
+            <button key={v} onClick={() => patch({ vAlign: override.vAlign === v ? undefined : v })} title={t} className={`h-8 rounded-md border px-2 text-xs ${override.vAlign === v ? "border-[#e25a4e] bg-[#e25a4e]/10 text-[#e25a4e]" : "border-neutral-200 text-neutral-600 hover:bg-neutral-50"}`}>
+              {v === "top" ? "⤒" : v === "middle" ? "⇳" : "⤓"}
+            </button>
+          ))}
+        </div>
+
         <div className="mb-3 flex items-center gap-2">
           <span className="w-16 text-xs text-neutral-500">Rotación</span>
           <input type="range" min={-180} max={180} step={1} value={override.rotate ?? 0} onChange={(e) => patch({ rotate: Number(e.target.value) })} onDoubleClick={() => patch({ rotate: 0 })} className="flex-1 accent-[#e25a4e]" />
@@ -257,7 +294,7 @@ const ElementControls: React.FC<{ slideIndex: number; path: string }> = ({
           <button onClick={() => patch({ zIndex: 50 })} className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs ${override.zIndex === 50 ? "border-[#e25a4e] bg-[#e25a4e]/10 text-[#e25a4e]" : "border-neutral-200 text-neutral-600 hover:bg-neutral-50"}`}>
             <BringToFront className="h-3.5 w-3.5" /> Al frente
           </button>
-          <button onClick={() => patch({ zIndex: 0 })} className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs ${override.zIndex === 0 ? "border-[#e25a4e] bg-[#e25a4e]/10 text-[#e25a4e]" : "border-neutral-200 text-neutral-600 hover:bg-neutral-50"}`}>
+          <button onClick={() => patch({ zIndex: -1 })} className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs ${override.zIndex === -1 ? "border-[#e25a4e] bg-[#e25a4e]/10 text-[#e25a4e]" : "border-neutral-200 text-neutral-600 hover:bg-neutral-50"}`}>
             <SendToBack className="h-3.5 w-3.5" /> Atrás
           </button>
           {override.zIndex != null && (
@@ -271,15 +308,15 @@ const ElementControls: React.FC<{ slideIndex: number; path: string }> = ({
             {chartKeys.map((k, i) => (
               <div key={i} className="mb-1.5 flex items-center gap-2">
                 <label className="relative h-6 w-6 shrink-0 cursor-pointer overflow-hidden rounded-md border border-neutral-300">
-                  <span className="absolute inset-0" style={{ backgroundColor: (chartData?.colors?.[i] as string) || "transparent" }} />
-                  {!chartData?.colors?.[i] && (
+                  <span className="absolute inset-0" style={{ backgroundColor: graphColors[i] || "transparent" }} />
+                  {!graphColors[i] && (
                     <span className="absolute inset-0" style={{ background: "conic-gradient(#ef4444,#f59e0b,#22c55e,#3b82f6,#a855f7,#ef4444)" }} />
                   )}
-                  <input type="color" value={(chartData?.colors?.[i] as string) || "#4d4ef3"} onChange={(e) => dispatch(setChartColor({ slideIndex, index: i, color: e.target.value }))} className="absolute inset-0 cursor-pointer opacity-0" />
+                  <input type="color" value={graphColors[i] || "#4d4ef3"} onChange={(e) => dispatch(setGraphColor({ slideIndex, index: i, color: e.target.value }))} className="absolute inset-0 cursor-pointer opacity-0" />
                 </label>
                 <span className="min-w-0 flex-1 truncate text-xs text-neutral-600">{k}</span>
-                {chartData?.colors?.[i] && (
-                  <button onClick={() => dispatch(setChartColor({ slideIndex, index: i, color: null }))} className="text-[11px] text-neutral-400 hover:text-neutral-700">Auto</button>
+                {graphColors[i] && (
+                  <button onClick={() => dispatch(setGraphColor({ slideIndex, index: i, color: null }))} className="text-[11px] text-neutral-400 hover:text-neutral-700">Auto</button>
                 )}
               </div>
             ))}

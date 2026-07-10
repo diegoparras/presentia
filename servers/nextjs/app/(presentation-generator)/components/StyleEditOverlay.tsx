@@ -100,6 +100,31 @@ const StyleEditOverlay: React.FC<Props> = ({
         setElement({ slideIndex, path: ovPath });
         return;
       }
+      // Gráficos: el click cae en el <svg> de recharts (que normalmente
+      // bailea) — seleccionar el contenedor del gráfico para poder editarlo
+      // (colores, mover, etc.).
+      const chartWrap = target.closest(".recharts-wrapper") as HTMLElement | null;
+      if (chartWrap) {
+        let node: HTMLElement | null = chartWrap.parentElement;
+        let picked: HTMLElement = chartWrap;
+        while (node && node !== anchor) {
+          const cs = window.getComputedStyle(node);
+          const bg = cs.backgroundColor;
+          if ((bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent" && bg !== "") || parseFloat(cs.borderRadius) > 0) {
+            picked = node;
+            break;
+          }
+          node = node.parentElement;
+        }
+        const chartPath = getElementPath(picked, anchor);
+        if (chartPath == null) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setEditor(null);
+        setBackgroundSlide(null);
+        setElement({ slideIndex, path: chartPath });
+        return;
+      }
       if (target.closest(BAIL_SELECTOR)) {
         setElement(null); // editar texto/icono → cerrar panel de elemento
         return;
@@ -254,14 +279,26 @@ const StyleEditOverlay: React.FC<Props> = ({
     const startScaleX = override.scaleX ?? 1;
     const startScaleY = override.scaleY ?? 1;
     const kind = el.tagName === "IMG" ? "image" : ("box" as const);
+    // Bloques de texto: cambiar ancho/alto reales (el texto refluye y NO se
+    // escala la tipografía). El resto: transform scale como siempre.
+    const isTextBlock = !!el.querySelector(".tiptap-text-editor");
+    const startW = el.offsetWidth || 1;
+    const startH = el.offsetHeight || 1;
     const onMove = (ev: PointerEvent) => {
-      if (aspectLocked) {
-        const dist = Math.hypot(ev.clientX - originX, ev.clientY - originY);
-        const f = dist / startDist;
-        patch({ scaleX: clampScale(startScaleX * f), scaleY: clampScale(startScaleY * f), kind });
+      const fDist = Math.hypot(ev.clientX - originX, ev.clientY - originY) / startDist;
+      const fx = Math.abs(ev.clientX - originX) / startDx;
+      const fy = Math.abs(ev.clientY - originY) / startDy;
+      if (isTextBlock) {
+        const wf = aspectLocked ? fDist : fx;
+        const hf = aspectLocked ? fDist : fy;
+        patch({
+          width: Math.max(48, Math.round(startW * wf)),
+          height: Math.max(28, Math.round(startH * hf)),
+          kind,
+        });
+      } else if (aspectLocked) {
+        patch({ scaleX: clampScale(startScaleX * fDist), scaleY: clampScale(startScaleY * fDist), kind });
       } else {
-        const fx = Math.abs(ev.clientX - originX) / startDx;
-        const fy = Math.abs(ev.clientY - originY) / startDy;
         patch({ scaleX: clampScale(startScaleX * fx), scaleY: clampScale(startScaleY * fy), kind });
       }
     };

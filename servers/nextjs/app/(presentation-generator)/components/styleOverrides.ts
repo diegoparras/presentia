@@ -26,6 +26,13 @@ export interface ElementOverride {
   opacity?: number; // 0-100
   zIndex?: number; // orden de apilado (adelante/atrás)
   objectFit?: "cover" | "contain" | "fill";
+  // Alineación del contenido (pensada para bloques de texto).
+  textAlign?: "left" | "center" | "right";
+  vAlign?: "top" | "middle" | "bottom";
+  // Tamaño real en px del espacio base (reflujo, NO escala): para bloques de
+  // texto, cambia el contenedor sin agrandar la tipografía.
+  width?: number;
+  height?: number;
 }
 
 export type StyleOverrides = Record<string, ElementOverride>;
@@ -59,6 +66,20 @@ export const clampScale = (v: number): number =>
  * hojas de texto, no reestructura estos elementos). Devuelve null si `el` no
  * cuelga de `root`.
  */
+export const GRAPH_COLORS_KEY = "__graph_colors__";
+
+// Tags no visuales que algunos templates renderizan inline (p.ej. <link> de
+// fuentes) — no sirven como host de layers ni de variables por slide.
+const NON_VISUAL_TAGS = new Set(["LINK", "STYLE", "SCRIPT", "META", "TITLE"]);
+
+/** Primer hijo visual del anchor [data-style-root]: el root del template. */
+export const findVisualHost = (root: Element): HTMLElement | null =>
+  (Array.prototype.find.call(
+    root.children,
+    (c: Element) =>
+      !NON_VISUAL_TAGS.has(c.tagName) && !c.hasAttribute(SLIDE_BG_ATTR)
+  ) ?? null) as HTMLElement | null;
+
 // Hijos-elemento indexables: excluye el layer de fondo inyectado para que los
 // paths guardados no dependan de si la slide tiene fondo o no.
 const indexableChildren = (parent: Element): Element[] =>
@@ -113,11 +134,20 @@ export function overrideToInlineStyle(
   if (o.objectFit) css.objectFit = o.objectFit;
   if (o.opacity != null && o.opacity < 100) css.opacity = String(o.opacity / 100);
   if (o.zIndex != null) {
+    // OJO: no forzar position acá — pisar el position de elementos ya
+    // posicionados (p.ej. iconos superpuestos, absolute) los rompía. El
+    // applier agrega position:relative SOLO si el elemento es static.
     css.zIndex = String(o.zIndex);
-    // z-index requiere elemento posicionado (los transformados ya generan
-    // stacking context, pero un elemento estático sin transform no).
-    css.position = "relative";
   }
+  if (o.textAlign) css.textAlign = o.textAlign;
+  if (o.vAlign) {
+    css.display = "flex";
+    css.flexDirection = "column";
+    css.justifyContent =
+      o.vAlign === "top" ? "flex-start" : o.vAlign === "middle" ? "center" : "flex-end";
+  }
+  if (o.width != null) css.width = `${o.width}px`;
+  if (o.height != null) css.height = `${o.height}px`;
 
   const sx = o.scaleX ?? 1;
   const sy = o.scaleY ?? 1;

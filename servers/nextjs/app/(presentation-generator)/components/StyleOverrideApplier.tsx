@@ -7,6 +7,7 @@ import {
   StyleOverrides,
   STYLE_APPLIED_ATTR,
   SLIDE_BG_ATTR,
+  findVisualHost,
   resolveElementPath,
   overrideToInlineStyle,
   isMeaningfulOverride,
@@ -26,26 +27,33 @@ interface Props {
   overrides?: StyleOverrides;
   background?: SlideBackground | null;
   overlays?: SlideOverlay[];
+  // Colores del gráfico elegidos por el usuario, por índice de serie/categoría.
+  // Se aplican como variables --graph-N en el root de la slide: funcionan con
+  // TODAS las familias de templates (todas colorean con var(--graph-N, ...)).
+  graphColors?: (string | null)[];
   children: React.ReactNode;
 }
+
+const applyGraphColors = (root: HTMLElement, graphColors?: (string | null)[]) => {
+  const host = findVisualHost(root);
+  if (!host) return;
+  for (let i = 0; i < 10; i++) {
+    const c = graphColors?.[i];
+    if (c) host.style.setProperty(`--graph-${i}`, c);
+    else host.style.removeProperty(`--graph-${i}`);
+  }
+};
 
 // Inyecta (o actualiza/remueve) el layer de imagen de fondo como PRIMER hijo
 // del root del template: queda por encima del background-color del root pero
 // detrás de todo el contenido (stacking por orden de DOM). pointer-events:none
 // para no interferir con la edición. Los helpers de elementPath lo excluyen
 // del indexado (SLIDE_BG_ATTR).
-// Tags no visuales que algunos templates renderizan inline (p.ej. <link> de
-// fuentes) — no sirven como host del layer de fondo.
-const NON_VISUAL_TAGS = new Set(["LINK", "STYLE", "SCRIPT", "META", "TITLE"]);
-
 const applyBackgroundLayer = (
   root: HTMLElement,
   background?: SlideBackground | null
 ) => {
-  const host = (Array.prototype.find.call(
-    root.children,
-    (c: Element) => !NON_VISUAL_TAGS.has(c.tagName)
-  ) ?? null) as HTMLElement | null;
+  const host = findVisualHost(root);
   if (!host) return;
   let layer = host.querySelector(`:scope > [${SLIDE_BG_ATTR}]`) as HTMLElement | null;
   if (!background || !background.url) {
@@ -68,6 +76,10 @@ const applyBackgroundLayer = (
     inset: "0",
     overflow: "hidden",
     pointerEvents: "none",
+    // Bajo el contenido y bajo los elementos con orden "Atrás" (z=-1), pero
+    // por encima del background-color del root (los z negativos pintan sobre
+    // el fondo del contexto).
+    zIndex: "-2",
   });
   const img = layer.querySelector("img") as HTMLImageElement | null;
   if (img) {
@@ -128,7 +140,7 @@ const ensureGoogleFontsFromDom = (root: HTMLElement) => {
  * aparecen también en el export (Chromium imprime el DOM; freeze lee
  * getComputedStyle/getBoundingClientRect del mismo DOM).
  */
-const StyleOverrideApplier: React.FC<Props> = ({ overrides, background, overlays, children }) => {
+const StyleOverrideApplier: React.FC<Props> = ({ overrides, background, overlays, graphColors, children }) => {
   const rootRef = useRef<HTMLDivElement>(null);
   // Snapshot del atributo `style` original de cada elemento tocado, para poder
   // revertir con exactitud sin pisar estilos inline del template.
@@ -154,11 +166,17 @@ const StyleOverrideApplier: React.FC<Props> = ({ overrides, background, overlays
         if (!el) return; // path no resuelve → skip silencioso (no crashea)
         appliedRef.current.push({ el, style: el.getAttribute("style") });
         const css = overrideToInlineStyle(o);
+        // z-index necesita elemento posicionado: solo agregar relative si es
+        // static (NO pisar absolute/fixed — rompía los iconos superpuestos).
+        if (css.zIndex && window.getComputedStyle(el).position === "static") {
+          el.style.position = "relative";
+        }
         Object.entries(css).forEach(([k, v]) => {
           (el.style as any)[k] = v;
         });
       });
       applyBackgroundLayer(root, background);
+      applyGraphColors(root, graphColors);
       root.setAttribute(STYLE_APPLIED_ATTR, "true");
       ensureGoogleFontsFromDom(root);
     };
@@ -179,7 +197,7 @@ const StyleOverrideApplier: React.FC<Props> = ({ overrides, background, overlays
       obs.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, [overrides, background]);
+  }, [overrides, background, graphColors]);
 
   return (
     <div ref={rootRef} data-style-root="" style={{ display: "contents" }}>
@@ -188,7 +206,9 @@ const StyleOverrideApplier: React.FC<Props> = ({ overrides, background, overlays
         // Iconos superpuestos: layer React (mismo DOM en editor y export). Va
         // AL FINAL para no correr los paths existentes; los iconos sí son
         // indexables (se mueven/redimensionan con el sistema de elementos).
-        <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 20 }}>
+        // SIN z-index propio: si lo tuviera crearía un stacking context y el
+        // orden (Al frente/Atrás) de cada icono no competiría con el contenido.
+        <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
           {overlays.map((o, i) => (
             <span
               key={i}
