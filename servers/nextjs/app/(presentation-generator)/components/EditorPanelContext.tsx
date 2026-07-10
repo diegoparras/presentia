@@ -15,6 +15,8 @@ interface EditorPanelState {
   editor: any | null;
   // Nodo destino donde el editor de texto activo portalea su toolbar.
   textPanelEl: HTMLElement | null;
+  // Slide cuyo fondo se está editando (panel "Fondo").
+  backgroundSlide: number | null;
 }
 
 /**
@@ -24,7 +26,12 @@ interface EditorPanelState {
  * Context no cruza roots, así que el toolbar de texto nunca llegaba al panel
  * derecho. Un store compartido sí es visible desde cualquier root.
  */
-let state: EditorPanelState = { element: null, editor: null, textPanelEl: null };
+let state: EditorPanelState = {
+  element: null,
+  editor: null,
+  textPanelEl: null,
+  backgroundSlide: null,
+};
 const listeners = new Set<() => void>();
 
 const emit = () => listeners.forEach((l) => l());
@@ -56,6 +63,12 @@ const setTextPanelEl = (v: Updater<HTMLElement | null>) => {
   state = { ...state, textPanelEl: next };
   emit();
 };
+const setBackgroundSlide = (v: Updater<number | null>) => {
+  const next = resolve(v, state.backgroundSlide);
+  if (next === state.backgroundSlide) return;
+  state = { ...state, backgroundSlide: next };
+  emit();
+};
 
 export const useEditorPanel = () => {
   const snap = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
@@ -63,9 +76,11 @@ export const useEditorPanel = () => {
     element: snap.element,
     editor: snap.editor,
     textPanelEl: snap.textPanelEl,
+    backgroundSlide: snap.backgroundSlide,
     setElement,
     setEditor,
     setTextPanelEl,
+    setBackgroundSlide,
   };
 };
 

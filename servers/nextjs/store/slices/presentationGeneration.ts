@@ -366,6 +366,50 @@ const presentationGenerationSlice = createSlice({
       }
     },
 
+    // Imagen de fondo por slide (subida / IA / URL) — content.__background__.
+    // `background: null` la quita. Acepta varias slides (alcance configurable).
+    setSlideBackground: (
+      state,
+      action: PayloadAction<{
+        slideIndexes: number[];
+        background: { url: string; fit?: string; opacity?: number } | null;
+      }>
+    ) => {
+      const { slideIndexes, background } = action.payload;
+      slideIndexes.forEach((i) => {
+        const slide = state.presentationData?.slides?.[i];
+        if (!slide) return;
+        if (!slide.content || typeof slide.content !== "object") slide.content = {};
+        if (background) slide.content.__background__ = { ...background };
+        else delete slide.content.__background__;
+      });
+    },
+
+    // Iconos superpuestos a la slide — content.__overlays__[]. Usan
+    // __icon_url__ para que el IconsEditor existente los detecte y edite.
+    addSlideOverlay: (
+      state,
+      action: PayloadAction<{
+        slideIndex: number;
+        overlay: { __icon_url__: string; x: number; y: number; size: number };
+      }>
+    ) => {
+      const slide = state.presentationData?.slides?.[action.payload.slideIndex];
+      if (!slide) return;
+      if (!slide.content || typeof slide.content !== "object") slide.content = {};
+      const list = (slide.content.__overlays__ = slide.content.__overlays__ || []);
+      list.push({ ...action.payload.overlay });
+    },
+
+    removeSlideOverlay: (
+      state,
+      action: PayloadAction<{ slideIndex: number; overlayIndex: number }>
+    ) => {
+      const slide = state.presentationData?.slides?.[action.payload.slideIndex];
+      const list = slide?.content?.__overlays__;
+      if (Array.isArray(list)) list.splice(action.payload.overlayIndex, 1);
+    },
+
     // Update slide icon at specific data path
     updateSlideIcon: (
       state,
@@ -474,6 +518,9 @@ export const {
   setStyleOverride,
   clearStyleOverride,
   clearAllStyleOverrides,
+  setSlideBackground,
+  addSlideOverlay,
+  removeSlideOverlay,
   updateSlideIcon,
   addNewSlide,
   updateTheme,

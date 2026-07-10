@@ -132,7 +132,7 @@ const V1ContentRenderComponent = ({ slide, isEditMode, theme }: { slide: any, is
                                 }
                             }}
                         >
-                            <StyleOverrideApplier overrides={slideContent.__style_overrides__}>
+                            <StyleOverrideApplier overrides={slideContent.__style_overrides__} background={slideContent.__background__} overlays={slideContent.__overlays__}>
                                 <LayoutComp data={{
                                     ...slideContent,
                                     _logo_url__: theme ? theme.logo_url : null,
@@ -155,14 +155,15 @@ const V1ContentRenderComponent = ({ slide, isEditMode, theme }: { slide: any, is
     }
     return (
         <SlideErrorBoundary label={`Slide ${(safeSlide.index ?? 0) + 1}`}>
-            <div ref={containerRef}>
+            {/* relative: ancla del layer de iconos superpuestos (también en export) */}
+            <div ref={containerRef} className="relative">
                 <TiptapTextReplacer
                     key={safeSlide.id ?? safeSlide.index ?? "slide"}
                     slideData={slideContent}
                     slideIndex={safeSlide.index ?? 0}
                     readOnly
                 >
-                    <StyleOverrideApplier overrides={slideContent.__style_overrides__}>
+                    <StyleOverrideApplier overrides={slideContent.__style_overrides__} background={slideContent.__background__} overlays={slideContent.__overlays__}>
                         <LayoutComp data={{
                             ...slideContent,
                             _logo_url__: theme ? theme.logo_url : null,

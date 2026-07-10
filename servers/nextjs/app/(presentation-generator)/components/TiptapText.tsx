@@ -397,6 +397,7 @@ const TiptapText: React.FC<TiptapTextProps> = ({
     if (hasSelection) {
       editorPanel.setEditor(editor);
       editorPanel.setElement(null);
+      editorPanel.setBackgroundSlide(null);
     } else {
       editorPanel.setEditor((prev: any) => (prev === editor ? null : prev));
     }

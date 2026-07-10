@@ -27,9 +27,22 @@ export interface ElementOverride {
 
 export type StyleOverrides = Record<string, ElementOverride>;
 
+// Fondo por slide (imagen subida / generada con IA / desde URL). Se guarda en
+// `slide.content.__background__` y se aplica como un layer inyectado detrás
+// del contenido del template (en editor y export).
+export interface SlideBackground {
+  url: string;
+  fit?: "cover" | "contain";
+  opacity?: number; // 0-100
+}
+
 export const STYLE_OVERRIDES_KEY = "__style_overrides__";
+export const BACKGROUND_KEY = "__background__";
 export const STYLE_ROOT_ATTR = "data-style-root";
 export const STYLE_APPLIED_ATTR = "data-style-overrides-applied";
+// Marca del layer de fondo inyectado: se EXCLUYE del indexado de elementPath
+// para no correr los índices de los overrides existentes.
+export const SLIDE_BG_ATTR = "data-slide-bg";
 
 export const MIN_SCALE = 0.25;
 export const MAX_SCALE = 4;
@@ -43,6 +56,14 @@ export const clampScale = (v: number): number =>
  * hojas de texto, no reestructura estos elementos). Devuelve null si `el` no
  * cuelga de `root`.
  */
+// Hijos-elemento indexables: excluye el layer de fondo inyectado para que los
+// paths guardados no dependan de si la slide tiene fondo o no.
+const indexableChildren = (parent: Element): Element[] =>
+  Array.prototype.filter.call(
+    parent.children,
+    (c: Element) => !c.hasAttribute(SLIDE_BG_ATTR)
+  ) as Element[];
+
 export function getElementPath(el: Element, root: Element): string | null {
   if (el === root) return "";
   const parts: number[] = [];
@@ -50,7 +71,7 @@ export function getElementPath(el: Element, root: Element): string | null {
   while (node && node !== root) {
     const parent: Element | null = node.parentElement;
     if (!parent) return null;
-    const idx = Array.prototype.indexOf.call(parent.children, node);
+    const idx = indexableChildren(parent).indexOf(node);
     if (idx < 0) return null;
     parts.unshift(idx);
     node = parent;
@@ -67,7 +88,7 @@ export function resolveElementPath(
   for (const seg of path.split("/")) {
     const idx = Number(seg);
     if (!node || Number.isNaN(idx)) return null;
-    node = (node.children[idx] as Element) ?? null;
+    node = indexableChildren(node)[idx] ?? null;
   }
   return (node as HTMLElement) ?? null;
 }

@@ -3,6 +3,7 @@
 import React from "react";
 import { useEditorPanel } from "./EditorPanelContext";
 import ElementControls from "./ElementControls";
+import BackgroundControls from "./BackgroundControls";
 
 /**
  * Panel derecho contextual: muestra los controles de Elemento (cajas/imágenes)
@@ -10,8 +11,8 @@ import ElementControls from "./ElementControls";
  * su defecto el Asistente IA. Reemplaza a los menús flotantes sobre la slide.
  */
 const PropertiesSidebar: React.FC<{ chat: React.ReactNode }> = ({ chat }) => {
-  const { element, editor, setTextPanelEl } = useEditorPanel();
-  const showProps = !!element || !!editor;
+  const { element, editor, backgroundSlide, setTextPanelEl } = useEditorPanel();
+  const showProps = backgroundSlide != null || !!element || !!editor;
 
   return (
     <div
@@ -31,7 +32,9 @@ const PropertiesSidebar: React.FC<{ chat: React.ReactNode }> = ({ chat }) => {
 
       {showProps && (
         <div className="h-full overflow-hidden rounded-2xl border border-[#EDEEEF] bg-white p-4 shadow-sm">
-          {element ? (
+          {backgroundSlide != null ? (
+            <BackgroundControls slideIndex={backgroundSlide} />
+          ) : element ? (
             <ElementControls slideIndex={element.slideIndex} path={element.path} />
           ) : (
             // Destino del portal del toolbar de texto (TiptapText portea acá).

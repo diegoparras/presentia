@@ -33,7 +33,7 @@ const StyleEditOverlay: React.FC<Props> = ({
   overrides,
 }) => {
   const dispatch = useDispatch();
-  const { element, setElement, setEditor } = useEditorPanel();
+  const { element, setElement, setEditor, setBackgroundSlide } = useEditorPanel();
   const [rect, setRect] = useState<DOMRect | null>(null);
 
   // Sólo esta slide dibuja el contorno si el elemento seleccionado es suyo.
@@ -80,6 +80,23 @@ const StyleEditOverlay: React.FC<Props> = ({
       const anchor = getAnchor();
       if (!target || !anchor || !anchor.contains(target)) return;
       if (target.closest("[data-style-overlay]")) return;
+      // Iconos superpuestos: 1er click selecciona (mover/redimensionar);
+      // si ya está seleccionado, pasa el click al IconsEditor. Va ANTES del
+      // BAIL porque el target es un <svg> (que normalmente bailea).
+      const ovEl = target.closest("[data-overlay-idx]") as HTMLElement | null;
+      if (ovEl) {
+        const ovPath = getElementPath(ovEl, anchor);
+        if (ovPath == null) return;
+        const yaSel =
+          element && element.slideIndex === slideIndex && element.path === ovPath;
+        if (yaSel) return; // pasa al IconsEditor
+        e.preventDefault();
+        e.stopPropagation();
+        setEditor(null);
+        setBackgroundSlide(null);
+        setElement({ slideIndex, path: ovPath });
+        return;
+      }
       if (target.closest(BAIL_SELECTOR)) {
         setElement(null); // editar texto/icono → cerrar panel de elemento
         return;
@@ -97,6 +114,7 @@ const StyleEditOverlay: React.FC<Props> = ({
         e.preventDefault();
         e.stopPropagation();
         setEditor(null);
+        setBackgroundSlide(null);
         setElement({ slideIndex, path: imgPath });
         return;
       }
@@ -117,6 +135,7 @@ const StyleEditOverlay: React.FC<Props> = ({
       const path = getElementPath(picked, anchor);
       if (path != null) {
         setEditor(null);
+        setBackgroundSlide(null);
         setElement({ slideIndex, path });
       }
     };

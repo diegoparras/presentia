@@ -1,14 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { RotateCcw, X } from "lucide-react";
+import { RotateCcw, Trash2, X } from "lucide-react";
 import type { RootState } from "@/store/store";
 import {
   setStyleOverride,
   clearStyleOverride,
+  removeSlideOverlay,
 } from "@/store/slices/presentationGeneration";
-import { ElementOverride, clampScale } from "./styleOverrides";
+import { ElementOverride, clampScale, resolveElementPath } from "./styleOverrides";
 import { useEditorPanel } from "./EditorPanelContext";
 
 const PALETTE = [
@@ -59,14 +60,40 @@ const ElementControls: React.FC<{ slideIndex: number; path: string }> = ({
   const patch = (p: Partial<ElementOverride>) =>
     dispatch(setStyleOverride({ slideIndex, elementPath: path, patch: p }));
 
+  // ¿Lo seleccionado es un icono superpuesto? (permite eliminarlo)
+  const overlayIndex = useMemo(() => {
+    const anchor = document.querySelector(
+      `#slide-${slideIndex} [data-style-root]`
+    );
+    if (!anchor) return null;
+    const el = resolveElementPath(anchor, path);
+    const idx = el?.getAttribute?.("data-overlay-idx");
+    return idx != null ? Number(idx) : null;
+  }, [slideIndex, path]);
+
   return (
     <div className="flex h-full flex-col font-syne">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#FBEDEA] text-[#e25a4e]">◧</span>
-          <span className="text-base font-semibold text-[#191919]">Elemento</span>
+          <span className="text-base font-semibold text-[#191919]">
+            {overlayIndex != null ? "Icono" : "Elemento"}
+          </span>
         </div>
         <div className="flex items-center gap-1">
+          {overlayIndex != null && (
+            <button
+              onClick={() => {
+                dispatch(removeSlideOverlay({ slideIndex, overlayIndex }));
+                dispatch(clearStyleOverride({ slideIndex, elementPath: path }));
+                setElement(null);
+              }}
+              title="Eliminar icono"
+              className="rounded-md p-1.5 text-red-500 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
           <button onClick={() => dispatch(clearStyleOverride({ slideIndex, elementPath: path }))} title="Restablecer" className="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100"><RotateCcw className="h-4 w-4" /></button>
           <button onClick={() => setElement(null)} title="Cerrar" className="rounded-md p-1.5 text-neutral-500 hover:bg-neutral-100"><X className="h-4 w-4" /></button>
         </div>

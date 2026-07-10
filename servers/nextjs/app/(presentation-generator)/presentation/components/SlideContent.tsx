@@ -7,7 +7,11 @@ import {
   Pencil,
   Trash,
   Sparkles,
+  Image as ImageIcon,
+  Star,
 } from "lucide-react";
+import { useEditorPanel } from "@/app/(presentation-generator)/components/EditorPanelContext";
+import { addSlideOverlay } from "@/store/slices/presentationGeneration";
 import {
   Popover,
   PopoverContent,
@@ -47,6 +51,7 @@ const SlideContent = ({
 }: SlideContentProps) => {
   const { t } = useI18n();
   const dispatch = useDispatch();
+  const editorPanel = useEditorPanel();
   const slideLayout = typeof slide?.layout === "string" ? slide.layout : "";
   const [isUpdating, setIsUpdating] = useState(false);
   const [showNewSlideSelection, setShowNewSlideSelection] = useState(false);
@@ -418,6 +423,42 @@ const SlideContent = ({
                   </PopoverContent>
                 </Popover>
               )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  editorPanel.setElement(null);
+                  editorPanel.setEditor(null);
+                  editorPanel.setBackgroundSlide(index);
+                }}
+                className="flex px-4 py-2.5 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 font-syne"
+              >
+                <ToolTip content="Fondo de la slide (imagen)">
+                  <ImageIcon className="h-4 w-4" />
+                </ToolTip>
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  dispatch(
+                    addSlideOverlay({
+                      slideIndex: index,
+                      overlay: {
+                        __icon_url__: "/static/icons/regular/star.svg",
+                        x: 46,
+                        y: 40,
+                        size: 72,
+                      },
+                    })
+                  )
+                }
+                className="flex px-4 py-2.5 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 font-syne"
+              >
+                <ToolTip content="Agregar icono a la slide (clic para elegirlo y cambiarle el color; arrastralo para moverlo)">
+                  <Star className="h-4 w-4" />
+                </ToolTip>
+              </button>
 
               <button
                 type="button"
