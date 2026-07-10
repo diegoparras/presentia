@@ -113,6 +113,46 @@ const StyleEditOverlay: React.FC<Props> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMulti, getAnchor]);
 
+  // Resolución de "elemento seleccionable" para Ctrl+click: incluye también
+  // los bloques de texto (que el click normal deja para editar).
+  const resolveSelectableForToggle = useCallback(
+    (target: HTMLElement, anchor: HTMLElement): HTMLElement | null => {
+      if (
+        target.closest(
+          "[data-style-overlay], [data-editor-ui], [data-tippy-root], [data-radix-popper-content-wrapper], [data-radix-portal]"
+        )
+      )
+        return null;
+      const ov = target.closest("[data-overlay-idx]") as HTMLElement | null;
+      if (ov) return ov;
+      const textEd = target.closest(".tiptap-text-editor") as HTMLElement | null;
+      if (textEd) {
+        const cont = textEd.parentElement?.parentElement as HTMLElement | null;
+        return cont && anchor.contains(cont) ? cont : null;
+      }
+      const img = target.closest("img") as HTMLElement | null;
+      if (img && anchor.contains(img)) return img;
+      const chartWrap = target.closest(".recharts-wrapper") as HTMLElement | null;
+      let picked: HTMLElement | null = chartWrap;
+      let node: HTMLElement | null = chartWrap ? chartWrap.parentElement : target;
+      while (node && node !== anchor) {
+        const cs = window.getComputedStyle(node);
+        const bg = cs.backgroundColor;
+        if (
+          (bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent" && bg !== "") ||
+          parseFloat(cs.borderRadius) > 0
+        ) {
+          picked = node;
+          break;
+        }
+        node = node.parentElement;
+      }
+      if (!picked || picked === findVisualHost(anchor)) return null;
+      return picked;
+    },
+    []
+  );
+
   // Selección por click-target.
   useEffect(() => {
     const container = containerRef.current;
@@ -129,6 +169,27 @@ const StyleEditOverlay: React.FC<Props> = ({
       const anchor = getAnchor();
       if (!target || !anchor || !anchor.contains(target)) return;
       if (target.closest("[data-style-overlay]")) return;
+      // Ctrl+click (Cmd en Mac): agrega/quita el elemento de la selección —
+      // incluidos los bloques de texto (que el click normal deja para editar).
+      if (e.ctrlKey || e.metaKey) {
+        const selEl2 = resolveSelectableForToggle(target, anchor);
+        if (!selEl2) return;
+        const p = getElementPath(selEl2, anchor);
+        if (p == null) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setEditor(null);
+        setBackgroundSlide(null);
+        setElements((prev) => {
+          // Si lo seleccionado es de otra slide, arrancar de cero.
+          const sameSlide = prev.filter((s) => s.slideIndex === slideIndex);
+          const exists = sameSlide.some((s) => s.path === p);
+          return exists
+            ? sameSlide.filter((s) => s.path !== p)
+            : [...sameSlide, { slideIndex, path: p }];
+        });
+        return;
+      }
       // Iconos superpuestos: 1er click selecciona (mover/redimensionar);
       // si ya está seleccionado, pasa el click al IconsEditor. Va ANTES del
       // BAIL porque el target es un <svg> (que normalmente bailea).
@@ -294,6 +355,8 @@ const StyleEditOverlay: React.FC<Props> = ({
     const startMarquee = (e: PointerEvent, anchor: HTMLElement) => {
       const sx = e.clientX;
       const sy = e.clientY;
+      // Con Ctrl/Cmd el marquee es ADITIVO: suma a la selección existente.
+      const additive = e.ctrlKey || e.metaKey;
       let active = false;
       const onMove = (ev: PointerEvent) => {
         const dx = ev.clientX - sx;
@@ -332,7 +395,16 @@ const StyleEditOverlay: React.FC<Props> = ({
         const outer = inside.filter(
           ({ el }) => !inside.some((o) => o.el !== el && o.el.contains(el))
         );
-        setElements(outer.map(({ path }) => ({ slideIndex, path })));
+        const nuevos = outer.map(({ path }) => ({ slideIndex, path }));
+        setElements((prev) => {
+          if (!additive) return nuevos;
+          const base = prev.filter((s) => s.slideIndex === slideIndex);
+          const merged = [...base];
+          nuevos.forEach((n) => {
+            if (!merged.some((s) => s.path === n.path)) merged.push(n);
+          });
+          return merged;
+        });
       };
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
@@ -343,6 +415,16 @@ const StyleEditOverlay: React.FC<Props> = ({
       const target = e.target as HTMLElement | null;
       const anchor = getAnchor();
       if (!target || !anchor || !anchor.contains(target)) return;
+      // Ctrl/Cmd+click sobre un elemento: el toggle lo maneja el click handler
+      // (no iniciar drag). Se preventDefault para que el caret no salte al
+      // texto ni arranque el drag nativo. Sobre área vacía sí sigue (marquee
+      // aditivo).
+      if (e.ctrlKey || e.metaKey) {
+        if (resolveSelectableForToggle(target, anchor)) {
+          e.preventDefault();
+          return;
+        }
+      }
       const el = resolveDraggable(target, anchor);
       if (!el) {
         // Área vacía (o la slide entera): iniciar selección por recuadro,
