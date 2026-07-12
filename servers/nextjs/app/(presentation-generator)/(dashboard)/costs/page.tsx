@@ -113,7 +113,7 @@ const CostsPage = () => {
   return (
     <PageShell title={t("costs.title")} subtitle={t("costs.intro")}>
       <div className="pb-10 font-inter">
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 max-w-[880px]">
+      <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3 lg:grid-cols-4 max-w-[880px]">
         {summaryCards.map((card) => (
           <div
             key={card.label}

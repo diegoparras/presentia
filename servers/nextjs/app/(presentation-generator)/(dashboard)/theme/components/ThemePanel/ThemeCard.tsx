@@ -22,7 +22,7 @@ export const ThemeCard: React.FC<ThemeCardProps> = ({ theme, onSelect, onDelete,
 
 
   return (<div
-    className={` group rounded-xl border w-[305px] cursor-pointer transition-all relative bg-white border-[#EDEEEF]   hover:shadow-md`}
+    className={` group rounded-xl border w-[305px] max-w-full cursor-pointer transition-all relative bg-white border-[#EDEEEF]   hover:shadow-md`}
     onClick={() => onSelect(theme)}
 
   >
