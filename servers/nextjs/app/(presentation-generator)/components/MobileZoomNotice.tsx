@@ -73,15 +73,24 @@ const MobileZoomNotice: React.FC = () => {
           </p>
         </div>
 
-        {/* Logo solapado entre cabecera y cuerpo */}
+        {/* Logo solapado entre cabecera y cuerpo, estilo ícono de app.
+            Inline (no <img>) para que escale nítido y no dependa de un fetch. */}
         <div className="-mt-10 flex justify-center">
-          <div className="rounded-2xl bg-white p-2.5 shadow-xl ring-1 ring-black/5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/presentia-logo.svg"
-              alt="Logo de Presentia"
-              className="h-14 w-14"
-            />
+          <div className="h-20 w-20 overflow-hidden rounded-[22px] shadow-xl ring-4 ring-white">
+            <svg
+              viewBox="0 0 64 64"
+              className="h-full w-full"
+              role="img"
+              aria-label="Logo de Presentia"
+            >
+              <rect width="64" height="64" fill="#e25a4e" />
+              <rect x="14" y="14" width="36" height="26" rx="3" fill="#ffffff" />
+              <rect x="19" y="26" width="5" height="10" fill="#e25a4e" />
+              <rect x="27" y="21" width="5" height="15" fill="#e25a4e" />
+              <rect x="35" y="17" width="5" height="19" fill="#e25a4e" />
+              <line x1="32" y1="40" x2="32" y2="50" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
+              <line x1="24" y1="55" x2="40" y2="55" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
+            </svg>
           </div>
         </div>
 
