@@ -812,6 +812,7 @@ import { dict as uploadDict } from "./i18n-dicts/upload";
 import { dict as dashboardDict } from "./i18n-dicts/dashboard";
 import { dict as libraryDict } from "./i18n-dicts/library";
 import { dict as editorDict } from "./i18n-dicts/editor";
+import { dict as mobileDict } from "./i18n-dicts/mobile";
 
 const EXTRA_DICTS = [
   onboardingDict,
@@ -821,6 +822,7 @@ const EXTRA_DICTS = [
   dashboardDict,
   libraryDict,
   editorDict,
+  mobileDict,
 ];
 
 const DICTS: Record<Lang, Dict> = Object.fromEntries(

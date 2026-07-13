@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 // Se muestra una sola vez por dispositivo (localStorage). Versionado por si
 // en el futuro cambia el mensaje y conviene re-mostrarlo.
@@ -30,6 +31,7 @@ const isMobileViewport = () => {
  * layout autenticado — aparece recién después del login.
  */
 const MobileZoomNotice: React.FC = () => {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -66,7 +68,7 @@ const MobileZoomNotice: React.FC = () => {
           <div className="pointer-events-none absolute -left-10 -top-10 h-36 w-36 rounded-full bg-white/10" />
           <div className="pointer-events-none absolute -bottom-14 -right-8 h-40 w-40 rounded-full bg-white/10" />
           <p className="relative text-xs font-semibold uppercase tracking-[0.35em] text-white/80">
-            Bienvenido a
+            {t("mobile.notice.welcome")}
           </p>
           <p className="relative mt-1 text-2xl font-bold tracking-tight text-white">
             Presentia
@@ -81,7 +83,7 @@ const MobileZoomNotice: React.FC = () => {
               viewBox="0 0 64 64"
               className="h-full w-full"
               role="img"
-              aria-label="Logo de Presentia"
+              aria-label="Presentia"
             >
               <rect width="64" height="64" fill="#e25a4e" />
               <rect x="14" y="14" width="36" height="26" rx="3" fill="#ffffff" />
@@ -99,17 +101,18 @@ const MobileZoomNotice: React.FC = () => {
             id="mobile-zoom-notice-title"
             className="text-xl font-bold text-slate-900"
           >
-            Estás en un dispositivo móvil
+            {t("mobile.notice.title")}
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-slate-600">
-            Presentia está pensada para pantallas grandes. Para trabajar
-            cómodo desde tu teléfono,{" "}
+            {t("mobile.notice.body.pre")}
             <span className="font-semibold text-slate-800">
-              ajustá el zoom del navegador
-            </span>{" "}
-            hasta que la interfaz se vea completa — en algunos dispositivos
-            conviene reducirlo hasta un{" "}
-            <span className="font-semibold text-slate-800">50%</span>.
+              {t("mobile.notice.body.zoom")}
+            </span>
+            {t("mobile.notice.body.mid")}
+            <span className="font-semibold text-slate-800">
+              {t("mobile.notice.body.pct")}
+            </span>
+            {t("mobile.notice.body.post")}
           </p>
 
           <div className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-slate-50 px-4 py-3 text-xs font-medium text-slate-500 ring-1 ring-slate-200/70">
@@ -127,7 +130,7 @@ const MobileZoomNotice: React.FC = () => {
               <line x1="21" y1="21" x2="16.65" y2="16.65" />
               <line x1="8" y1="11" x2="14" y2="11" />
             </svg>
-            Menú del navegador → Zoom → 50–75%
+            {t("mobile.notice.hint")}
           </div>
 
           <button
@@ -135,10 +138,10 @@ const MobileZoomNotice: React.FC = () => {
             onClick={dismiss}
             className="mt-5 w-full rounded-xl bg-[#e25a4e] py-3 text-sm font-semibold text-white shadow-lg shadow-[#e25a4e]/30 transition-colors hover:bg-[#c94437] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#e25a4e] focus-visible:ring-offset-2"
           >
-            ¡Entendido!
+            {t("mobile.notice.button")}
           </button>
           <p className="mt-3 text-[11px] text-slate-400">
-            Este aviso no volverá a mostrarse en este dispositivo.
+            {t("mobile.notice.footer")}
           </p>
         </div>
       </div>
