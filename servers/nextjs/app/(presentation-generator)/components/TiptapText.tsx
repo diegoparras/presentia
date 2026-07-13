@@ -48,15 +48,18 @@ import { getElementPath } from "./styleOverrides";
 // componente y el texto desaparece. Usar el store singleton directamente.
 import { store } from "@/store/store";
 import { setStyleOverride } from "@/store/slices/presentationGeneration";
+// OJO: este componente monta en un React root separado (TiptapTextReplacer):
+// useI18n (Context) no funciona acá — usar el puente externo.
+import { useI18nExternal } from "@/lib/i18n";
 
-const AI_ACTIONS: { key: string; label: string; needsTarget?: boolean }[] = [
-  { key: "improve", label: "Mejorar redacción" },
-  { key: "shorten", label: "Acortar" },
-  { key: "expand", label: "Expandir" },
-  { key: "fix", label: "Corregir ortografía" },
-  { key: "professional", label: "Tono profesional" },
-  { key: "casual", label: "Tono casual" },
-  { key: "translate", label: "Traducir a…", needsTarget: true },
+const AI_ACTIONS: { key: string; labelKey: string; needsTarget?: boolean }[] = [
+  { key: "improve", labelKey: "ep.ai.improve" },
+  { key: "shorten", labelKey: "ep.ai.shorten" },
+  { key: "expand", labelKey: "ep.ai.expand" },
+  { key: "fix", labelKey: "ep.ai.fix" },
+  { key: "professional", labelKey: "ep.ai.professional" },
+  { key: "casual", labelKey: "ep.ai.casual" },
+  { key: "translate", labelKey: "ep.ai.translate", needsTarget: true },
 ];
 
 interface TiptapTextProps {
@@ -155,12 +158,8 @@ const TOOL_IDS = [
 ] as const;
 type ToolId = (typeof TOOL_IDS)[number];
 
-const TOOL_LABELS: Record<ToolId, string> = {
-  ai: "IA", bold: "Negrita", italic: "Itálica", underline: "Subrayado",
-  strike: "Tachado", highlight: "Resaltar", link: "Enlace", subscript: "Subíndice",
-  superscript: "Superíndice", code: "Código", size: "Tamaño", font: "Fuente",
-  color: "Color", clear: "Limpiar formato",
-};
+// Etiquetas traducibles: clave de i18n por herramienta (ep.tool.<id>).
+const toolLabelKey = (id: ToolId) => `ep.tool.${id}`;
 
 interface ToolbarCfg {
   hidden: ToolId[];
@@ -213,6 +212,7 @@ const TiptapText: React.FC<TiptapTextProps> = ({
   placeholder = "Enter text...",
   slideIndex,
 }) => {
+  const { t } = useI18nExternal();
   const [themeColors, setThemeColors] = useState<string[]>([]);
   const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
   const [openMenu, setOpenMenu] = useState<null | "size" | "color" | "font" | "ai">(null);
@@ -451,7 +451,7 @@ const TiptapText: React.FC<TiptapTextProps> = ({
     if (!text) return;
     let target = "";
     if (needsTarget) {
-      target = window.prompt("¿A qué idioma traducir?", "English") || "";
+      target = window.prompt(t("ep.ai.translatePrompt"), "English") || "";
       if (!target) return;
     }
     setOpenMenu(null);
@@ -476,7 +476,7 @@ const TiptapText: React.FC<TiptapTextProps> = ({
 
   const setLink = () => {
     const prev = editor.getAttributes("link").href || "";
-    const url = window.prompt("URL del enlace (vacío para quitar):", prev);
+    const url = window.prompt(t("ep.txt.linkPrompt"), prev);
     if (url === null) return;
     if (url === "") editor.chain().focus().extendMarkRange("link").unsetLink().run();
     else editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
@@ -541,7 +541,7 @@ const TiptapText: React.FC<TiptapTextProps> = ({
       applyFont(name, false);
       setFontQuery("");
     } catch {
-      setFontError(`"${name}" no existe en Google Fonts`);
+      setFontError(t("ep.txt.fontNotFound", { name }));
     } finally {
       setFontLoading(false);
     }
@@ -616,15 +616,15 @@ const TiptapText: React.FC<TiptapTextProps> = ({
               onClick={() => setOpenMenu(openMenu === "ai" ? null : "ai")}
               disabled={aiLoading}
               className="flex h-9 items-center gap-1 rounded-lg bg-gradient-to-r from-[#5141e5] to-[#8b5cf6] px-2.5 text-xs font-medium text-white hover:opacity-90"
-              title="Editar con IA"
+              title={t("ep.txt.aiEdit")}
             >
-              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} IA
+              {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} {t("ep.tool.ai")}
             </button>
             {openMenu === "ai" && (
               <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-lg border border-neutral-200 bg-white p-1 shadow-xl">
                 {AI_ACTIONS.map((a) => (
                   <button key={a.key} onClick={() => aiEdit(a.key, a.needsTarget)} className="block w-full rounded px-2 py-1.5 text-left text-sm text-neutral-700 hover:bg-[#5141e5]/5 hover:text-[#5141e5]">
-                    {a.label}
+                    {t(a.labelKey)}
                   </button>
                 ))}
               </div>
@@ -632,28 +632,28 @@ const TiptapText: React.FC<TiptapTextProps> = ({
           </div>
         );
       case "bold":
-        return <button onClick={() => editor.chain().focus().toggleBold().run()} className={btn(editor.isActive("bold"))} title="Negrita"><Bold className="h-5 w-5" /></button>;
+        return <button onClick={() => editor.chain().focus().toggleBold().run()} className={btn(editor.isActive("bold"))} title={t("ep.tool.bold")}><Bold className="h-5 w-5" /></button>;
       case "italic":
-        return <button onClick={() => editor.chain().focus().toggleItalic().run()} className={btn(editor.isActive("italic"))} title="Itálica"><Italic className="h-5 w-5" /></button>;
+        return <button onClick={() => editor.chain().focus().toggleItalic().run()} className={btn(editor.isActive("italic"))} title={t("ep.tool.italic")}><Italic className="h-5 w-5" /></button>;
       case "underline":
-        return <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={btn(editor.isActive("underline"))} title="Subrayado"><UnderlinedIcon className="h-5 w-5" /></button>;
+        return <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={btn(editor.isActive("underline"))} title={t("ep.tool.underline")}><UnderlinedIcon className="h-5 w-5" /></button>;
       case "strike":
-        return <button onClick={() => editor.chain().focus().toggleStrike().run()} className={btn(editor.isActive("strike"))} title="Tachado"><Strikethrough className="h-5 w-5" /></button>;
+        return <button onClick={() => editor.chain().focus().toggleStrike().run()} className={btn(editor.isActive("strike"))} title={t("ep.tool.strike")}><Strikethrough className="h-5 w-5" /></button>;
       case "highlight":
-        return <button onClick={() => editor.chain().focus().toggleHighlight({ color: "#FEF08A" }).run()} className={btn(editor.isActive("highlight"))} title="Resaltar"><Highlighter className="h-5 w-5" /></button>;
+        return <button onClick={() => editor.chain().focus().toggleHighlight({ color: "#FEF08A" }).run()} className={btn(editor.isActive("highlight"))} title={t("ep.tool.highlight")}><Highlighter className="h-5 w-5" /></button>;
       case "link":
-        return <button onClick={setLink} className={btn(editor.isActive("link"))} title="Enlace"><Link2 className="h-5 w-5" /></button>;
+        return <button onClick={setLink} className={btn(editor.isActive("link"))} title={t("ep.tool.link")}><Link2 className="h-5 w-5" /></button>;
       case "subscript":
-        return <button onClick={() => editor.chain().focus().toggleSubscript().run()} className={btn(editor.isActive("subscript"))} title="Subíndice"><SubIcon className="h-5 w-5" /></button>;
+        return <button onClick={() => editor.chain().focus().toggleSubscript().run()} className={btn(editor.isActive("subscript"))} title={t("ep.tool.subscript")}><SubIcon className="h-5 w-5" /></button>;
       case "superscript":
-        return <button onClick={() => editor.chain().focus().toggleSuperscript().run()} className={btn(editor.isActive("superscript"))} title="Superíndice"><SupIcon className="h-5 w-5" /></button>;
+        return <button onClick={() => editor.chain().focus().toggleSuperscript().run()} className={btn(editor.isActive("superscript"))} title={t("ep.tool.superscript")}><SupIcon className="h-5 w-5" /></button>;
       case "code":
-        return <button onClick={() => editor.chain().focus().toggleCode().run()} className={btn(editor.isActive("code"))} title="Código"><Code className="h-5 w-5" /></button>;
+        return <button onClick={() => editor.chain().focus().toggleCode().run()} className={btn(editor.isActive("code"))} title={t("ep.tool.code")}><Code className="h-5 w-5" /></button>;
       case "size":
         return (
           <div className="relative">
-            <button onClick={() => setOpenMenu(openMenu === "size" ? null : "size")} className="flex h-9 items-center gap-1 rounded-lg px-2.5 text-xs text-neutral-700 hover:bg-neutral-100" title="Tamaño">
-              {currentSize || "Auto"} <ChevronDown className="h-3.5 w-3.5" />
+            <button onClick={() => setOpenMenu(openMenu === "size" ? null : "size")} className="flex h-9 items-center gap-1 rounded-lg px-2.5 text-xs text-neutral-700 hover:bg-neutral-100" title={t("ep.tool.size")}>
+              {currentSize || t("ep.common.auto")} <ChevronDown className="h-3.5 w-3.5" />
             </button>
             {openMenu === "size" && (
               <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-28 overflow-auto rounded-lg border border-neutral-200 bg-white p-1 shadow-xl">
@@ -680,7 +680,7 @@ const TiptapText: React.FC<TiptapTextProps> = ({
                     OK
                   </button>
                 </div>
-                <button onClick={() => { editor.chain().focus().unsetFontSize().run(); setOpenMenu(null); }} className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-neutral-100">Auto</button>
+                <button onClick={() => { editor.chain().focus().unsetFontSize().run(); setOpenMenu(null); }} className="block w-full rounded px-2 py-1 text-left text-xs hover:bg-neutral-100">{t("ep.common.auto")}</button>
                 {FONT_SIZES.map((s) => (
                   <button key={s} onClick={() => { editor.chain().focus().setFontSize(s).run(); setOpenMenu(null); }} className={`block w-full rounded px-2 py-1 text-left text-xs hover:bg-neutral-100 ${currentSize === s ? "bg-[#5141e5]/10 text-[#5141e5]" : ""}`}>
                     {s.replace("px", "")}
@@ -693,15 +693,15 @@ const TiptapText: React.FC<TiptapTextProps> = ({
       case "font":
         return (
           <div className="relative">
-            <button onClick={() => setOpenMenu(openMenu === "font" ? null : "font")} className="flex h-9 max-w-[120px] items-center gap-1 truncate rounded-lg px-2.5 text-xs text-neutral-700 hover:bg-neutral-100" title="Fuente">
-              <span className="truncate">{currentFont || "Fuente"}</span> <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+            <button onClick={() => setOpenMenu(openMenu === "font" ? null : "font")} className="flex h-9 max-w-[120px] items-center gap-1 truncate rounded-lg px-2.5 text-xs text-neutral-700 hover:bg-neutral-100" title={t("ep.tool.font")}>
+              <span className="truncate">{currentFont || t("ep.tool.font")}</span> <ChevronDown className="h-3.5 w-3.5 shrink-0" />
             </button>
             {openMenu === "font" && (
               <div className="absolute left-0 top-full z-50 mt-1 max-h-64 w-48 overflow-auto rounded-lg border border-neutral-200 bg-white p-1 shadow-xl">
-                <button onClick={() => applyFont("", false)} className="block w-full rounded px-2 py-1 text-left text-sm hover:bg-neutral-100">Predeterminada</button>
+                <button onClick={() => applyFont("", false)} className="block w-full rounded px-2 py-1 text-left text-sm hover:bg-neutral-100">{t("ep.txt.default")}</button>
                 {customFonts.length > 0 && (
                   <>
-                    <div className="px-2 py-1 text-[10px] font-semibold uppercase text-neutral-400">Mis fuentes</div>
+                    <div className="px-2 py-1 text-[10px] font-semibold uppercase text-neutral-400">{t("ep.txt.myFonts")}</div>
                     {customFonts.map((f) => (
                       <button key={f.id} onMouseEnter={() => ensureCustomFont(f.name, f.url)} onClick={() => applyFont(f.name, true, f.url)} style={{ fontFamily: `'${f.name}'` }} className={`block w-full truncate rounded px-2 py-1 text-left text-sm hover:bg-neutral-100 ${currentFont === f.name ? "bg-[#5141e5]/10 text-[#5141e5]" : ""}`}>
                         {f.name}
@@ -725,7 +725,7 @@ const TiptapText: React.FC<TiptapTextProps> = ({
                       autoComplete="off"
                       autoCorrect="off"
                       spellCheck={false}
-                      placeholder="Escribí una fuente…"
+                      placeholder={t("ep.txt.fontSearchPh")}
                       className="h-8 w-full min-w-0 rounded-md border border-neutral-200 px-2 text-xs outline-none focus:border-[#5141e5]"
                     />
                     <button
@@ -733,7 +733,7 @@ const TiptapText: React.FC<TiptapTextProps> = ({
                       disabled={fontLoading || !fontQuery.trim()}
                       className="h-8 shrink-0 rounded-md bg-[#5141e5]/10 px-2 text-xs font-medium text-[#5141e5] hover:bg-[#5141e5]/20 disabled:opacity-40"
                     >
-                      {fontLoading ? "…" : "Usar"}
+                      {fontLoading ? "…" : t("ep.common.use")}
                     </button>
                   </div>
                   {fontError && <p className="mt-1 px-1 text-[11px] text-red-500">{fontError}</p>}
@@ -744,7 +744,7 @@ const TiptapText: React.FC<TiptapTextProps> = ({
                   </button>
                 ))}
                 <button onClick={() => fileRef.current?.click()} disabled={uploading} className="mt-1 flex w-full items-center gap-2 rounded border-t border-neutral-100 px-2 py-2 text-left text-xs font-medium text-[#5141e5] hover:bg-[#5141e5]/5">
-                  <Upload className="h-3.5 w-3.5" /> {uploading ? "Subiendo…" : "Subir fuente (.ttf/.woff2)"}
+                  <Upload className="h-3.5 w-3.5" /> {uploading ? t("ep.common.uploading") : t("ep.txt.uploadFont")}
                 </button>
               </div>
             )}
@@ -753,7 +753,7 @@ const TiptapText: React.FC<TiptapTextProps> = ({
       case "color":
         return (
           <div className="relative">
-            <button onClick={() => setOpenMenu(openMenu === "color" ? null : "color")} className="flex h-9 items-center gap-1 rounded-lg px-2 hover:bg-neutral-100" title="Color de texto">
+            <button onClick={() => setOpenMenu(openMenu === "color" ? null : "color")} className="flex h-9 items-center gap-1 rounded-lg px-2 hover:bg-neutral-100" title={t("ep.txt.textColor")}>
               <span className="flex h-5 w-5 items-center justify-center rounded-sm border border-neutral-300 text-xs font-bold">A</span>
               <span className="h-1.5 w-4 rounded-sm" style={{ backgroundColor: editor.getAttributes("textStyle").color || "#111827" }} />
             </button>
@@ -765,15 +765,15 @@ const TiptapText: React.FC<TiptapTextProps> = ({
                   ))}
                 </div>
                 <div className="mt-2 flex items-center gap-2">
-                  <input type="color" onChange={(e) => applyColor(e.target.value)} className="h-6 w-6 cursor-pointer rounded border-0 bg-transparent p-0" title="Color personalizado" />
-                  <button onClick={() => { editor.chain().focus().unsetColor().run(); setOpenMenu(null); }} className="text-xs text-neutral-500 hover:text-neutral-800">Quitar color</button>
+                  <input type="color" onChange={(e) => applyColor(e.target.value)} className="h-6 w-6 cursor-pointer rounded border-0 bg-transparent p-0" title={t("ep.txt.customColor")} />
+                  <button onClick={() => { editor.chain().focus().unsetColor().run(); setOpenMenu(null); }} className="text-xs text-neutral-500 hover:text-neutral-800">{t("ep.txt.removeColor")}</button>
                 </div>
               </div>
             )}
           </div>
         );
       case "clear":
-        return <button onClick={() => editor.chain().focus().unsetAllMarks().unsetColor().unsetFontSize().unsetFontFamily().run()} className={btn(false)} title="Limpiar formato"><RemoveFormatting className="h-5 w-5" /></button>;
+        return <button onClick={() => editor.chain().focus().unsetAllMarks().unsetColor().unsetFontSize().unsetFontFamily().run()} className={btn(false)} title={t("ep.tool.clear")}><RemoveFormatting className="h-5 w-5" /></button>;
       default:
         return null;
     }
@@ -782,9 +782,9 @@ const TiptapText: React.FC<TiptapTextProps> = ({
   const renderConfig = () => (
     <div className="max-h-[340px] overflow-auto pr-0.5">
       <div className="mb-2 flex items-center justify-between px-1">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Herramientas</span>
-        <button onClick={() => updateCfg({ hidden: [], order: [...TOOL_IDS] })} className="flex items-center gap-1 text-[11px] text-neutral-500 hover:text-neutral-800" title="Restablecer">
-          <RotateCcw className="h-3 w-3" /> Restablecer
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">{t("ep.txt.tools")}</span>
+        <button onClick={() => updateCfg({ hidden: [], order: [...TOOL_IDS] })} className="flex items-center gap-1 text-[11px] text-neutral-500 hover:text-neutral-800" title={t("ep.common.reset")}>
+          <RotateCcw className="h-3 w-3" /> {t("ep.common.reset")}
         </button>
       </div>
       <ul className="space-y-0.5">
@@ -801,8 +801,8 @@ const TiptapText: React.FC<TiptapTextProps> = ({
               className={`flex items-center gap-2 rounded-md px-1.5 py-1.5 ${dragIndex === i ? "bg-neutral-100" : "hover:bg-neutral-50"}`}
             >
               <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-neutral-300" />
-              <span className={`flex-1 text-sm ${shown ? "text-neutral-700" : "text-neutral-400 line-through"}`}>{TOOL_LABELS[id]}</span>
-              <button onClick={() => toggleTool(id)} className="text-neutral-400 hover:text-neutral-700" title={shown ? "Ocultar" : "Mostrar"}>
+              <span className={`flex-1 text-sm ${shown ? "text-neutral-700" : "text-neutral-400 line-through"}`}>{t(toolLabelKey(id))}</span>
+              <button onClick={() => toggleTool(id)} className="text-neutral-400 hover:text-neutral-700" title={shown ? t("ep.txt.hide") : t("ep.txt.show")}>
                 {shown ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
               </button>
             </li>
@@ -811,13 +811,13 @@ const TiptapText: React.FC<TiptapTextProps> = ({
       </ul>
       <div className="mt-3 border-t border-neutral-100 px-1 pt-3">
         <div className="mb-1 flex items-center justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Ancho</span>
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-neutral-400">{t("ep.txt.width")}</span>
           <span className="text-[11px] text-neutral-500">{cfg.width}px</span>
         </div>
         <input type="range" min={TOOLBAR_MIN_WIDTH} max={TOOLBAR_MAX_WIDTH} step={20} value={cfg.width} onChange={(e) => updateCfg({ width: Number(e.target.value) })} className="w-full accent-[#5141e5]" />
       </div>
       <button onClick={() => setConfigOpen(false)} className="mt-3 flex w-full items-center justify-center gap-1 rounded-md bg-neutral-100 py-1.5 text-xs font-medium text-neutral-600 hover:bg-neutral-200">
-        <X className="h-3.5 w-3.5" /> Cerrar
+        <X className="h-3.5 w-3.5" /> {t("ep.common.close")}
       </button>
     </div>
   );
@@ -843,14 +843,14 @@ const TiptapText: React.FC<TiptapTextProps> = ({
         {docked ? (
           <div className="flex flex-1 items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#FBEDEA] text-[#e25a4e] text-sm font-bold">A</span>
-            <span className="text-base font-semibold text-[#191919]">Texto</span>
+            <span className="text-base font-semibold text-[#191919]">{t("ep.txt.title")}</span>
             {slideIndex != null && (
               <button
                 onClick={selectTextBlock}
                 className="ml-1 flex h-8 items-center gap-1.5 rounded-lg bg-neutral-100 px-2.5 text-xs font-medium text-neutral-600 hover:bg-neutral-200"
-                title="Seleccionar el bloque de texto para moverlo o cambiarle el tamaño"
+                title={t("ep.txt.blockTitle")}
               >
-                <Move className="h-3.5 w-3.5" /> Bloque
+                <Move className="h-3.5 w-3.5" /> {t("ep.txt.block")}
               </button>
             )}
           </div>
@@ -858,18 +858,18 @@ const TiptapText: React.FC<TiptapTextProps> = ({
           <div
             onPointerDown={beginDrag(mode as "float" | "pin")}
             className="flex h-8 flex-1 cursor-grab select-none items-center gap-1.5 rounded-md px-1 text-neutral-400 hover:bg-neutral-100 active:cursor-grabbing"
-            title="Arrastrar menú"
+            title={t("ep.txt.dragMenu")}
           >
             <GripVertical className="h-4 w-4" />
-            <span className="text-[11px] font-semibold uppercase tracking-wide">Formato</span>
+            <span className="text-[11px] font-semibold uppercase tracking-wide">{t("ep.txt.format")}</span>
           </div>
         )}
         {!docked && (
-          <button onClick={() => updateCfg({ pinned: !cfg.pinned })} className={btn(cfg.pinned)} title={cfg.pinned ? "Desanclar (seguir la selección)" : "Anclar en un lugar fijo"}>
+          <button onClick={() => updateCfg({ pinned: !cfg.pinned })} className={btn(cfg.pinned)} title={cfg.pinned ? t("ep.txt.unpin") : t("ep.txt.pin")}>
             {cfg.pinned ? <Pin className="h-4 w-4" /> : <PinOff className="h-4 w-4" />}
           </button>
         )}
-        <button onClick={() => setConfigOpen((v) => !v)} className={btn(configOpen)} title="Configurar menú">
+        <button onClick={() => setConfigOpen((v) => !v)} className={btn(configOpen)} title={t("ep.txt.configure")}>
           <Settings2 className="h-4 w-4" />
         </button>
       </div>
@@ -887,16 +887,16 @@ const TiptapText: React.FC<TiptapTextProps> = ({
       {/* Alineación del texto respecto a su bloque (solo en modo acoplado). */}
       {docked && !configOpen && slideIndex != null && (
         <div className="mt-3 border-t border-neutral-100 pt-3">
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">Alinear en el bloque</p>
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-400">{t("ep.txt.alignInBlock")}</p>
           <div className="flex items-center gap-1.5">
-            {([["left", "Izquierda", "⇤"], ["center", "Centro", "⇹"], ["right", "Derecha", "⇥"]] as const).map(([v, t, g]) => (
-              <button key={v} onMouseDown={(e) => e.preventDefault()} onClick={() => alignBlock({ textAlign: v })} title={t} className="flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 text-sm text-neutral-600 hover:bg-neutral-50">
+            {([["left", "ep.align.left", "⇤"], ["center", "ep.align.center", "⇹"], ["right", "ep.align.right", "⇥"]] as const).map(([v, tk, g]) => (
+              <button key={v} onMouseDown={(e) => e.preventDefault()} onClick={() => alignBlock({ textAlign: v })} title={t(tk)} className="flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 text-sm text-neutral-600 hover:bg-neutral-50">
                 {g}
               </button>
             ))}
             <span className="mx-1 h-5 w-px bg-neutral-200" />
-            {([["top", "Arriba", "⤒"], ["middle", "Medio", "⇳"], ["bottom", "Abajo", "⤓"]] as const).map(([v, t, g]) => (
-              <button key={v} onMouseDown={(e) => e.preventDefault()} onClick={() => alignBlock({ vAlign: v })} title={t} className="flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 text-sm text-neutral-600 hover:bg-neutral-50">
+            {([["top", "ep.align.top", "⤒"], ["middle", "ep.align.middle", "⇳"], ["bottom", "ep.align.bottom", "⤓"]] as const).map(([v, tk, g]) => (
+              <button key={v} onMouseDown={(e) => e.preventDefault()} onClick={() => alignBlock({ vAlign: v })} title={t(tk)} className="flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 text-sm text-neutral-600 hover:bg-neutral-50">
                 {g}
               </button>
             ))}

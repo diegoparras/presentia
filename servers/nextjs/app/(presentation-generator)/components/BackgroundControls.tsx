@@ -10,6 +10,7 @@ import { PresentationGenerationApi } from "../services/api/presentation-generati
 import { resolveBackendAssetSource } from "@/utils/api";
 import { useEditorPanel } from "./EditorPanelContext";
 import type { SlideBackground } from "./styleOverrides";
+import { useI18n } from "@/lib/i18n";
 
 /**
  * Panel "Fondo": imagen de fondo por slide desde URL, archivo subido o
@@ -17,6 +18,7 @@ import type { SlideBackground } from "./styleOverrides";
  */
 const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) => {
   const dispatch = useDispatch();
+  const { t } = useI18n();
   const { setBackgroundSlide } = useEditorPanel();
   const slides: any[] = useSelector(
     (s: RootState) => (s.presentationGeneration.presentationData as any)?.slides ?? []
@@ -66,7 +68,7 @@ const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) =>
       if (!u) throw new Error("sin url");
       setPreview(u);
     } catch {
-      setError("No se pudo subir la imagen.");
+      setError(t("ep.bg.errUpload"));
     } finally {
       setBusy(null);
     }
@@ -83,7 +85,7 @@ const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) =>
       if (!u) throw new Error("sin url");
       setPreview(u);
     } catch {
-      setError("No se pudo generar la imagen.");
+      setError(t("ep.bg.errGenerate"));
     } finally {
       setBusy(null);
     }
@@ -104,7 +106,7 @@ const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) =>
       // Si no se pudo descargar (sitio bloqueado), usar la URL cruda: se ve
       // en el editor aunque el export pueda no incluirla.
       setPreview(u);
-      setError("No se pudo copiar la imagen al servidor; se usará el link directo (puede no salir en el export).");
+      setError(t("ep.bg.errCache"));
     } finally {
       setBusy(null);
     }
@@ -135,11 +137,11 @@ const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) =>
         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#FBEDEA] text-[#e25a4e]">
           <ImageIcon className="h-4 w-4" />
         </span>
-        <span className="text-base font-semibold text-[#191919]">Fondo de slide</span>
+        <span className="text-base font-semibold text-[#191919]">{t("ep.bg.title")}</span>
         <button
           onClick={() => setBackgroundSlide(null)}
           className="ml-auto flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100"
-          title="Cerrar"
+          title={t("ep.common.close")}
         >
           <X className="h-4 w-4" />
         </button>
@@ -156,14 +158,14 @@ const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) =>
       >
         {!preview && (
           <p className="flex h-full items-center justify-center text-xs text-neutral-400">
-            Sin fondo elegido
+            {t("ep.bg.none")}
           </p>
         )}
       </div>
 
       {/* Fuente: URL */}
       <div>
-        <p className={sectionTitle}>Desde un link</p>
+        <p className={sectionTitle}>{t("ep.bg.fromLink")}</p>
         <div className="flex items-center gap-1.5">
           <input
             type="text"
@@ -180,14 +182,14 @@ const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) =>
             disabled={!url.trim() || busy !== null}
             className="h-9 shrink-0 rounded-md bg-[#5141e5]/10 px-2.5 text-xs font-medium text-[#5141e5] hover:bg-[#5141e5]/20 disabled:opacity-40"
           >
-            {busy === "url" ? "…" : "Usar"}
+            {busy === "url" ? "…" : t("ep.common.use")}
           </button>
         </div>
       </div>
 
       {/* Fuente: subir */}
       <div>
-        <p className={sectionTitle}>Subir imagen</p>
+        <p className={sectionTitle}>{t("ep.bg.upload")}</p>
         <input ref={fileRef} type="file" accept="image/*" onChange={onUpload} className="hidden" />
         <button
           onClick={() => fileRef.current?.click()}
@@ -195,20 +197,20 @@ const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) =>
           className="flex h-9 w-full items-center justify-center gap-2 rounded-md border border-dashed border-neutral-300 text-xs font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-40"
         >
           {busy === "upload" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-          {busy === "upload" ? "Subiendo…" : "Elegir archivo"}
+          {busy === "upload" ? t("ep.common.uploading") : t("ep.bg.chooseFile")}
         </button>
       </div>
 
       {/* Fuente: IA */}
       <div>
-        <p className={sectionTitle}>Generar con IA</p>
+        <p className={sectionTitle}>{t("ep.bg.generateSection")}</p>
         <div className="flex items-center gap-1.5">
           <input
             type="text"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter") onGenerate(); }}
-            placeholder="Describí el fondo…"
+            placeholder={t("ep.bg.generatePh")}
             autoComplete="off"
             className={inputCls}
           />
@@ -218,7 +220,7 @@ const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) =>
             className="flex h-9 shrink-0 items-center gap-1 rounded-md bg-[#5141e5]/10 px-2.5 text-xs font-medium text-[#5141e5] hover:bg-[#5141e5]/20 disabled:opacity-40"
           >
             {busy === "ia" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
-            Generar
+            {t("ep.bg.generate")}
           </button>
         </div>
       </div>
@@ -227,14 +229,14 @@ const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) =>
 
       {/* Ajustes */}
       <div className="flex items-center gap-2">
-        <p className="text-xs font-semibold text-neutral-500">Ajuste</p>
+        <p className="text-xs font-semibold text-neutral-500">{t("ep.bg.fit")}</p>
         {(["cover", "contain"] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFit(f)}
             className={`rounded-md border px-2 py-1 text-[11px] ${fit === f ? "border-[#e25a4e] bg-[#e25a4e]/10 text-[#e25a4e]" : "border-neutral-200 text-neutral-600 hover:bg-neutral-50"}`}
           >
-            {f === "cover" ? "Cubrir" : "Contener"}
+            {f === "cover" ? t("ep.bg.fitCover") : t("ep.bg.fitContain")}
           </button>
         ))}
         <span className="ml-auto text-[11px] text-neutral-500">{opacity}%</span>
@@ -247,24 +249,24 @@ const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) =>
         value={opacity}
         onChange={(e) => setOpacity(Number(e.target.value))}
         className="w-full accent-[#e25a4e]"
-        title="Opacidad"
+        title={t("ep.bg.opacity")}
       />
 
       {/* Alcance */}
       <div>
         <div className="mb-1.5 flex items-center gap-2">
-          <p className="text-xs font-semibold text-neutral-500">Aplicar en</p>
+          <p className="text-xs font-semibold text-neutral-500">{t("ep.bg.applyIn")}</p>
           <button
             onClick={() => setScope(new Set(Array.from({ length: slideCount }, (_, i) => i)))}
             className={`rounded px-1.5 py-0.5 text-[11px] ${allSelected ? "bg-[#e25a4e]/10 text-[#e25a4e]" : "text-neutral-500 hover:bg-neutral-100"}`}
           >
-            Todas
+            {t("ep.bg.all")}
           </button>
           <button
             onClick={() => setScope(new Set([slideIndex]))}
             className="rounded px-1.5 py-0.5 text-[11px] text-neutral-500 hover:bg-neutral-100"
           >
-            Solo esta
+            {t("ep.bg.onlyThis")}
           </button>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -277,7 +279,7 @@ const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) =>
                   ? "border-[#e25a4e] bg-[#e25a4e]/10 text-[#e25a4e]"
                   : "border-neutral-200 text-neutral-500 hover:bg-neutral-50"
               }`}
-              title={`Slide ${i + 1}`}
+              title={t("ep.bg.slideN", { n: i + 1 })}
             >
               {i + 1}
             </button>
@@ -292,15 +294,15 @@ const BackgroundControls: React.FC<{ slideIndex: number }> = ({ slideIndex }) =>
           disabled={!preview || scope.size === 0}
           className="h-9 flex-1 rounded-lg bg-[#e25a4e] text-sm font-semibold text-white hover:bg-[#c9473c] disabled:opacity-40"
         >
-          Aplicar fondo
+          {t("ep.bg.apply")}
         </button>
         <button
           onClick={removeBg}
           disabled={scope.size === 0}
           className="flex h-9 items-center gap-1.5 rounded-lg border border-neutral-200 px-3 text-xs font-medium text-neutral-600 hover:bg-neutral-50 disabled:opacity-40"
-          title="Quitar el fondo de las slides marcadas"
+          title={t("ep.bg.removeTitle")}
         >
-          <Trash2 className="h-3.5 w-3.5" /> Quitar
+          <Trash2 className="h-3.5 w-3.5" /> {t("ep.common.remove")}
         </button>
       </div>
     </div>

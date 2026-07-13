@@ -63,10 +63,19 @@ const MobileZoomNotice: React.FC = () => {
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 p-5 backdrop-blur-sm"
     >
       <div className="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white text-center shadow-2xl">
-        {/* Cabecera de marca */}
-        <div className="relative bg-gradient-to-br from-[#e25a4e] via-[#dd4f42] to-[#c23a2e] px-6 pb-14 pt-9">
+        {/* Cabecera de marca: el logo tal cual lo renderiza la app (sidebar),
+            sobre un marco translúcido para que asiente en el gradiente. */}
+        <div className="relative bg-gradient-to-br from-[#e25a4e] via-[#dd4f42] to-[#c23a2e] px-6 pb-8 pt-8">
           <div className="pointer-events-none absolute -left-10 -top-10 h-36 w-36 rounded-full bg-white/10" />
           <div className="pointer-events-none absolute -bottom-14 -right-8 h-40 w-40 rounded-full bg-white/10" />
+          <div className="relative mx-auto mb-4 w-fit rounded-[14px] bg-white/15 p-1.5 shadow-lg ring-1 ring-white/30">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/presentia-logo.svg"
+              alt="Presentia"
+              className="h-12 w-12 rounded-[10px]"
+            />
+          </div>
           <p className="relative text-xs font-semibold uppercase tracking-[0.35em] text-white/80">
             {t("mobile.notice.welcome")}
           </p>
@@ -75,28 +84,7 @@ const MobileZoomNotice: React.FC = () => {
           </p>
         </div>
 
-        {/* Logo solapado entre cabecera y cuerpo, estilo ícono de app.
-            Inline (no <img>) para que escale nítido y no dependa de un fetch. */}
-        <div className="-mt-10 flex justify-center">
-          <div className="h-20 w-20 overflow-hidden rounded-[22px] shadow-xl ring-4 ring-white">
-            <svg
-              viewBox="0 0 64 64"
-              className="h-full w-full"
-              role="img"
-              aria-label="Presentia"
-            >
-              <rect width="64" height="64" fill="#e25a4e" />
-              <rect x="14" y="14" width="36" height="26" rx="3" fill="#ffffff" />
-              <rect x="19" y="26" width="5" height="10" fill="#e25a4e" />
-              <rect x="27" y="21" width="5" height="15" fill="#e25a4e" />
-              <rect x="35" y="17" width="5" height="19" fill="#e25a4e" />
-              <line x1="32" y1="40" x2="32" y2="50" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
-              <line x1="24" y1="55" x2="40" y2="55" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" />
-            </svg>
-          </div>
-        </div>
-
-        <div className="px-7 pb-7 pt-4">
+        <div className="px-7 pb-7 pt-5">
           <h2
             id="mobile-zoom-notice-title"
             className="text-xl font-bold text-slate-900"

@@ -8,7 +8,14 @@
  * el editor interno del upstream se traduce en pasadas sucesivas.
  */
 
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 export const LANGS = ["en", "es", "fr", "pt", "it", "zh", "ja"] as const;
 export type Lang = (typeof LANGS)[number];
@@ -813,6 +820,7 @@ import { dict as dashboardDict } from "./i18n-dicts/dashboard";
 import { dict as libraryDict } from "./i18n-dicts/library";
 import { dict as editorDict } from "./i18n-dicts/editor";
 import { dict as mobileDict } from "./i18n-dicts/mobile";
+import { dict as editorPanelsDict } from "./i18n-dicts/editor-panels";
 
 const EXTRA_DICTS = [
   onboardingDict,
@@ -823,6 +831,7 @@ const EXTRA_DICTS = [
   libraryDict,
   editorDict,
   mobileDict,
+  editorPanelsDict,
 ];
 
 const DICTS: Record<Lang, Dict> = Object.fromEntries(
@@ -846,6 +855,45 @@ function detectLang(): Lang {
   return (LANGS as readonly string[]).includes(browser) ? (browser as Lang) : "en";
 }
 
+// ── Puente para React roots externos ────────────────────────────────────────
+// TiptapText monta en roots separados (createRoot en TiptapTextReplacer);
+// un Context de React no cruza roots, así que el idioma vive también en un
+// store a nivel módulo que el I18nProvider mantiene sincronizado.
+let currentLang: Lang = "en";
+const langListeners = new Set<() => void>();
+const setCurrentLang = (l: Lang) => {
+  if (l === currentLang) return;
+  currentLang = l;
+  langListeners.forEach((fn) => fn());
+};
+
+/** Traducción usable fuera del árbol del provider (roots externos). */
+export function translate(
+  key: string,
+  vars?: Record<string, string | number>
+): string {
+  let text = DICTS[currentLang][key] ?? DICTS.en[key] ?? key;
+  if (vars) {
+    for (const [name, value] of Object.entries(vars)) {
+      text = text.replace(`{${name}}`, String(value));
+    }
+  }
+  return text;
+}
+
+/** Como useI18n, pero sin Context: para componentes en roots externos. */
+export function useI18nExternal() {
+  const lang = useSyncExternalStore(
+    (listener) => {
+      langListeners.add(listener);
+      return () => langListeners.delete(listener);
+    },
+    () => currentLang,
+    () => "en" as Lang
+  );
+  return { lang, t: translate };
+}
+
 type I18nContextValue = {
   lang: Lang;
   setLang: (lang: Lang) => void;
@@ -862,11 +910,14 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLangState] = useState<Lang>("en");
 
   useEffect(() => {
-    setLangState(detectLang());
+    const detected = detectLang();
+    setLangState(detected);
+    setCurrentLang(detected);
   }, []);
 
   const setLang = useCallback((next: Lang) => {
     setLangState(next);
+    setCurrentLang(next);
     try {
       window.localStorage.setItem(STORAGE_KEY, next);
     } catch {
