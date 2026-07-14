@@ -1455,9 +1455,42 @@ async def derive_presentation_from_existing_one(
     )
 
 
+# Transiciones xfade permitidas (whitelist: el valor va a un filtro ffmpeg).
+VIDEO_TRANSITIONS = {"fade", "slideleft", "wipeleft", "circleopen", "dissolve", "pixelize"}
+
+
+class VideoOptions(BaseModel):
+    """Opciones de edición del export a video (todas con default sensato)."""
+
+    seconds_per_slide: float = 3.0
+    # None/"" = corte seco; si no, una de VIDEO_TRANSITIONS.
+    transition: Optional[str] = "fade"
+    width: Literal[1280, 1920] = 1920
+    music_volume: float = 1.0
+    music_fade_in: float = 0.0
+    music_fade_out: float = 1.5
+    fade_video: bool = False
+
+    def sanitized(self) -> dict:
+        transition = (self.transition or "").strip().lower()
+        return {
+            "seconds_per_slide": min(15.0, max(1.0, self.seconds_per_slide)),
+            "transition": transition if transition in VIDEO_TRANSITIONS else None,
+            "width": self.width,
+            "music_volume": min(2.0, max(0.05, self.music_volume)),
+            "music_fade_in": min(5.0, max(0.0, self.music_fade_in)),
+            "music_fade_out": min(5.0, max(0.0, self.music_fade_out)),
+            "fade_video": bool(self.fade_video),
+        }
+
+
 class ExportFileRequest(BaseModel):
     presentation_id: uuid.UUID
     export_as: Literal["pdf", "pptx", "video"] = "pdf"
+    # Música de fondo opcional para el video: nombre de una pista de la
+    # biblioteca persistente (/api/v1/ppt/music).
+    music_name: Optional[str] = None
+    video_options: Optional[VideoOptions] = None
 
 
 class ExportFileResponse(BaseModel):
@@ -1481,11 +1514,23 @@ async def export_presentation_to_file(
     if not presentation:
         raise HTTPException(status_code=404, detail="Presentation not found")
 
+    # Pista de la biblioteca persistente (disco o S3/R2 según env); si no se
+    # puede resolver, el video sale sin música en vez de fallar.
+    music_path = None
+    if data.music_name:
+        from services import music_library
+
+        music_path = await asyncio.to_thread(
+            music_library.local_copy, data.music_name
+        )
+
     presentation_and_path = await export_presentation(
         presentation.id,
         presentation.title or str(uuid.uuid4()),
         data.export_as,
         cookie_header=_build_export_cookie_header(request_http),
+        music_path=music_path,
+        video_options=(data.video_options or VideoOptions()).sanitized(),
     )
 
     src = presentation_and_path.path

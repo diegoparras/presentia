@@ -87,6 +87,8 @@ def export(
     base_url: str,
     fastapi_url: str,
     cookie_header: str | None = None,
+    music_path: str | None = None,
+    video_options: dict | None = None,
 ) -> str:
     """Freeze the deck and build <title>.<ext>; return the output path."""
     from services.freeze.build_pptx import build_pptx
@@ -112,7 +114,9 @@ def export(
         elif export_as in ("video", "mp4"):
             from services.freeze.video import build_video
 
-            build_video(slides, out_path)
+            build_video(
+                slides, out_path, audio_path=music_path, **(video_options or {})
+            )
         else:
             build_pptx(slides, out_path)
     LOGGER.info("freeze.export done id=%s -> %s", presentation_id, out_path)

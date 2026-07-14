@@ -60,6 +60,8 @@ async def export_presentation(
     title: str,
     export_as: Literal["pptx", "pdf", "video"],
     cookie_header: str | None = None,
+    music_path: str | None = None,
+    video_options: dict | None = None,
 ) -> PresentationAndPath:
     log_memory(
         LOGGER,
@@ -97,6 +99,8 @@ async def export_presentation(
                 _get_next_public_url().rstrip("/"),
                 fastapi_url or "",
                 cookie_header,
+                music_path,
+                video_options,
             )
             if export_as == "pptx":
                 await _embed_pptx_fonts(out_path)

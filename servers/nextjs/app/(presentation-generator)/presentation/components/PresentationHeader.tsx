@@ -12,6 +12,7 @@ import {
   Check,
   X,
   AlertTriangle,
+  Music,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -107,6 +108,23 @@ const PresentationHeader = ({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isRegenerateConfirmOpen, setIsRegenerateConfirmOpen] = useState(false);
   const [draftTitle, setDraftTitle] = useState("");
+  // Biblioteca persistente de música de fondo para el export a video.
+  const [musicList, setMusicList] = useState<string[]>([]);
+  const [selectedMusic, setSelectedMusic] = useState<string | null>(null);
+  const [musicBusy, setMusicBusy] = useState(false);
+  const musicInputRef = useRef<HTMLInputElement>(null);
+  // Opciones de edición del video (espejo de VideoOptions del backend).
+  const [videoOpts, setVideoOpts] = useState({
+    seconds_per_slide: 3,
+    transition: "fade" as string,
+    width: 1920 as 1280 | 1920,
+    music_volume: 100,
+    music_fade_in: 0,
+    music_fade_out: 1.5,
+    fade_video: false,
+  });
+  const patchVideoOpts = (p: Partial<typeof videoOpts>) =>
+    setVideoOpts((prev) => ({ ...prev, ...p }));
   const titleInputRef = useRef<HTMLInputElement>(null);
   /** Avoid committing on blur when Save/Cancel was used (focus/click ordering) */
   const titleBlurIntentRef = useRef<"none" | "save" | "cancel">("none");
@@ -359,6 +377,16 @@ const PresentationHeader = ({
           body: JSON.stringify({
             presentation_id,
             export_as: "video",
+            music_name: selectedMusic ?? undefined,
+            video_options: {
+              seconds_per_slide: videoOpts.seconds_per_slide,
+              transition: videoOpts.transition || null,
+              width: videoOpts.width,
+              music_volume: videoOpts.music_volume / 100,
+              music_fade_in: videoOpts.music_fade_in,
+              music_fade_out: videoOpts.music_fade_out,
+              fade_video: videoOpts.fade_video,
+            },
           }),
         }
       );
@@ -395,6 +423,73 @@ const PresentationHeader = ({
     });
     router.push(`/presentation?id=${presentation_id}&stream=true`);
   };
+  // Nombre legible de una pista (los nombres guardados llevan prefijo hex).
+  const musicDisplayName = (name: string) => name.replace(/^[0-9a-f]{8}-/, "");
+
+  const refreshMusicLibrary = async () => {
+    try {
+      const res = await fetch(getApiUrl("/api/v1/ppt/music"), {
+        headers: getHeader(),
+      });
+      if (res.ok) {
+        const names: string[] = await res.json();
+        setMusicList(names);
+        setSelectedMusic((prev) =>
+          prev && names.includes(prev) ? prev : null
+        );
+      }
+    } catch {
+      /* biblioteca no disponible: el selector queda vacío */
+    }
+  };
+
+  // Cargar la biblioteca al abrir el menú de exportación.
+  useEffect(() => {
+    if (open) refreshMusicLibrary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Sube una pista nueva a la biblioteca persistente y la deja seleccionada.
+  const onMusicSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setMusicBusy(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch(getApiUrl("/api/v1/ppt/music/upload"), {
+        method: "POST",
+        body: form,
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const data = await res.json();
+      setMusicList((prev) => [...prev, data.name].sort());
+      setSelectedMusic(data.name);
+    } catch {
+      notify.error(t("vid.musicErr"), "");
+    } finally {
+      setMusicBusy(false);
+    }
+  };
+
+  const deleteSelectedMusic = async () => {
+    if (!selectedMusic) return;
+    setMusicBusy(true);
+    try {
+      await fetch(
+        getApiUrl(`/api/v1/ppt/music/${encodeURIComponent(selectedMusic)}`),
+        { method: "DELETE" }
+      );
+      setMusicList((prev) => prev.filter((n) => n !== selectedMusic));
+      setSelectedMusic(null);
+    } catch {
+      /* si falla el borrado, la lista se recarga al reabrir */
+    } finally {
+      setMusicBusy(false);
+    }
+  };
+
   const downloadLink = (path: string, fileName: string) => {
     const link = document.createElement("a");
     link.href = path;
@@ -451,6 +546,146 @@ const PresentationHeader = ({
           Video (MP4)
           <ArrowUpRight className="w-3.5 h-3.5" />
         </Button>
+
+        {/* Opciones de edición del video */}
+        <div className="rounded-lg border border-dashed border-[#E8E8E8] p-2.5 space-y-2">
+          <p className="text-[11px] font-medium text-neutral-500">{t("vid.opts")}</p>
+          <div className="flex items-center gap-2">
+            <span className="w-24 shrink-0 text-[11px] text-neutral-500">{t("vid.secondsPerSlide")}</span>
+            <input
+              type="range" min={1} max={10} step={0.5}
+              value={videoOpts.seconds_per_slide}
+              onChange={(e) => patchVideoOpts({ seconds_per_slide: Number(e.target.value) })}
+              className="min-w-0 flex-1 accent-[#5141e5]"
+            />
+            <span className="w-7 shrink-0 text-right text-[11px] text-neutral-600">{videoOpts.seconds_per_slide}s</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-24 shrink-0 text-[11px] text-neutral-500">{t("vid.transition")}</span>
+            <select
+              value={videoOpts.transition}
+              onChange={(e) => patchVideoOpts({ transition: e.target.value })}
+              className="h-7 min-w-0 flex-1 rounded-md border border-neutral-200 bg-white px-1.5 text-xs text-neutral-700 outline-none"
+            >
+              <option value="">{t("vid.tr.none")}</option>
+              <option value="fade">{t("vid.tr.fade")}</option>
+              <option value="slideleft">{t("vid.tr.slideleft")}</option>
+              <option value="wipeleft">{t("vid.tr.wipeleft")}</option>
+              <option value="circleopen">{t("vid.tr.circleopen")}</option>
+              <option value="dissolve">{t("vid.tr.dissolve")}</option>
+              <option value="pixelize">{t("vid.tr.pixelize")}</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-24 shrink-0 text-[11px] text-neutral-500">{t("vid.quality")}</span>
+            <select
+              value={videoOpts.width}
+              onChange={(e) => patchVideoOpts({ width: Number(e.target.value) as 1280 | 1920 })}
+              className="h-7 min-w-0 flex-1 rounded-md border border-neutral-200 bg-white px-1.5 text-xs text-neutral-700 outline-none"
+            >
+              <option value={1280}>720p</option>
+              <option value={1920}>1080p</option>
+            </select>
+          </div>
+          <label className="flex cursor-pointer items-center gap-2 text-[11px] text-neutral-600">
+            <input
+              type="checkbox"
+              checked={videoOpts.fade_video}
+              onChange={(e) => patchVideoOpts({ fade_video: e.target.checked })}
+              className="accent-[#5141e5]"
+            />
+            {t("vid.fadeVideo")}
+          </label>
+        </div>
+
+        {/* Biblioteca de música de fondo para el video */}
+        <div className="rounded-lg border border-dashed border-[#E8E8E8] p-2.5">
+          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium text-neutral-500">
+            <Music className="h-3 w-3 text-[#5141e5]" /> {t("vid.music")}
+          </p>
+          <input
+            ref={musicInputRef}
+            type="file"
+            accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.oga,.flac"
+            onChange={onMusicSelected}
+            className="hidden"
+          />
+          <div className="flex items-center gap-1.5">
+            <select
+              value={selectedMusic ?? ""}
+              onChange={(e) => setSelectedMusic(e.target.value || null)}
+              disabled={musicBusy}
+              className="h-7 min-w-0 flex-1 rounded-md border border-neutral-200 bg-white px-1.5 text-xs text-neutral-700 outline-none disabled:opacity-50"
+            >
+              <option value="">{t("vid.musicNone")}</option>
+              {musicList.map((name) => (
+                <option key={name} value={name}>
+                  {musicDisplayName(name)}
+                </option>
+              ))}
+            </select>
+            {selectedMusic && (
+              <button
+                onClick={deleteSelectedMusic}
+                disabled={musicBusy}
+                className="shrink-0 rounded p-1 text-neutral-400 hover:text-red-500 disabled:opacity-50"
+                aria-label={t("ep.common.remove")}
+                title={t("ep.common.remove")}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => musicInputRef.current?.click()}
+            disabled={musicBusy}
+            className="mt-1.5 flex w-full items-center gap-1.5 rounded-md bg-neutral-50 px-2 py-1.5 text-left text-xs text-neutral-600 hover:bg-neutral-100 disabled:opacity-50"
+          >
+            {musicBusy ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Music className="h-3.5 w-3.5" />
+            )}
+            {musicBusy ? t("ep.common.uploading") : t("vid.musicPick")}
+          </button>
+
+          {/* Controles de audio: solo con una pista elegida */}
+          {selectedMusic && (
+            <div className="mt-2 space-y-1.5 border-t border-neutral-100 pt-2">
+              <div className="flex items-center gap-2">
+                <span className="w-16 shrink-0 text-[11px] text-neutral-500">{t("vid.volume")}</span>
+                <input
+                  type="range" min={10} max={200} step={5}
+                  value={videoOpts.music_volume}
+                  onChange={(e) => patchVideoOpts({ music_volume: Number(e.target.value) })}
+                  className="min-w-0 flex-1 accent-[#5141e5]"
+                />
+                <span className="w-9 shrink-0 text-right text-[11px] text-neutral-600">{videoOpts.music_volume}%</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-16 shrink-0 text-[11px] text-neutral-500">{t("vid.fadeIn")}</span>
+                <input
+                  type="range" min={0} max={5} step={0.5}
+                  value={videoOpts.music_fade_in}
+                  onChange={(e) => patchVideoOpts({ music_fade_in: Number(e.target.value) })}
+                  className="min-w-0 flex-1 accent-[#5141e5]"
+                />
+                <span className="w-9 shrink-0 text-right text-[11px] text-neutral-600">{videoOpts.music_fade_in}s</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-16 shrink-0 text-[11px] text-neutral-500">{t("vid.fadeOut")}</span>
+                <input
+                  type="range" min={0} max={5} step={0.5}
+                  value={videoOpts.music_fade_out}
+                  onChange={(e) => patchVideoOpts({ music_fade_out: Number(e.target.value) })}
+                  className="min-w-0 flex-1 accent-[#5141e5]"
+                />
+                <span className="w-9 shrink-0 text-right text-[11px] text-neutral-600">{videoOpts.music_fade_out}s</span>
+              </div>
+            </div>
+          )}
+          <p className="mt-1 text-[10px] text-neutral-400">{t("vid.musicHint")}</p>
+        </div>
       </div>
     </div>
   );
