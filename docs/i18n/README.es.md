@@ -207,6 +207,30 @@ deploys headless o con keys bloqueadas. Las más útiles:
 La matriz completa de proveedores (Azure, Bedrock, Vertex, ComfyUI, Codex OAuth,
 memoria semántica Mem0…) está en [`docker-compose.yml`](../../docker-compose.yml).
 
+### ☁️ Almacenamiento de exports en S3 / Cloudflare R2 (opcional)
+
+Por defecto, los archivos exportados (video MP4 hoy) se guardan en el disco del
+servidor. Con estas cinco variables se suben a cualquier bucket compatible con
+S3 — la copia local se borra, así que los exports usan **cero disco del
+servidor** y quedan **preservados** en tu bucket:
+
+| Variable | Ejemplo |
+|---|---|
+| `PRESENTIA_S3_ENDPOINT` | `https://<account-id>.r2.cloudflarestorage.com` |
+| `PRESENTIA_S3_BUCKET` | `mi-bucket` |
+| `PRESENTIA_S3_ACCESS_KEY_ID` | — |
+| `PRESENTIA_S3_SECRET_ACCESS_KEY` | — |
+| `PRESENTIA_S3_REGION` | `auto` (R2) |
+
+Privacidad por diseño: las descargas se **streamean por tu propio dominio**
+desde el backend (protegidas por sesión). El endpoint del bucket, el account
+id, el nombre del bucket y el access key **nunca llegan al navegador**, y el
+bucket queda totalmente privado — sin acceso público ni URLs prefirmadas que
+salgan del servidor. Los archivos van bajo el prefijo `presentia/exports/`,
+así que un mismo bucket se puede compartir entre las apps de la Suite Escriba.
+Si la subida falla, el export cae con gracia a la descarga local. Totalmente
+invisible para el usuario final.
+
 ---
 
 ## 🧩 Integración con la Suite Escriba

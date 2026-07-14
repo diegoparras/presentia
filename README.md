@@ -203,6 +203,29 @@ for headless / locked‑down deployments. The most useful ones:
 The full provider matrix (Azure, Bedrock, Vertex, ComfyUI, Codex OAuth, Mem0
 semantic memory…) is in [`docker-compose.yml`](docker-compose.yml).
 
+### ☁️ Export storage on S3 / Cloudflare R2 (optional)
+
+By default, exported files (MP4 video today) are stored on the server's disk.
+Set these five variables and they are uploaded to any S3‑compatible bucket
+instead — the local copy is deleted, so exports use **zero server disk** and
+are **preserved** in your bucket:
+
+| Variable | Example |
+|---|---|
+| `PRESENTIA_S3_ENDPOINT` | `https://<account-id>.r2.cloudflarestorage.com` |
+| `PRESENTIA_S3_BUCKET` | `my-bucket` |
+| `PRESENTIA_S3_ACCESS_KEY_ID` | — |
+| `PRESENTIA_S3_SECRET_ACCESS_KEY` | — |
+| `PRESENTIA_S3_REGION` | `auto` (R2) |
+
+Privacy by design: downloads are **streamed through your own domain** by the
+backend (session‑protected). The bucket endpoint, account id, bucket name and
+access key are never exposed to the browser, and the bucket stays fully
+private — no public access, no presigned URLs leaving the server. Files land
+under the `presentia/exports/` prefix, so one bucket can be shared across the
+Escriba Suite. If the upload ever fails, the export gracefully falls back to
+the local download. Completely invisible to end users.
+
 ---
 
 ## 🧩 Escriba Suite integration

@@ -1504,17 +1504,46 @@ async def export_presentation_to_file(
         shutil.copyfile(src, dst)
 
     # Opcional e invisible: si hay bucket S3/R2 configurado (PRESENTIA_S3_*),
-    # el export se sube ahí y se descarga con URL prefirmada — no ocupa disco
-    # del servidor y queda preservado. Best-effort: si falla, URL local.
+    # el export se sube ahí y la descarga se sirve por NUESTRO endpoint (el
+    # backend streamea desde el bucket): el navegador nunca ve el endpoint,
+    # la cuenta ni el bucket de S3/R2. No ocupa disco del servidor y queda
+    # preservado. Best-effort: si falla, URL local.
+    from urllib.parse import quote
+
     from services import export_storage
 
     if export_storage.is_configured():
-        s3_url = await asyncio.to_thread(export_storage.upload_export, dst)
-        if s3_url:
+        uploaded = await asyncio.to_thread(export_storage.upload_export, dst)
+        if uploaded:
             try:
                 os.remove(dst)
             except OSError:
                 pass
-            return ExportFileResponse(url=s3_url)
+            return ExportFileResponse(
+                url=f"/api/v1/ppt/presentation/export-download/{quote(uploaded)}"
+            )
 
     return ExportFileResponse(url=absolute_fastapi_asset_url(f"/app_data/exports/{basename}"))
+
+
+@PRESENTATION_ROUTER.get("/export-download/{filename}")
+async def download_export_from_storage(filename: str):
+    """Streamea un export desde el bucket S3/R2 con el dominio propio.
+
+    Protegido por el middleware de sesión (como todo /api/v1 no exento): solo
+    usuarios logueados descargan, y la ubicación del bucket nunca se expone.
+    """
+    from urllib.parse import quote
+
+    from services import export_storage
+
+    opened = await asyncio.to_thread(export_storage.open_export, filename)
+    if not opened:
+        raise HTTPException(status_code=404, detail="Export not found")
+    chunks, content_type, length = opened
+    headers = {
+        "Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}",
+    }
+    if length:
+        headers["Content-Length"] = str(length)
+    return StreamingResponse(chunks, media_type=content_type, headers=headers)
