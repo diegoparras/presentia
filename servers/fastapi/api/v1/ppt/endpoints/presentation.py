@@ -3,13 +3,14 @@ from datetime import datetime
 import json
 import logging
 import os
+import re
 import traceback
 from typing import Annotated, List, Literal, Optional, Tuple
 import dirtyjson
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Path, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy import delete
+from sqlalchemy import delete, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from constants.presentation import DEFAULT_TEMPLATES, MAX_NUMBER_OF_SLIDES
@@ -227,13 +228,31 @@ async def get_presentation(
     )
 
 
+# Slug público personalizado: minúsculas/números/guiones, 3-50, sin guion en
+# los extremos. Vive bajo /p/, así que no puede chocar con rutas de la app.
+_PUBLIC_SLUG_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{1,48}[a-z0-9])$")
+
+
+def _normalize_public_slug(raw: str) -> str | None:
+    """Devuelve el slug normalizado o None si es inválido."""
+    slug = (raw or "").strip().lower()
+    if not _PUBLIC_SLUG_RE.fullmatch(slug):
+        return None
+    return slug
+
+
 @PRESENTATION_ROUTER.post("/{id}/publish")
 async def publish_presentation(
     id: uuid.UUID,
     public_mode: Annotated[Literal["deck", "web"], Body(embed=True)] = "deck",
+    custom_slug: Annotated[Optional[str], Body(embed=True)] = None,
     sql_session: AsyncSession = Depends(get_async_session),
 ):
-    """Opt in to public sharing: flip is_public and mint an unguessable token."""
+    """Opt in to public sharing: flip is_public and mint an unguessable token.
+
+    custom_slug: alias legible opcional para /p/<slug>. None = no tocar el
+    actual; "" = quitarlo (volver al token); valor = validar + asignar.
+    """
     import secrets
 
     presentation = await sql_session.get(PresentationModel, id)
@@ -241,6 +260,32 @@ async def publish_presentation(
         raise HTTPException(404, "Presentation not found")
     if not presentation.share_token:
         presentation.share_token = secrets.token_urlsafe(16)
+
+    if custom_slug is not None:
+        if custom_slug.strip() == "":
+            presentation.custom_slug = None
+        else:
+            slug = _normalize_public_slug(custom_slug)
+            if slug is None:
+                raise HTTPException(
+                    422,
+                    "Invalid slug: use 3-50 lowercase letters, numbers or hyphens.",
+                )
+            # Colisión contra slugs Y tokens de otras presentaciones (ambos
+            # resuelven en /p/<...>).
+            taken = await sql_session.scalar(
+                select(PresentationModel.id).where(
+                    or_(
+                        PresentationModel.custom_slug == slug,
+                        PresentationModel.share_token == slug,
+                    ),
+                    PresentationModel.id != id,
+                )
+            )
+            if taken:
+                raise HTTPException(409, "Slug already in use")
+            presentation.custom_slug = slug
+
     presentation.is_public = True
     presentation.public_mode = public_mode
     sql_session.add(presentation)
@@ -248,6 +293,7 @@ async def publish_presentation(
     return {
         "is_public": True,
         "share_token": presentation.share_token,
+        "custom_slug": presentation.custom_slug,
         "public_mode": presentation.public_mode,
     }
 
@@ -270,9 +316,14 @@ async def unpublish_presentation(
 async def get_public_presentation(
     token: str, sql_session: AsyncSession = Depends(get_async_session)
 ):
-    """Read-only fetch by share token; auth-exempt (see middlewares._EXEMPT_PREFIXES)."""
+    """Read-only fetch by share token o custom slug; auth-exempt (see middlewares)."""
     presentation = await sql_session.scalar(
-        select(PresentationModel).where(PresentationModel.share_token == token)
+        select(PresentationModel).where(
+            or_(
+                PresentationModel.share_token == token,
+                PresentationModel.custom_slug == token.lower(),
+            )
+        )
     )
     if not presentation or not presentation.is_public:
         raise HTTPException(404, "Presentation not found")

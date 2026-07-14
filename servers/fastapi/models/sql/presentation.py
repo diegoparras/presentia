@@ -47,6 +47,9 @@ class PresentationModel(SQLModel, table=True):
     # Public sharing (Fase 4): opt-in publishing behind an unguessable token.
     is_public: bool = Field(sa_column=Column(Boolean, nullable=False, server_default="0"), default=False)
     share_token: Optional[str] = Field(sa_column=Column(String, unique=True, index=True), default=None)
+    # Alias legible opcional para la URL pública (/p/<slug>); el share_token
+    # sigue siendo el identificador canónico y siempre funciona.
+    custom_slug: Optional[str] = Field(sa_column=Column(String, unique=True, index=True), default=None)
     # "deck" (16:9 fullscreen) or "web" (responsive scroll) public view.
     public_mode: Optional[str] = Field(sa_column=Column(String), default="deck")
 
