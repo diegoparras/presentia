@@ -35,7 +35,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   });
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1 });
-  const url = `${baseUrl}/pdf-maker?id=${presentationId}&fastapiUrl=${fastapiUrl}`;
+  // Deployments con auth: /pdf-maker necesita la cookie de sesión para poder
+  // traer los datos de la presentación (mismo mecanismo #exportCookie que usa
+  // el exportador bundled). Sin esto, la página monta 0 slides.
+  const cookieHeader = (process.env.FREEZE_COOKIE_HEADER || "").trim();
+  const authFragment = cookieHeader
+    ? `#exportCookie=${encodeURIComponent(cookieHeader)}`
+    : "";
+  const url = `${baseUrl}/pdf-maker?id=${presentationId}&fastapiUrl=${fastapiUrl}${authFragment}`;
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 120000 });
 
   // Wait until slides are mounted and stable.
@@ -45,6 +52,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     if (n > 0 && n === count) break;
     count = n;
     await sleep(1000);
+  }
+  if (count === 0) {
+    // Fallar fuerte (antes seguía y escribía []): sin slides no hay export, y
+    // el motivo típico es auth o base_url inalcanzable desde el contenedor.
+    throw new Error(
+      `no slides mounted at ${baseUrl}/pdf-maker (cookie ${cookieHeader ? "present" : "MISSING"}; check auth/base_url)`
+    );
   }
   await sleep(3000);
 

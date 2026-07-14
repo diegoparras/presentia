@@ -96,6 +96,7 @@ async def export_presentation(
                 out_dir,
                 _get_next_public_url().rstrip("/"),
                 fastapi_url or "",
+                cookie_header,
             )
             if export_as == "pptx":
                 await _embed_pptx_fonts(out_path)

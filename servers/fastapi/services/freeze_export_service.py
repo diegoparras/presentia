@@ -33,7 +33,7 @@ def is_enabled() -> bool:
     return export_engine() == "freeze"
 
 
-def _node_env() -> dict[str, str]:
+def _node_env(cookie_header: str | None = None) -> dict[str, str]:
     env = os.environ.copy()
     # puppeteer-core lives outside the app tree; let deployments point at it.
     node_path = os.getenv("FREEZE_NODE_PATH")
@@ -42,10 +42,20 @@ def _node_env() -> dict[str, str]:
     # loopback must bypass the outbound proxy for the local dev server.
     env.setdefault("HTTPS_PROXY", "")
     env.setdefault("HTTP_PROXY", "")
+    # Sesión del usuario para /pdf-maker (deployments con auth): viaja por env
+    # (no argv) para no filtrarse en la lista de procesos.
+    if cookie_header:
+        env["FREEZE_COOKIE_HEADER"] = cookie_header
     return env
 
 
-def _freeze(presentation_id: uuid.UUID, out_json: str, base_url: str, fastapi_url: str) -> list[dict]:
+def _freeze(
+    presentation_id: uuid.UUID,
+    out_json: str,
+    base_url: str,
+    fastapi_url: str,
+    cookie_header: str | None = None,
+) -> list[dict]:
     chrome = os.getenv("FREEZE_CHROME_PATH") or os.getenv("CHROME_PATH") or ""
     cmd = ["node", _DRIVER, str(presentation_id), out_json, base_url, fastapi_url]
     if chrome:
@@ -54,7 +64,11 @@ def _freeze(presentation_id: uuid.UUID, out_json: str, base_url: str, fastapi_ur
     # Capturar stdout/stderr: el driver imprime "FREEZE FAIL: <motivo>" al
     # morir, y sin esto el 500 del export llega a los logs sin causa.
     proc = subprocess.run(
-        cmd, env=_node_env(), timeout=300, capture_output=True, text=True
+        cmd,
+        env=_node_env(cookie_header),
+        timeout=300,
+        capture_output=True,
+        text=True,
     )
     if proc.returncode != 0:
         detail = ((proc.stderr or "") + "\n" + (proc.stdout or "")).strip()
@@ -72,6 +86,7 @@ def export(
     out_dir: str,
     base_url: str,
     fastapi_url: str,
+    cookie_header: str | None = None,
 ) -> str:
     """Freeze the deck and build <title>.<ext>; return the output path."""
     from services.freeze.build_pptx import build_pptx
@@ -80,7 +95,9 @@ def export(
     os.makedirs(out_dir, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         frozen_json = os.path.join(tmp, "frozen.json")
-        slides = _freeze(presentation_id, frozen_json, base_url, fastapi_url)
+        slides = _freeze(
+            presentation_id, frozen_json, base_url, fastapi_url, cookie_header
+        )
         if not slides:
             raise RuntimeError("freeze produced no slides")
         if export_as in ("video", "mp4"):
