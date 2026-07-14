@@ -1503,4 +1503,18 @@ async def export_presentation_to_file(
     if os.path.abspath(src) != os.path.abspath(dst):
         shutil.copyfile(src, dst)
 
+    # Opcional e invisible: si hay bucket S3/R2 configurado (PRESENTIA_S3_*),
+    # el export se sube ahí y se descarga con URL prefirmada — no ocupa disco
+    # del servidor y queda preservado. Best-effort: si falla, URL local.
+    from services import export_storage
+
+    if export_storage.is_configured():
+        s3_url = await asyncio.to_thread(export_storage.upload_export, dst)
+        if s3_url:
+            try:
+                os.remove(dst)
+            except OSError:
+                pass
+            return ExportFileResponse(url=s3_url)
+
     return ExportFileResponse(url=absolute_fastapi_asset_url(f"/app_data/exports/{basename}"))

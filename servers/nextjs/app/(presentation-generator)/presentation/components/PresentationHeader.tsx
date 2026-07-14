@@ -21,7 +21,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { PresentationGenerationApi } from "../../services/api/presentation-generation";
-import { getApiUrl } from "@/utils/api";
+import { getApiUrl, resolveBackendAssetSource } from "@/utils/api";
 import { getHeader } from "../../services/api/header";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -368,7 +368,10 @@ const PresentationHeader = ({
       const { url } = await response.json();
       if (!url) throw new Error("No video URL returned");
       const safeName = buildSafeExportFileName(presentationData?.title, "mp4");
-      downloadLink(url, safeName);
+      // El backend puede devolver su host interno (127.0.0.1:8000) para
+      // /app_data: normalizar al origin actual. Las URLs externas (S3/R2
+      // prefirmadas) pasan intactas.
+      downloadLink(resolveBackendAssetSource(url) || url, safeName);
       notify.success("Video listo", "Se descargó el MP4.", { id: exportToastId });
     } catch (err) {
       console.error(err);
