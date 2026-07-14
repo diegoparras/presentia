@@ -253,25 +253,31 @@ const PresentationHeader = ({
       if (window.electron?.exportPresentation) {
         await exportViaIpc("pptx", safePptxTitle);
       } else {
-        const response = await fetch("/api/export-presentation", {
-          method: "POST",
-          body: JSON.stringify({
-            format: "pptx",
-            id: presentation_id,
-            title: safePptxTitle,
-          }),
-        });
+        // Mismo pipeline que el video (export-file): motor bundled + fuentes
+        // incrustadas + archivo en S3/R2 si está configurado, con descarga
+        // servida por el dominio propio.
+        const response = await fetch(
+          getApiUrl("/api/v1/ppt/presentation/export-file"),
+          {
+            method: "POST",
+            headers: getHeader(),
+            body: JSON.stringify({
+              presentation_id,
+              export_as: "pptx",
+            }),
+          }
+        );
 
         if (!response.ok) {
           throw new Error("Failed to export PPTX");
         }
 
-        const { path: pptxPath } = await response.json();
-        if (!pptxPath) {
+        const { url: pptxUrl } = await response.json();
+        if (!pptxUrl) {
           throw new Error("No path returned from export");
         }
 
-        downloadLink(pptxPath, safePptxFileName);
+        downloadLink(resolveBackendAssetSource(pptxUrl) || pptxUrl, safePptxFileName);
       }
       notify.success(
         t("ed.hdr.exportDone"),
@@ -318,18 +324,23 @@ const PresentationHeader = ({
       if (window.electron?.exportPresentation) {
         await exportViaIpc("pdf", safePdfTitle);
       } else {
-        const response = await fetch("/api/export-presentation", {
-          method: "POST",
-          body: JSON.stringify({
-            format: "pdf",
-            id: presentation_id,
-            title: safePdfTitle,
-          }),
-        });
+        // Mismo pipeline que el video (export-file): ver handleExportPptx.
+        const response = await fetch(
+          getApiUrl("/api/v1/ppt/presentation/export-file"),
+          {
+            method: "POST",
+            headers: getHeader(),
+            body: JSON.stringify({
+              presentation_id,
+              export_as: "pdf",
+            }),
+          }
+        );
 
         if (response.ok) {
-          const { path: pdfPath } = await response.json();
-          downloadLink(pdfPath, safePdfFileName);
+          const { url: pdfUrl } = await response.json();
+          if (!pdfUrl) throw new Error("No path returned from export");
+          downloadLink(resolveBackendAssetSource(pdfUrl) || pdfUrl, safePdfFileName);
         } else {
           throw new Error("Failed to export PDF");
         }
