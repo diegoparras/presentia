@@ -10,7 +10,7 @@ import {
   ChevronRight,
   Plus
 } from 'lucide-react'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 
 
 import { ThemeColors } from './types'
@@ -1060,6 +1060,8 @@ const ThemePanel: React.FC = () => {
 
 
         <SheetContent side="bottom" className="h-[90vh] font-syne w-full p-0 [&>button]:hidden focus:outline-none" >
+          {/* Radix exige un título accesible; oculto visualmente. */}
+          <SheetTitle className="sr-only">{t('lib.themes.editorSheetTitle')}</SheetTitle>
           <div className="flex h-full">
             {/* Left side - Editor */}
             <div

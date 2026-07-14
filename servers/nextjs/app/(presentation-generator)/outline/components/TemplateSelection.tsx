@@ -16,6 +16,7 @@ import {
   InbuiltTemplatePreview,
 } from "../../components/TemplatePreviewComponents";
 import { useI18n } from "@/lib/i18n";
+import { ensureTailwindRuntime } from "@/app/(presentation-generator)/custom-template/constants";
 
 const BuiltInTemplateCard = memo(function BuiltInTemplateCard({
   template,
@@ -91,15 +92,7 @@ const TemplateSelection: React.FC<TemplateSelectionProps> = memo(function Templa
 }) {
   const { t } = useI18n();
   useEffect(() => {
-    const existingScript = document.querySelector(
-      'script[src*="tailwindcss.com"]'
-    );
-    if (!existingScript) {
-      const script = document.createElement("script");
-      script.src = "https://cdn.tailwindcss.com";
-      script.async = true;
-      document.head.appendChild(script);
-    }
+    ensureTailwindRuntime();
   }, []);
 
   const { templates: customTemplates, loading: customLoading } = useCustomTemplateSummaries();

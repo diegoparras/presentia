@@ -14,7 +14,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
   useEffect(() => {
     const parseMarkdown = async () => {
       try {
-        const parsed = await marked.parse(content);
+        const parsed = await marked.parse(content ?? "");
         setMarkdownContent(parsed);
       } catch (error) {
         console.error("Error parsing markdown:", error);

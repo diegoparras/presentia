@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { ensureTailwindRuntime } from "@/app/(presentation-generator)/custom-template/constants";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/store/store";
 import "@/app/(presentation-generator)/utils/prism-languages";
@@ -112,15 +113,7 @@ const PresentationPage = ({ presentation_id, exportCookie }: PresentationPagePro
 
   useEffect(() => {
     if (presentationData?.slides?.[0]?.layout?.includes("custom")) {
-      const existingScript = document.querySelector(
-        'script[src*="tailwindcss.com"]'
-      );
-      if (!existingScript) {
-        const script = document.createElement("script");
-        script.src = "https://cdn.tailwindcss.com";
-        script.async = true;
-        document.head.appendChild(script);
-      }
+      ensureTailwindRuntime();
     }
   }, [presentationData]);
   useEffect(() => {

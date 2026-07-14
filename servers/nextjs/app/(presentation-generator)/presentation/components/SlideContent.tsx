@@ -1,5 +1,6 @@
 "use client";
 import React, { memo, useEffect, useRef, useState } from "react";
+import { ensureTailwindRuntime } from "@/app/(presentation-generator)/custom-template/constants";
 import {
   Loader2,
   PlusIcon,
@@ -181,15 +182,7 @@ const SlideContent = ({
   };
   useEffect(() => {
     if (slideLayout.includes("custom")) {
-      const existingScript = document.querySelector(
-        'script[src*="tailwindcss.com"]'
-      );
-      if (!existingScript) {
-        const script = document.createElement("script");
-        script.src = "https://cdn.tailwindcss.com";
-        script.async = true;
-        document.head.appendChild(script);
-      }
+      ensureTailwindRuntime();
     }
   }, [slideLayout, isStreaming]);
 

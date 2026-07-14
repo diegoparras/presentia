@@ -57,8 +57,27 @@ export const HIGHLIGHTS_ITEMS = [
     },
 ]
 
-// External scripts
-export const TAILWIND_CDN_URL = "https://cdn.tailwindcss.com";
+// Runtime de Tailwind (Play CDN) vendored en /public: las plantillas custom
+// traen clases arbitrarias que se compilan en el navegador. Self-hosteado
+// para no depender de cdn.tailwindcss.com (ni de su warning de producción).
+export const TAILWIND_CDN_URL = "/vendor/tailwind-play.js";
+
+/**
+ * Inyecta el runtime de Tailwind una sola vez (idempotente). Reemplaza a los
+ * viejos appendChild dispersos; detecta también una instancia previa del CDN
+ * externo para no duplicar.
+ */
+export const ensureTailwindRuntime = () => {
+    if (typeof document === "undefined") return;
+    const existing = document.querySelector(
+        'script[src*="tailwindcss.com"], script[src*="tailwind-play"]'
+    );
+    if (existing) return;
+    const script = document.createElement("script");
+    script.src = TAILWIND_CDN_URL;
+    script.async = true;
+    document.head.appendChild(script);
+};
 
 
 

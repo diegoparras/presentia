@@ -23,7 +23,10 @@ class SessionAuthMiddleware(BaseHTTPMiddleware):
     _EXEMPT_PREFIXES = (
         "/api/v1/auth/",
         # Public sharing (Fase 4): unguessable-token read-only access.
-        "/api/v1/ppt/public/",
+        # La ruta real es /presentation/public/ (router con prefix
+        # "/presentation"); el prefijo viejo sin "/presentation" no matcheaba
+        # y los links públicos daban 401 a visitantes sin sesión.
+        "/api/v1/ppt/presentation/public/",
     )
     _PROTECTED_NON_API_PATHS = {
         "/docs",

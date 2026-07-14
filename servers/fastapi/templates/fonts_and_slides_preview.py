@@ -267,6 +267,12 @@ def _get_template_preview_session_dir(session_id: uuid.UUID) -> str:
     return session_dir
 
 
+def _tailwind_runtime_url() -> str:
+    """Runtime de Tailwind vendored, servido por el Next del propio deploy."""
+    base = (os.getenv("NEXT_PUBLIC_URL") or "").strip() or "http://127.0.0.1"
+    return f"{base.rstrip('/')}/vendor/tailwind-play.js"
+
+
 def _build_slide_preview_html(
     slide_html: str,
     font_css: str,
@@ -280,7 +286,9 @@ def _build_slide_preview_html(
 <head>
   <meta charset="utf-8" />
   <base href="{fastapi_base}" />
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Runtime de Tailwind vendored (asset servido por el Next en /vendor).
+       URL absoluta: este HTML se carga vía setContent (origen about:blank). -->
+  <script src="{_tailwind_runtime_url()}"></script>
   {font_links}
   <style>
     html,

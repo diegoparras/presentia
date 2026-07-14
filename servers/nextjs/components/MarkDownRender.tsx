@@ -16,7 +16,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className 
     useEffect(() => {
         const parseMarkdown = async () => {
             try {
-                const parsed = await marked.parse(content);
+                // El caller puede pasar undefined (p.ej. decks sin título);
+                // marked() lanza con null/undefined.
+                const parsed = await marked.parse(content ?? "");
                 setMarkdownContent(parsed);
             } catch (error) {
                 console.error("Error parsing markdown:", error);

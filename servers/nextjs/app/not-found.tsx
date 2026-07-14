@@ -21,7 +21,6 @@ export default function NotFound() {
             width={500}
             height={500}
             className="h-full w-full object-contain object-center"
-            loading="eager"
             decoding="async"
           />
         </div>

@@ -113,19 +113,45 @@ export function useCollab(presentationId: string | undefined) {
     if (!presentationId || typeof window === "undefined") return;
     let closed = false;
     let retry: ReturnType<typeof setTimeout> | null = null;
+    // Backoff exponencial con corte: si la infra no soporta WS (proxy sin
+    // upgrade, etc.), reintentar cada 3s para siempre inunda la consola.
+    // 1s→2s→4s… tope 30s, y tras MAX_FAILURES se deja de intentar hasta que
+    // la pestaña vuelva a estar visible.
+    let failures = 0;
+    const MAX_FAILURES = 8;
+    const scheduleRetry = () => {
+      if (closed) return;
+      failures += 1;
+      if (failures > MAX_FAILURES) return; // pausa hasta visibilitychange
+      const delay = Math.min(1000 * 2 ** (failures - 1), 30000);
+      retry = setTimeout(connect, delay);
+    };
+    const onVisible = () => {
+      if (closed || document.visibilityState !== "visible") return;
+      // Reanudar solo si el circuito estaba cortado.
+      if (failures > MAX_FAILURES) {
+        failures = 0;
+        connect();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
 
     const connect = () => {
       let ws: WebSocket;
       try {
         ws = new WebSocket(wsUrl(presentationId, identity));
       } catch {
+        scheduleRetry();
         return;
       }
       wsRef.current = ws;
-      ws.onopen = () => setConnected(true);
+      ws.onopen = () => {
+        failures = 0;
+        setConnected(true);
+      };
       ws.onclose = () => {
         setConnected(false);
-        if (!closed) retry = setTimeout(connect, 3000);
+        scheduleRetry();
       };
       ws.onerror = () => {
         try { ws.close(); } catch {}
@@ -169,6 +195,7 @@ export function useCollab(presentationId: string | undefined) {
 
     return () => {
       closed = true;
+      document.removeEventListener("visibilitychange", onVisible);
       if (retry) clearTimeout(retry);
       try { wsRef.current?.close(); } catch {}
       wsRef.current = null;

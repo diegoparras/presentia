@@ -14,6 +14,7 @@ import CreateCustomTemplate from "./CreateCustomTemplate";
 import Link from "next/link";
 import { trackEvent, MixpanelEvent } from "@/utils/mixpanel";
 import { useI18n } from "@/lib/i18n";
+import { ensureTailwindRuntime } from "@/app/(presentation-generator)/custom-template/constants";
 import {
     TemplatePreviewStage,
     LayoutsBadge,
@@ -98,13 +99,7 @@ const LayoutPreview = () => {
 
     useEffect(() => {
         trackEvent(MixpanelEvent.Templates_Page_Viewed);
-        const existingScript = document.querySelector('script[src*="tailwindcss.com"]');
-        if (!existingScript) {
-            const script = document.createElement("script");
-            script.src = "https://cdn.tailwindcss.com";
-            script.async = true;
-            document.head.appendChild(script);
-        }
+        ensureTailwindRuntime();
     }, []);
 
     const handleOpenPreview = useCallback((id: string) => {

@@ -38,6 +38,7 @@ export const dict: Record<Lang, Record<string, string>> = {
     "lib.themes.fontUploadErrorDesc": "Something went wrong while uploading the font file.",
 
     "lib.themes.newCustomName": "New Custom Theme",
+    "lib.themes.editorSheetTitle": "Theme editor",
     "lib.themes.newCustomDesc": "Start with a blank canvas",
     "lib.themes.customVersionOf": "Custom version of {name}",
 
@@ -133,6 +134,7 @@ export const dict: Record<Lang, Record<string, string>> = {
     "lib.themes.fontUploadErrorDesc": "Algo salió mal al subir el archivo de fuente.",
 
     "lib.themes.newCustomName": "Tema personalizado nuevo",
+    "lib.themes.editorSheetTitle": "Editor de tema",
     "lib.themes.newCustomDesc": "Empezá con un lienzo en blanco",
     "lib.themes.customVersionOf": "Versión personalizada de {name}",
 
@@ -228,6 +230,7 @@ export const dict: Record<Lang, Record<string, string>> = {
     "lib.themes.fontUploadErrorDesc": "Une erreur s'est produite lors de l'import du fichier de police.",
 
     "lib.themes.newCustomName": "Nouveau thème personnalisé",
+    "lib.themes.editorSheetTitle": "Éditeur de thème",
     "lib.themes.newCustomDesc": "Partez d'une toile vierge",
     "lib.themes.customVersionOf": "Version personnalisée de {name}",
 
@@ -323,6 +326,7 @@ export const dict: Record<Lang, Record<string, string>> = {
     "lib.themes.fontUploadErrorDesc": "Algo deu errado ao enviar o arquivo de fonte.",
 
     "lib.themes.newCustomName": "Novo tema personalizado",
+    "lib.themes.editorSheetTitle": "Editor de tema",
     "lib.themes.newCustomDesc": "Comece com uma tela em branco",
     "lib.themes.customVersionOf": "Versão personalizada de {name}",
 
@@ -418,6 +422,7 @@ export const dict: Record<Lang, Record<string, string>> = {
     "lib.themes.fontUploadErrorDesc": "Qualcosa è andato storto durante il caricamento del file del font.",
 
     "lib.themes.newCustomName": "Nuovo tema personalizzato",
+    "lib.themes.editorSheetTitle": "Editor del tema",
     "lib.themes.newCustomDesc": "Inizia da una tela bianca",
     "lib.themes.customVersionOf": "Versione personalizzata di {name}",
 
@@ -513,6 +518,7 @@ export const dict: Record<Lang, Record<string, string>> = {
     "lib.themes.fontUploadErrorDesc": "上传字体文件时出了点问题。",
 
     "lib.themes.newCustomName": "新自定义主题",
+    "lib.themes.editorSheetTitle": "主题编辑器",
     "lib.themes.newCustomDesc": "从空白画布开始",
     "lib.themes.customVersionOf": "{name} 的自定义版本",
 
@@ -608,6 +614,7 @@ export const dict: Record<Lang, Record<string, string>> = {
     "lib.themes.fontUploadErrorDesc": "フォントファイルのアップロード中に問題が発生しました。",
 
     "lib.themes.newCustomName": "新しいカスタムテーマ",
+    "lib.themes.editorSheetTitle": "テーマエディター",
     "lib.themes.newCustomDesc": "白紙のキャンバスから始める",
     "lib.themes.customVersionOf": "{name} のカスタム版",
 

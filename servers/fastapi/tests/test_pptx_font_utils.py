@@ -281,6 +281,7 @@ def test_build_slide_preview_html_adds_fixed_viewport_css(monkeypatch):
         "absolute_fastapi_asset_url",
         lambda path: f"http://backend.test{path}",
     )
+    monkeypatch.delenv("NEXT_PUBLIC_URL", raising=False)
 
     html = fonts_and_slides_preview._build_slide_preview_html(
         '<div class="slide-content">Slide</div>',
@@ -291,7 +292,9 @@ def test_build_slide_preview_html_adds_fixed_viewport_css(monkeypatch):
     )
 
     assert '<base href="http://backend.test/" />' in html
-    assert '<script src="https://cdn.tailwindcss.com"></script>' in html
+    # Runtime de Tailwind vendored, servido por el Next del deploy (URL
+    # absoluta porque el HTML se carga via setContent).
+    assert '<script src="http://127.0.0.1/vendor/tailwind-play.js"></script>' in html
     assert "width: 1024px;" in html
     assert "height: 768px;" in html
     assert ".slide-content" in html

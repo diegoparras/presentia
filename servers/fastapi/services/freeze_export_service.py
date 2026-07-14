@@ -51,7 +51,16 @@ def _freeze(presentation_id: uuid.UUID, out_json: str, base_url: str, fastapi_ur
     if chrome:
         cmd.append(chrome)
     LOGGER.info("freeze.start id=%s", presentation_id)
-    subprocess.run(cmd, check=True, env=_node_env(), timeout=300)
+    # Capturar stdout/stderr: el driver imprime "FREEZE FAIL: <motivo>" al
+    # morir, y sin esto el 500 del export llega a los logs sin causa.
+    proc = subprocess.run(
+        cmd, env=_node_env(), timeout=300, capture_output=True, text=True
+    )
+    if proc.returncode != 0:
+        detail = ((proc.stderr or "") + "\n" + (proc.stdout or "")).strip()
+        detail = detail[-1200:] if detail else "sin salida del driver"
+        LOGGER.error("freeze driver failed (rc=%s): %s", proc.returncode, detail)
+        raise RuntimeError(f"freeze driver failed (rc={proc.returncode}): {detail}")
     with open(out_json, encoding="utf-8") as fh:
         return json.load(fh)
 
