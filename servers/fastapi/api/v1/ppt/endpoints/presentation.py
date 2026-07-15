@@ -777,10 +777,16 @@ async def update_presentation(
     if presentation_update_dict:
         presentation.sqlmodel_update(presentation_update_dict)
     if slides:
-        # Just to make sure id is UUID
+        # Normalizar ids: las slides agregadas en el cliente pueden llegar sin
+        # id/presentation (None) — antes esto tiraba TypeError y rompía TODOS
+        # los autosaves y exports del deck en loop.
         for slide in slides:
-            slide.presentation = uuid.UUID(slide.presentation)
-            slide.id = uuid.UUID(slide.id)
+            slide.presentation = (
+                uuid.UUID(str(slide.presentation))
+                if slide.presentation
+                else presentation.id
+            )
+            slide.id = uuid.UUID(str(slide.id)) if slide.id else uuid.uuid4()
 
         await sql_session.execute(
             delete(SlideModel).where(SlideModel.presentation == presentation.id)

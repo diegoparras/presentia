@@ -217,8 +217,17 @@ const presentationGenerationSlice = createSlice({
 
     addNewSlide: (state, action: PayloadAction<{ slideData: any; index: number }>) => {
       if (state.presentationData?.slides) {
+        // Garantizar id y presentation: una slide sin ellos rompía el
+        // autosave del deck entero (uuid.UUID(None) en el backend).
+        const newSlide = { ...action.payload.slideData };
+        if (!newSlide.id && typeof crypto !== "undefined" && crypto.randomUUID) {
+          newSlide.id = crypto.randomUUID();
+        }
+        if (!newSlide.presentation) {
+          newSlide.presentation = (state.presentationData as any).id;
+        }
         // Insert the new slide at the specified index + 1 (after current slide)
-        state.presentationData.slides.splice(action.payload.index + 1, 0, action.payload.slideData);
+        state.presentationData.slides.splice(action.payload.index + 1, 0, newSlide);
 
         // Update indices for all slides to ensure they remain sequential
         state.presentationData.slides = state.presentationData.slides.map(
