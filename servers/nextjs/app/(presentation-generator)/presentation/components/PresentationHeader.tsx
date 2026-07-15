@@ -903,7 +903,7 @@ const PresentationHeader = ({
             </PopoverTrigger>
             <PopoverContent
               align="end"
-              className="w-[200px] rounded-[18px] space-y-2 p-0  "
+              className="w-[340px] max-h-[80vh] overflow-y-auto rounded-[18px] space-y-2 p-0"
             >
               <ExportOptions mobile={false} />
             </PopoverContent>
