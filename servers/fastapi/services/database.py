@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+from sqlalchemy import inspect, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     create_async_engine,
@@ -44,6 +45,43 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 
+# Parches de esquema idempotentes: columnas agregadas en releases recientes.
+# Red de seguridad para deployments donde Alembic no corrió (falta
+# MIGRATE_DATABASE_ON_STARTUP) o quedó mal estampado: sin la columna, CADA
+# SELECT/UPDATE de presentations rompe el guardado y los exports (500 en loop).
+# ALTER TABLE ADD COLUMN es seguro y funciona igual en SQLite y PostgreSQL.
+_SCHEMA_PATCHES: list[tuple[str, str, str, str | None]] = [
+    (
+        "presentations",
+        "custom_slug",
+        "ALTER TABLE presentations ADD COLUMN custom_slug VARCHAR",
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_presentations_custom_slug "
+        "ON presentations (custom_slug)",
+    ),
+    (
+        "presentations",
+        "page_numbers",
+        "ALTER TABLE presentations ADD COLUMN page_numbers JSON",
+        None,
+    ),
+]
+
+
+def _apply_schema_patches(sync_conn) -> None:
+    inspector = inspect(sync_conn)
+    tables = set(inspector.get_table_names())
+    for table, column, ddl, extra_ddl in _SCHEMA_PATCHES:
+        if table not in tables:
+            continue
+        columns = {c["name"] for c in inspector.get_columns(table)}
+        if column in columns:
+            continue
+        sync_conn.execute(text(ddl))
+        if extra_ddl:
+            sync_conn.execute(text(extra_ddl))
+        print(f"[schema-patch] columna {table}.{column} agregada", flush=True)
+
+
 # Create Database and Tables
 async def create_db_and_tables():
     should_run_alembic = get_migrate_database_on_startup_env() in ["true", "True"]
@@ -70,6 +108,10 @@ async def create_db_and_tables():
                     ],
                 )
             )
+    # Siempre (con o sin Alembic): reparar columnas faltantes de releases
+    # recientes en bases preexistentes.
+    async with sql_engine.begin() as conn:
+        await conn.run_sync(_apply_schema_patches)
 
 
 async def dispose_engines():

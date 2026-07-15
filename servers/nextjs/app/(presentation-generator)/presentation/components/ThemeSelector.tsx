@@ -53,7 +53,7 @@ const ThemeSelector = ({ current_theme, themes: allThemes }: { current_theme: an
                     <Palette className={`h-4 w-4 ${isOpen ? 'text-[#007AFF]' : 'text-black'}`} /> {t("ed.theme.button")}
                 </button>
             </PopoverTrigger>
-            <PopoverContent className="w-fit rounded-[18px] max-h-80 overflow-y-auto hide-scrollbar">
+            <PopoverContent className="w-fit rounded-[18px] max-h-[75vh] overflow-y-auto">
                 <div className='pb-2 flex  gap-2 justify-end'>
                     <button className='text-xs text-gray-500 pb-2 text-right underline' onClick={() => {
                         trackEvent(MixpanelEvent.Navigation, { from: pathname, to: "/theme?tab=new-theme" });
