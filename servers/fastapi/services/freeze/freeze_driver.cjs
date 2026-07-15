@@ -61,6 +61,30 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     );
   }
   await sleep(3000);
+  // Tipografías: esperar a que TODAS las fuentes declaradas terminen de cargar
+  // antes de capturar nada (Google Fonts/custom llegan tarde).
+  await page
+    .evaluate(() => (document.fonts ? document.fonts.ready : null))
+    .catch(() => {});
+
+  // Modo frames (export a video): screenshots directos de cada slide con el
+  // render REAL de Chromium — misma tipografía y layout que ve el usuario.
+  // (El pipeline WeasyPrint reconstruye el layout y no es fiel.)
+  const framesDir = (process.env.FREEZE_FRAMES_DIR || "").trim();
+  const frameScale = parseFloat(process.env.FREEZE_FRAME_SCALE || "1") || 1;
+  if (framesDir) {
+    await page.setViewport({ width: 1280, height: 720, deviceScaleFactor: frameScale });
+    await sleep(600);
+    const slideHandles = await page.$$(".main-slide");
+    let idx = 0;
+    for (const handle of slideHandles) {
+      await handle.screenshot({
+        path: path.join(framesDir, `frame_${String(idx).padStart(4, "0")}.png`),
+      });
+      idx++;
+    }
+    console.log(`captured ${idx} chromium frames -> ${framesDir}`);
+  }
 
   await page.evaluate(EXTRACTOR);
   const slides = await page.evaluate(() => window.__freezeSlides());

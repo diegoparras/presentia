@@ -199,6 +199,99 @@ def _mux_audio(
             pass
 
 
+def _assemble_and_mux(
+    frames: list[str],
+    out_path: str,
+    seconds_per_slide: float,
+    fps: int,
+    width: int,
+    transition: str | None,
+    transition_duration: float,
+    audio_path: str | None,
+    music_volume: float,
+    music_fade_in: float,
+    music_fade_out: float,
+    fade_video: bool,
+) -> None:
+    height = int(round(width * SLIDE_H / SLIDE_W))
+    # La transición no puede durar más que la slide que la contiene.
+    transition_duration = min(transition_duration, seconds_per_slide / 2)
+    used_transition = bool(transition) and len(frames) > 1
+    try:
+        if used_transition:
+            _build_with_xfade(
+                frames, out_path, seconds_per_slide, fps,
+                transition_duration, width, height,
+                transition_type=transition or "fade",
+                fade_video=fade_video,
+            )
+        else:
+            _build_concat_no_transition(
+                frames, out_path, seconds_per_slide, fps, fade_video=fade_video
+            )
+    except subprocess.CalledProcessError as exc:
+        stderr = (exc.stderr or b"").decode("utf-8", "replace")[-800:]
+        LOGGER.error("ffmpeg failed: %s", stderr)
+        # xfade can be finicky; retry with the simple hard-cut path.
+        if used_transition:
+            LOGGER.info("retrying video export without transitions")
+            _build_concat_no_transition(
+                frames, out_path, seconds_per_slide, fps, fade_video=fade_video
+            )
+            used_transition = False
+        else:
+            raise RuntimeError(f"ffmpeg falló al generar el video: {stderr}") from exc
+
+    if audio_path and os.path.isfile(audio_path):
+        n = len(frames)
+        duration = (
+            n * seconds_per_slide - (n - 1) * transition_duration
+            if used_transition
+            else n * seconds_per_slide
+        )
+        _mux_audio(
+            out_path, audio_path, duration,
+            volume=music_volume,
+            fade_in=music_fade_in,
+            fade_out=music_fade_out,
+        )
+
+
+def build_video_from_frames(
+    frames: list[str],
+    out_path: str,
+    seconds_per_slide: float = 3.0,
+    fps: int = 30,
+    width: int = 1920,
+    transition: str | None = "fade",
+    transition_duration: float = 0.6,
+    audio_path: str | None = None,
+    music_volume: float = 1.0,
+    music_fade_in: float = 0.0,
+    music_fade_out: float = 1.5,
+    fade_video: bool = False,
+) -> None:
+    """Ensambla el MP4 desde frames PNG ya capturados (screenshots Chromium).
+
+    Camino de máxima fidelidad: los frames son el render REAL del navegador
+    (misma tipografía y layout que ve el usuario).
+    """
+    if not ffmpeg_available():
+        raise RuntimeError(
+            "ffmpeg no está disponible en el servidor; no se puede exportar video"
+        )
+    if not frames:
+        raise RuntimeError("no frames to assemble")
+    _assemble_and_mux(
+        frames, out_path, seconds_per_slide, fps, width,
+        transition, transition_duration, audio_path,
+        music_volume, music_fade_in, music_fade_out, fade_video,
+    )
+    LOGGER.info(
+        "freeze.video done (chromium frames) -> %s (%d frames)", out_path, len(frames)
+    )
+
+
 def build_video(
     slides: list[dict[str, Any]],
     out_path: str,
@@ -215,9 +308,9 @@ def build_video(
 ) -> None:
     """Render `slides` (frozen scene list) to an MP4 at `out_path`.
 
-    transition: tipo de xfade (fade/slideleft/wipeleft/circleopen/dissolve/
-    pixelize) o None para corte seco. Los llamadores pasan valores ya
-    saneados (VideoOptions.sanitized).
+    Camino de RESPALDO (WeasyPrint): se usa solo si la captura de frames
+    Chromium no está disponible. transition: tipo de xfade o None para corte
+    seco. Los llamadores pasan valores ya saneados (VideoOptions.sanitized).
     """
     if not ffmpeg_available():
         raise RuntimeError(
@@ -226,53 +319,15 @@ def build_video(
     if not slides:
         raise RuntimeError("no slides to render")
 
-    height = int(round(width * SLIDE_H / SLIDE_W))
-    # La transición no puede durar más que la slide que la contiene.
-    transition_duration = min(transition_duration, seconds_per_slide / 2)
     with tempfile.TemporaryDirectory() as tmp:
         pdf_path = os.path.join(tmp, "deck.pdf")
         build_pdf(slides, pdf_path)
         frames = _rasterize_pdf(pdf_path, tmp, width)
         if not frames:
             raise RuntimeError("PDF produced no pages to rasterize")
-
-        used_transition = bool(transition) and len(frames) > 1
-        try:
-            if used_transition:
-                _build_with_xfade(
-                    frames, out_path, seconds_per_slide, fps,
-                    transition_duration, width, height,
-                    transition_type=transition or "fade",
-                    fade_video=fade_video,
-                )
-            else:
-                _build_concat_no_transition(
-                    frames, out_path, seconds_per_slide, fps, fade_video=fade_video
-                )
-        except subprocess.CalledProcessError as exc:
-            stderr = (exc.stderr or b"").decode("utf-8", "replace")[-800:]
-            LOGGER.error("ffmpeg failed: %s", stderr)
-            # xfade can be finicky; retry with the simple hard-cut path.
-            if used_transition:
-                LOGGER.info("retrying video export without transitions")
-                _build_concat_no_transition(
-                    frames, out_path, seconds_per_slide, fps, fade_video=fade_video
-                )
-                used_transition = False
-            else:
-                raise RuntimeError(f"ffmpeg falló al generar el video: {stderr}") from exc
-
-        if audio_path and os.path.isfile(audio_path):
-            n = len(frames)
-            duration = (
-                n * seconds_per_slide - (n - 1) * transition_duration
-                if used_transition
-                else n * seconds_per_slide
-            )
-            _mux_audio(
-                out_path, audio_path, duration,
-                volume=music_volume,
-                fade_in=music_fade_in,
-                fade_out=music_fade_out,
-            )
-    LOGGER.info("freeze.video done -> %s (%d frames)", out_path, len(frames))
+        _assemble_and_mux(
+            frames, out_path, seconds_per_slide, fps, width,
+            transition, transition_duration, audio_path,
+            music_volume, music_fade_in, music_fade_out, fade_video,
+        )
+    LOGGER.info("freeze.video done (weasyprint) -> %s (%d frames)", out_path, len(frames))

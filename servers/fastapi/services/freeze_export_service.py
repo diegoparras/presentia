@@ -33,7 +33,11 @@ def is_enabled() -> bool:
     return export_engine() == "freeze"
 
 
-def _node_env(cookie_header: str | None = None) -> dict[str, str]:
+def _node_env(
+    cookie_header: str | None = None,
+    frames_dir: str | None = None,
+    frame_scale: float = 1.0,
+) -> dict[str, str]:
     env = os.environ.copy()
     # puppeteer-core lives outside the app tree; let deployments point at it.
     node_path = os.getenv("FREEZE_NODE_PATH")
@@ -46,6 +50,11 @@ def _node_env(cookie_header: str | None = None) -> dict[str, str]:
     # (no argv) para no filtrarse en la lista de procesos.
     if cookie_header:
         env["FREEZE_COOKIE_HEADER"] = cookie_header
+    # Export a video: el driver captura screenshots Chromium de cada slide
+    # (fidelidad total con lo que ve el usuario).
+    if frames_dir:
+        env["FREEZE_FRAMES_DIR"] = frames_dir
+        env["FREEZE_FRAME_SCALE"] = f"{frame_scale:g}"
     return env
 
 
@@ -55,6 +64,8 @@ def _freeze(
     base_url: str,
     fastapi_url: str,
     cookie_header: str | None = None,
+    frames_dir: str | None = None,
+    frame_scale: float = 1.0,
 ) -> list[dict]:
     chrome = os.getenv("FREEZE_CHROME_PATH") or os.getenv("CHROME_PATH") or ""
     cmd = ["node", _DRIVER, str(presentation_id), out_json, base_url, fastapi_url]
@@ -65,7 +76,7 @@ def _freeze(
     # morir, y sin esto el 500 del export llega a los logs sin causa.
     proc = subprocess.run(
         cmd,
-        env=_node_env(cookie_header),
+        env=_node_env(cookie_header, frames_dir, frame_scale),
         timeout=300,
         capture_output=True,
         text=True,
@@ -97,12 +108,26 @@ def export(
     os.makedirs(out_dir, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         frozen_json = os.path.join(tmp, "frozen.json")
+        is_video = export_as in ("video", "mp4")
+        frames_dir = None
+        frame_scale = 1.0
+        if is_video:
+            frames_dir = os.path.join(tmp, "frames")
+            os.makedirs(frames_dir, exist_ok=True)
+            # Slides CSS = 1280px; escalar el screenshot a la calidad pedida.
+            frame_scale = float((video_options or {}).get("width", 1920)) / 1280.0
         slides = _freeze(
-            presentation_id, frozen_json, base_url, fastapi_url, cookie_header
+            presentation_id,
+            frozen_json,
+            base_url,
+            fastapi_url,
+            cookie_header,
+            frames_dir,
+            frame_scale,
         )
         if not slides:
             raise RuntimeError("freeze produced no slides")
-        if export_as in ("video", "mp4"):
+        if is_video:
             ext = "mp4"
         elif export_as == "pdf":
             ext = "pdf"
@@ -111,12 +136,24 @@ def export(
         out_path = os.path.join(out_dir, f"{title or presentation_id}.{ext}")
         if export_as == "pdf":
             build_pdf(slides, out_path)
-        elif export_as in ("video", "mp4"):
-            from services.freeze.video import build_video
+        elif is_video:
+            from services.freeze.video import build_video, build_video_from_frames
 
-            build_video(
-                slides, out_path, audio_path=music_path, **(video_options or {})
-            )
+            frames = sorted(
+                os.path.join(frames_dir, f)
+                for f in os.listdir(frames_dir)
+                if f.endswith(".png")
+            ) if frames_dir else []
+            if frames:
+                build_video_from_frames(
+                    frames, out_path, audio_path=music_path, **(video_options or {})
+                )
+            else:
+                # Respaldo: pipeline WeasyPrint (menos fiel) si la captura falló.
+                LOGGER.warning("sin frames Chromium; usando el respaldo WeasyPrint")
+                build_video(
+                    slides, out_path, audio_path=music_path, **(video_options or {})
+                )
         else:
             build_pptx(slides, out_path)
     LOGGER.info("freeze.export done id=%s -> %s", presentation_id, out_path)
