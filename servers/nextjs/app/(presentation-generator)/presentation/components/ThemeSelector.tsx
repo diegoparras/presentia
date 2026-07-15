@@ -12,6 +12,7 @@ import {
 } from "../utils/applyPresentationThemeDom";
 import { trackEvent, MixpanelEvent } from '@/utils/mixpanel';
 import { useI18n } from '@/lib/i18n';
+import PageNumbersControls from './PageNumbersControls';
 
 const ThemeSelector = ({ current_theme, themes: allThemes }: { current_theme: any, themes: any[] }) => {
     const { t } = useI18n()
@@ -85,6 +86,8 @@ const ThemeSelector = ({ current_theme, themes: allThemes }: { current_theme: an
                         </div>
                     ))}
                 </div>
+                {/* Números de slide (config de deck, opcional) */}
+                <PageNumbersControls />
             </PopoverContent>
         </Popover>
     )

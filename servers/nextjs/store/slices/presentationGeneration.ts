@@ -403,6 +403,15 @@ const presentationGenerationSlice = createSlice({
       slide.content.__graph_colors__ = colors;
     },
 
+    // Números de slide (config a nivel deck — presentation.page_numbers).
+    setPageNumbers: (
+      state,
+      action: PayloadAction<Record<string, any> | null>
+    ) => {
+      if (!state.presentationData) return;
+      (state.presentationData as any).page_numbers = action.payload;
+    },
+
     // Iconos superpuestos a la slide — content.__overlays__[]. Usan
     // __icon_url__ para que el IconsEditor existente los detecte y edite.
     addSlideOverlay: (
@@ -538,6 +547,7 @@ export const {
   clearAllStyleOverrides,
   setSlideBackground,
   setGraphColor,
+  setPageNumbers,
   addSlideOverlay,
   removeSlideOverlay,
   updateSlideIcon,

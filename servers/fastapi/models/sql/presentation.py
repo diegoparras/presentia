@@ -52,6 +52,10 @@ class PresentationModel(SQLModel, table=True):
     custom_slug: Optional[str] = Field(sa_column=Column(String, unique=True, index=True), default=None)
     # "deck" (16:9 fullscreen) or "web" (responsive scroll) public view.
     public_mode: Optional[str] = Field(sa_column=Column(String), default="deck")
+    # Números de slide (config de deck, opcional): {enabled, format, position,
+    # style, size, color, opacity, skip_first, start_at}. Renderiza el
+    # frontend (StyleOverrideApplier) en edición, exports y vista pública.
+    page_numbers: Optional[dict] = Field(sa_column=Column(JSON), default=None)
 
     def get_new_presentation(self):
         return PresentationModel(

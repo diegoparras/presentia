@@ -1,17 +1,121 @@
 "use client";
 
 import React, { useLayoutEffect, useRef } from "react";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store/store";
 import { RemoteSvgIcon } from "@/app/hooks/useRemoteSvgIcon";
 import {
   SlideBackground,
   StyleOverrides,
   STYLE_APPLIED_ATTR,
   SLIDE_BG_ATTR,
+  PAGE_NUMBER_ATTR,
   findVisualHost,
   resolveElementPath,
   overrideToInlineStyle,
   isMeaningfulOverride,
 } from "./styleOverrides";
+
+// Config de números de slide (a nivel deck; presentation.page_numbers).
+export interface PageNumbersConfig {
+  enabled?: boolean;
+  format?: string; // plantilla con {n} y {total}
+  position?:
+    | "bottom-left" | "bottom-center" | "bottom-right"
+    | "top-left" | "top-center" | "top-right";
+  style?: "minimal" | "pill" | "circle";
+  size?: "s" | "m" | "l";
+  color?: string | null; // null/"" = automático
+  opacity?: number; // 10..100
+  skip_first?: boolean;
+  start_at?: number;
+}
+
+const PAGE_NUM_FONT_SIZE: Record<string, string> = { s: "12px", m: "15px", l: "20px" };
+
+// Inyecta (o actualiza/remueve) el número de slide como ÚLTIMO hijo del host
+// visual: mismo DOM en edición, exports y vista pública. Excluido del
+// indexado de paths (PAGE_NUMBER_ATTR) y sin eventos de puntero.
+const applyPageNumberLayer = (
+  root: HTMLElement,
+  cfg: PageNumbersConfig | null | undefined,
+  slideIndex: number,
+  total: number
+) => {
+  const host = findVisualHost(root);
+  if (!host) return;
+  let layer = host.querySelector(
+    `:scope > [${PAGE_NUMBER_ATTR}]`
+  ) as HTMLElement | null;
+
+  const startAt = cfg?.start_at ?? 1;
+  const skipFirst = !!cfg?.skip_first;
+  const n = slideIndex + startAt - (skipFirst ? 1 : 0);
+  const shown = !!cfg?.enabled && !(skipFirst && slideIndex === 0) && n >= 1;
+  if (!shown) {
+    layer?.remove();
+    return;
+  }
+  if (!layer) {
+    layer = document.createElement("div");
+    layer.setAttribute(PAGE_NUMBER_ATTR, "");
+    host.appendChild(layer);
+  }
+  if (window.getComputedStyle(host).position === "static") {
+    host.style.position = "relative";
+  }
+
+  const totalShown = total - (skipFirst ? 1 : 0) + (startAt - 1);
+  const text = (cfg?.format || "{n}")
+    .split("{n}").join(String(n))
+    .split("{total}").join(String(totalShown));
+  if (layer.textContent !== text) layer.textContent = text;
+
+  const position = cfg?.position || "bottom-right";
+  const style = cfg?.style || "minimal";
+  const fontSize = PAGE_NUM_FONT_SIZE[cfg?.size || "m"] || "15px";
+  const custom = (cfg?.color || "").trim();
+
+  const css: Record<string, string> = {
+    position: "absolute",
+    pointerEvents: "none",
+    zIndex: "60",
+    fontSize,
+    lineHeight: "1",
+    fontFamily: "inherit",
+    fontWeight: "600",
+    letterSpacing: "0.02em",
+    opacity: String((cfg?.opacity ?? 100) / 100),
+    top: "", bottom: "", left: "", right: "", transform: "",
+    background: "", color: "", padding: "", borderRadius: "",
+    width: "", height: "", display: "", alignItems: "", justifyContent: "",
+  };
+  const inset = "18px";
+  if (position.startsWith("top")) css.top = inset;
+  else css.bottom = inset;
+  if (position.endsWith("left")) css.left = inset;
+  else if (position.endsWith("right")) css.right = inset;
+  else { css.left = "50%"; css.transform = "translateX(-50%)"; }
+
+  if (style === "minimal") {
+    css.color = custom || "rgba(120,120,120,0.95)";
+  } else {
+    css.background = custom || "rgba(0,0,0,0.45)";
+    css.color = "#ffffff";
+    if (style === "pill") {
+      css.padding = "0.4em 0.85em";
+      css.borderRadius = "999px";
+    } else {
+      css.width = "2.3em";
+      css.height = "2.3em";
+      css.borderRadius = "50%";
+      css.display = "flex";
+      css.alignItems = "center";
+      css.justifyContent = "center";
+    }
+  }
+  Object.assign(layer.style, css);
+};
 
 // Icono superpuesto a la slide (agregado por el usuario). Usa __icon_url__
 // para que EditableLayoutWrapper/IconsEditor lo detecten y editen (color,
@@ -31,6 +135,8 @@ interface Props {
   // Se aplican como variables --graph-N en el root de la slide: funcionan con
   // TODAS las familias de templates (todas colorean con var(--graph-N, ...)).
   graphColors?: (string | null)[];
+  // Índice de la slide (para el número de slide; config a nivel deck en redux).
+  slideIndex?: number;
   children: React.ReactNode;
 }
 
@@ -140,8 +246,21 @@ const ensureGoogleFontsFromDom = (root: HTMLElement) => {
  * aparecen también en el export (Chromium imprime el DOM; freeze lee
  * getComputedStyle/getBoundingClientRect del mismo DOM).
  */
-const StyleOverrideApplier: React.FC<Props> = ({ overrides, background, overlays, graphColors, children }) => {
+const StyleOverrideApplier: React.FC<Props> = ({ overrides, background, overlays, graphColors, slideIndex, children }) => {
   const rootRef = useRef<HTMLDivElement>(null);
+  // Números de slide: config del deck + total (redux está poblado en el
+  // editor, /pdf-maker y la vista pública).
+  const pageNumbers = useSelector(
+    (s: RootState) =>
+      (s.presentationGeneration.presentationData as any)?.page_numbers as
+        | PageNumbersConfig
+        | null
+        | undefined
+  );
+  const totalSlides = useSelector(
+    (s: RootState) =>
+      ((s.presentationGeneration.presentationData as any)?.slides?.length ?? 0) as number
+  );
   // Snapshot del atributo `style` original de cada elemento tocado, para poder
   // revertir con exactitud sin pisar estilos inline del template.
   const appliedRef = useRef<{ el: HTMLElement; style: string | null }[]>([]);
@@ -177,6 +296,9 @@ const StyleOverrideApplier: React.FC<Props> = ({ overrides, background, overlays
       });
       applyBackgroundLayer(root, background);
       applyGraphColors(root, graphColors);
+      if (typeof slideIndex === "number") {
+        applyPageNumberLayer(root, pageNumbers, slideIndex, totalSlides);
+      }
       root.setAttribute(STYLE_APPLIED_ATTR, "true");
       ensureGoogleFontsFromDom(root);
     };
@@ -197,7 +319,7 @@ const StyleOverrideApplier: React.FC<Props> = ({ overrides, background, overlays
       obs.disconnect();
       cancelAnimationFrame(raf);
     };
-  }, [overrides, background, graphColors]);
+  }, [overrides, background, graphColors, pageNumbers, slideIndex, totalSlides]);
 
   return (
     <div ref={rootRef} data-style-root="" style={{ display: "contents" }}>

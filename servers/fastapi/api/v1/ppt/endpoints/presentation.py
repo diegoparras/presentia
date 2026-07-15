@@ -756,6 +756,7 @@ async def update_presentation(
     n_slides: Annotated[Optional[int], Body()] = None,
     title: Annotated[Optional[str], Body()] = None,
     theme: Annotated[Optional[dict], Body()] = None,
+    page_numbers: Annotated[Optional[dict], Body()] = None,
     slides: Annotated[Optional[List[SlideModel]], Body()] = None,
     sql_session: AsyncSession = Depends(get_async_session),
 ):
@@ -770,6 +771,8 @@ async def update_presentation(
         presentation_update_dict["title"] = title
     if theme or theme is None:
         presentation_update_dict["theme"] = theme
+    if page_numbers is not None:
+        presentation_update_dict["page_numbers"] = page_numbers
 
     if presentation_update_dict:
         presentation.sqlmodel_update(presentation_update_dict)

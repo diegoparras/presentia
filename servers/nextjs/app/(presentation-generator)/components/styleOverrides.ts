@@ -53,6 +53,8 @@ export const STYLE_APPLIED_ATTR = "data-style-overrides-applied";
 // Marca del layer de fondo inyectado: se EXCLUYE del indexado de elementPath
 // para no correr los índices de los overrides existentes.
 export const SLIDE_BG_ATTR = "data-slide-bg";
+// Marca del layer de número de slide inyectado: también excluido del indexado.
+export const PAGE_NUMBER_ATTR = "data-page-number";
 
 export const MIN_SCALE = 0.25;
 export const MAX_SCALE = 4;
@@ -85,7 +87,8 @@ export const findVisualHost = (root: Element): HTMLElement | null =>
 const indexableChildren = (parent: Element): Element[] =>
   Array.prototype.filter.call(
     parent.children,
-    (c: Element) => !c.hasAttribute(SLIDE_BG_ATTR)
+    (c: Element) =>
+      !c.hasAttribute(SLIDE_BG_ATTR) && !c.hasAttribute(PAGE_NUMBER_ATTR)
   ) as Element[];
 
 export function getElementPath(el: Element, root: Element): string | null {
