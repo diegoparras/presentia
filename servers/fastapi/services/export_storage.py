@@ -86,6 +86,61 @@ def upload_export(local_path: str) -> str | None:
         return None
 
 
+def list_exports() -> list[dict] | None:
+    """Lista los exports del bucket: [{name, size, modified}].
+
+    Devuelve None si S3 no está configurado o el listado falla — el caller
+    cae al directorio local de exports.
+    """
+    cfg = _config()
+    if not cfg:
+        return None
+    try:
+        client = _client(cfg)
+        entries: list[dict] = []
+        token = None
+        while True:
+            kwargs = {"Bucket": cfg["bucket"], "Prefix": f"{_KEY_PREFIX}/"}
+            if token:
+                kwargs["ContinuationToken"] = token
+            resp = client.list_objects_v2(**kwargs)
+            for obj in resp.get("Contents", []):
+                base = obj["Key"].rsplit("/", 1)[-1]
+                if not base:
+                    continue
+                modified = obj.get("LastModified")
+                entries.append(
+                    {
+                        "name": base,
+                        "size": obj.get("Size"),
+                        "modified": modified.isoformat() if modified else None,
+                    }
+                )
+            if not resp.get("IsTruncated"):
+                break
+            token = resp.get("NextContinuationToken")
+        return entries
+    except Exception as exc:  # noqa: BLE001
+        LOGGER.warning("listado de exports en S3/R2 falló: %s", exc)
+        return None
+
+
+def delete_export(filename: str) -> bool:
+    """Borra un export del bucket. Nombre restringido a basename plano."""
+    cfg = _config()
+    if not cfg:
+        return False
+    if not filename or "/" in filename or "\\" in filename or ".." in filename:
+        return False
+    try:
+        client = _client(cfg)
+        client.delete_object(Bucket=cfg["bucket"], Key=f"{_KEY_PREFIX}/{filename}")
+        return True
+    except Exception as exc:  # noqa: BLE001
+        LOGGER.warning("borrado del export en S3/R2 falló: %s", exc)
+        return False
+
+
 def open_export(filename: str):
     """Abre un export del bucket para streamearlo al cliente.
 

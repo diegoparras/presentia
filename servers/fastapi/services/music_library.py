@@ -92,6 +92,81 @@ def list_names() -> list[str]:
     )
 
 
+def list_entries() -> list[dict]:
+    """Como list_names pero con metadatos: [{name, size, modified}]."""
+    from datetime import datetime, timezone
+
+    cfg = export_storage._config()
+    if cfg:
+        client = export_storage._client(cfg)
+        entries: list[dict] = []
+        token = None
+        while True:
+            kwargs = {"Bucket": cfg["bucket"], "Prefix": f"{_KEY_PREFIX}/"}
+            if token:
+                kwargs["ContinuationToken"] = token
+            resp = client.list_objects_v2(**kwargs)
+            for obj in resp.get("Contents", []):
+                base = obj["Key"].rsplit("/", 1)[-1]
+                if not base:
+                    continue
+                modified = obj.get("LastModified")
+                entries.append(
+                    {
+                        "name": base,
+                        "size": obj.get("Size"),
+                        "modified": modified.isoformat() if modified else None,
+                    }
+                )
+            if not resp.get("IsTruncated"):
+                break
+            token = resp.get("NextContinuationToken")
+        return sorted(entries, key=lambda e: e["name"])
+    d = _local_dir()
+    entries = []
+    for f in sorted(os.listdir(d)):
+        if f.startswith(".") or os.path.splitext(f)[1].lower() not in AUDIO_EXTENSIONS:
+            continue
+        try:
+            st = os.stat(os.path.join(d, f))
+        except OSError:
+            continue
+        entries.append(
+            {
+                "name": f,
+                "size": st.st_size,
+                "modified": datetime.fromtimestamp(
+                    st.st_mtime, tz=timezone.utc
+                ).isoformat(),
+            }
+        )
+    return entries
+
+
+def open_track(name: str):
+    """Abre una pista para streamearla: (chunks, content_type, length) o None."""
+    if not is_valid_name(name):
+        return None
+    try:
+        cfg = export_storage._config()
+        content_type = mimetypes.guess_type(name)[0] or "application/octet-stream"
+        if cfg:
+            client = export_storage._client(cfg)
+            obj = client.get_object(Bucket=cfg["bucket"], Key=f"{_KEY_PREFIX}/{name}")
+            body = obj["Body"]
+            chunks = iter(lambda: body.read(64 * 1024), b"")
+            return chunks, obj.get("ContentType") or content_type, obj.get("ContentLength")
+        path = os.path.join(_local_dir(), name)
+        if not os.path.isfile(path):
+            return None
+        f = open(path, "rb")
+        chunks = iter(lambda: f.read(64 * 1024), b"")
+        return chunks, content_type, os.path.getsize(path)
+    except Exception as exc:  # noqa: BLE001
+        LOGGER.warning("no se pudo abrir la pista %s: %s", name, exc)
+        return None
+
+
 def delete(name: str) -> bool:
     if not is_valid_name(name):
         return False

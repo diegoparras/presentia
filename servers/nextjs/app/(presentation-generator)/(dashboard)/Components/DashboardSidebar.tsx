@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { LayoutDashboard, Star, Brain, Settings, Palette, Coins, FileText, Cpu } from "lucide-react";
+import { LayoutDashboard, Star, Brain, Settings, Palette, Coins, FileText, Cpu, FolderOpen } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import AboutPresentia from "@/components/AboutPresentia";
@@ -124,6 +124,21 @@ const DashboardSidebar = () => {
                             <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
                                 <Cpu className={`h-4 w-4 ${pathname === "/models" ? "text-[#e25a4e]" : "text-slate-600"}`} />
                                 <span className="text-[11px] text-slate-800">{t("nav.models")}</span>
+                            </div>
+                        </Link>
+                        <Link
+                            prefetch={false}
+                            href={`/library`}
+                            className={[
+                                "flex flex-col tex-center items-center gap-2  transition-colors",
+                                pathname === "/library" ? "" : "ring-transparent",
+                            ].join(" ")}
+                            aria-label={t("nav.library")}
+                            title={t("nav.library")}
+                        >
+                            <div className="flex flex-col cursor-pointer tex-center items-center gap-2  transition-colors">
+                                <FolderOpen className={`h-4 w-4 ${pathname === "/library" ? "text-[#e25a4e]" : "text-slate-600"}`} />
+                                <span className="text-[11px] text-slate-800">{t("nav.library")}</span>
                             </div>
                         </Link>
                         <Link

@@ -8,10 +8,28 @@ import os
 from typing import List
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 
 from services import music_library
 
 MUSIC_ROUTER = APIRouter(prefix="/music", tags=["Music"])
+
+
+@MUSIC_ROUTER.get("/file/{name}")
+async def download_music(name: str):
+    """Descarga una pista con el dominio propio (streamea desde S3 o disco)."""
+    from urllib.parse import quote
+
+    if not music_library.is_valid_name(name):
+        raise HTTPException(400, "Nombre de pista inválido")
+    opened = await asyncio.to_thread(music_library.open_track, name)
+    if not opened:
+        raise HTTPException(404, "Pista no encontrada")
+    chunks, content_type, length = opened
+    headers = {"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name)}"}
+    if length:
+        headers["Content-Length"] = str(length)
+    return StreamingResponse(chunks, media_type=content_type, headers=headers)
 
 
 @MUSIC_ROUTER.get("", response_model=List[str])
